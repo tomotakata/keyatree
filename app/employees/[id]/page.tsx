@@ -86,6 +86,7 @@ export default async function EmployeePage({
               employeeId={employee.id}
               monthlyGoal={employee.monthlyGoal}
               employeeName={employee.name}
+              employeeAvatar={employee.photo}
             />
 
             {/* スキルマップ */}
