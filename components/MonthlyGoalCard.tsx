@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import { MonthlyGoal, CheerComment, Reply, markHotComments } from "@/lib/mockData";
 
 const MAX_BRAVO = 10;
@@ -40,7 +39,8 @@ function CommentCard({
 
   return (
     <div className="flex gap-3 items-start w-full">
-      <Image src={comment.avatar} alt={comment.from} width={40} height={40} className="rounded-full flex-shrink-0 mt-0.5" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={comment.avatar} alt={comment.from} width={40} height={40} className="rounded-full flex-shrink-0 mt-0.5 w-10 h-10 object-cover" />
       <div className="flex-1 min-w-0">
         {/* バブル本体 */}
         <div className="bg-gray-50 rounded-2xl rounded-tl-none px-4 py-3">
@@ -83,7 +83,8 @@ function CommentCard({
           <div className="mt-2 space-y-2 pl-2 border-l-2 border-emerald-100">
             {allReplies.map((r) => (
               <div key={r.id} className="flex gap-2 items-start">
-                <Image src={r.avatar} alt={r.from} width={28} height={28} className="rounded-full flex-shrink-0" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={r.avatar} alt={r.from} className="rounded-full flex-shrink-0 w-7 h-7 object-cover" />
                 <div className="bg-emerald-50 rounded-xl rounded-tl-none px-3 py-2 flex-1">
                   <span className="text-xs font-bold text-gray-700 mr-2">{r.from}</span>
                   <span className="text-xs text-gray-500">{r.message}</span>
@@ -96,7 +97,8 @@ function CommentCard({
         {/* 返信入力 */}
         {showReply && (
           <div className="mt-2 flex gap-2 items-center">
-            <Image src={employeeAvatar} alt={employeeName} width={28} height={28} className="rounded-full flex-shrink-0" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={employeeAvatar} alt={employeeName} className="rounded-full flex-shrink-0 w-7 h-7 object-cover" />
             <input
               type="text"
               value={replyText}

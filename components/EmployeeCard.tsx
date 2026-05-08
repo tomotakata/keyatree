@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { Employee } from "@/lib/mockData";
 
 const enneagramColors: Record<number, string> = {
@@ -23,11 +22,10 @@ export default function EmployeeCard({ employee }: { employee: Employee }) {
       <div className="relative">
         <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg overflow-hidden">
           {employee.photo ? (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={employee.photo}
               alt={employee.name}
-              width={96}
-              height={96}
               className="w-24 h-24 rounded-full object-cover"
             />
           ) : (
