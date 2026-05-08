@@ -6,6 +6,7 @@ import SkillRadar from "@/components/SkillRadar";
 import GoalSection from "@/components/GoalSection";
 import ThanksHistory from "@/components/ThanksHistory";
 import GreetingBanner from "@/components/GreetingBanner";
+import MonthlyGoalCard from "@/components/MonthlyGoalCard";
 
 const rankColors: Record<string, { bg: string; text: string; border: string }> = {
   S: { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200" },
@@ -79,6 +80,13 @@ export default async function EmployeePage({
 
           {/* メインコンテンツ */}
           <div className="flex-1 space-y-5">
+
+            {/* 今月の目標 */}
+            <MonthlyGoalCard
+              employeeId={employee.id}
+              monthlyGoal={employee.monthlyGoal}
+              employeeName={employee.name}
+            />
 
             {/* スキルマップ */}
             <div className="bg-white rounded-2xl shadow-sm border p-5">

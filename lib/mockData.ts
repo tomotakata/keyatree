@@ -16,6 +16,21 @@ export type ThanksCard = {
   tag: string;
 };
 
+export type CheerComment = {
+  from: string;
+  role: string;
+  message: string;
+  date: string;
+  avatar: string;
+};
+
+export type MonthlyGoal = {
+  month: string;
+  declaration: string;
+  cheers: number;
+  comments: CheerComment[];
+};
+
 export type Employee = {
   id: string;
   name: string;
@@ -34,6 +49,7 @@ export type Employee = {
   skills: Skill[];
   goals: Goal[];
   thanks: ThanksCard[];
+  monthlyGoal: MonthlyGoal;
 };
 
 export const employees: Employee[] = [
@@ -85,6 +101,42 @@ export const employees: Employee[] = [
         tag: "アイデア",
       },
     ],
+    monthlyGoal: {
+      month: "2025年5月",
+      declaration:
+        "今月は営業売上3,000万円達成と、お客様からの「ありがとう」メッセージを100件獲得！！全力で駆け抜けます！",
+      cheers: 24,
+      comments: [
+        {
+          from: "田中 部長",
+          role: "上長",
+          message: "一郎なら絶対できる！チーム全員で応援してるぞ！",
+          date: "2025-05-01",
+          avatar: "https://api.dicebear.com/9.x/avataaars/png?seed=tanaka-bucho&backgroundColor=ffd5dc&radius=50&size=80",
+        },
+        {
+          from: "佐藤 次郎",
+          role: "同僚",
+          message: "一緒に今月も頑張ろう！何かあればすぐ声かけて！",
+          date: "2025-05-02",
+          avatar: "https://api.dicebear.com/9.x/avataaars/png?seed=sato-jiro&backgroundColor=c0aede&radius=50&size=80",
+        },
+        {
+          from: "山本 三郎",
+          role: "同僚",
+          message: "3,000万円！すごい目標だね。絶対達成できると思う！",
+          date: "2025-05-03",
+          avatar: "https://api.dicebear.com/9.x/avataaars/png?seed=yamamoto-saburo&backgroundColor=d1f4e0&radius=50&size=80",
+        },
+        {
+          from: "田中 花子",
+          role: "同僚",
+          message: "鈴木さんのお客様への姿勢、本当に尊敬しています。今月も応援してます！",
+          date: "2025-05-04",
+          avatar: "https://api.dicebear.com/9.x/avataaars/png?seed=tanaka-hanako&backgroundColor=fde68a&radius=50&size=80",
+        },
+      ],
+    },
   },
 ];
 
