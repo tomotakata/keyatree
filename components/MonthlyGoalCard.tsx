@@ -38,7 +38,12 @@ function CommentCard({
 
   return (
     <div className="flex gap-3 items-start w-full">
-      <Avatar name={comment.from} size="md" className="mt-0.5" />
+      {comment.avatar ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={comment.avatar} alt={comment.from} className="w-10 h-10 rounded-full object-cover flex-shrink-0 mt-0.5" />
+      ) : (
+        <Avatar name={comment.from} size="md" className="mt-0.5" />
+      )}
       <div className="flex-1 min-w-0">
         {/* バブル本体 */}
         <div className="bg-gray-50 rounded-2xl rounded-tl-none px-4 py-3">
