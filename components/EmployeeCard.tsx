@@ -1,4 +1,5 @@
 import { Employee } from "@/lib/mockData";
+import Avatar from "@/components/Avatar";
 
 const enneagramColors: Record<number, string> = {
   1: "bg-red-100 text-red-700",
@@ -13,26 +14,12 @@ const enneagramColors: Record<number, string> = {
 };
 
 export default function EmployeeCard({ employee }: { employee: Employee }) {
-  const initials = employee.name.replace(/\s/g, "").slice(0, 2);
   const color = enneagramColors[employee.enneagramType] ?? "bg-gray-100 text-gray-700";
 
   return (
     <div className="flex flex-col items-center gap-4 p-6">
-      {/* 顔写真 */}
-      <div className="relative">
-        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg overflow-hidden">
-          {employee.photo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={employee.photo}
-              alt={employee.name}
-              className="w-24 h-24 rounded-full object-cover"
-            />
-          ) : (
-            initials
-          )}
-        </div>
-      </div>
+      {/* アバター */}
+      <Avatar name={employee.name} size="lg" className="shadow-lg" />
 
       {/* 名前 */}
       <div className="text-center">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MonthlyGoal, CheerComment, Reply, markHotComments } from "@/lib/mockData";
+import Avatar from "@/components/Avatar";
 
 const MAX_BRAVO = 10;
 const STORAGE_KEY = (id: string) => `bravo_${id}_${new Date().toISOString().slice(0, 10)}`;
@@ -17,7 +18,6 @@ function CommentCard({
   extraReplies,
   onAddReply,
   employeeName,
-  employeeAvatar,
 }: {
   comment: CheerComment;
   isHot: boolean;
@@ -26,7 +26,6 @@ function CommentCard({
   extraReplies: Reply[];
   onAddReply: (commentId: string, text: string) => void;
   employeeName: string;
-  employeeAvatar: string;
 }) {
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -39,8 +38,7 @@ function CommentCard({
 
   return (
     <div className="flex gap-3 items-start w-full">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={comment.avatar} alt={comment.from} width={40} height={40} className="rounded-full flex-shrink-0 mt-0.5 w-10 h-10 object-cover" />
+      <Avatar name={comment.from} size="md" className="mt-0.5" />
       <div className="flex-1 min-w-0">
         {/* バブル本体 */}
         <div className="bg-gray-50 rounded-2xl rounded-tl-none px-4 py-3">
@@ -83,8 +81,7 @@ function CommentCard({
           <div className="mt-2 space-y-2 pl-2 border-l-2 border-emerald-100">
             {allReplies.map((r) => (
               <div key={r.id} className="flex gap-2 items-start">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={r.avatar} alt={r.from} className="rounded-full flex-shrink-0 w-7 h-7 object-cover" />
+                    <Avatar name={r.from} size="sm" />
                 <div className="bg-emerald-50 rounded-xl rounded-tl-none px-3 py-2 flex-1">
                   <span className="text-xs font-bold text-gray-700 mr-2">{r.from}</span>
                   <span className="text-xs text-gray-500">{r.message}</span>
@@ -97,8 +94,7 @@ function CommentCard({
         {/* 返信入力 */}
         {showReply && (
           <div className="mt-2 flex gap-2 items-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={employeeAvatar} alt={employeeName} className="rounded-full flex-shrink-0 w-7 h-7 object-cover" />
+            <Avatar name={employeeName} size="sm" />
             <input
               type="text"
               value={replyText}
@@ -137,12 +133,10 @@ export default function MonthlyGoalCard({
   employeeId,
   monthlyGoal,
   employeeName,
-  employeeAvatar,
 }: {
   employeeId: string;
   monthlyGoal: MonthlyGoal;
   employeeName: string;
-  employeeAvatar: string;
 }) {
   const [bravoCount, setBravoCount] = useState(monthlyGoal.cheers);
   const [myBravo, setMyBravo] = useState(0);
@@ -185,7 +179,7 @@ export default function MonthlyGoalCard({
     const newReply: Reply = {
       id: `r_${Date.now()}`,
       from: employeeName,
-      avatar: employeeAvatar,
+      avatar: "",
       message: text,
       date: new Date().toISOString().slice(0, 10),
     };
@@ -281,7 +275,6 @@ export default function MonthlyGoalCard({
                         extraReplies={extraReplies[c.id] ?? []}
                         onAddReply={handleAddReply}
                         employeeName={employeeName}
-                        employeeAvatar={employeeAvatar}
                       />
                     </div>
                   ))}
@@ -322,7 +315,6 @@ export default function MonthlyGoalCard({
                   extraReplies={extraReplies[c.id] ?? []}
                   onAddReply={handleAddReply}
                   employeeName={employeeName}
-                  employeeAvatar={employeeAvatar}
                 />
               ))}
             </div>
