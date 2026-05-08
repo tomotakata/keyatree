@@ -41,7 +41,7 @@ export const employees: Employee[] = [
     id: "001",
     name: "鈴木 一郎",
     nameKana: "スズキ イチロウ",
-    photo: "https://randomuser.me/api/portraits/men/32.jpg",
+    photo: "https://api.dicebear.com/9.x/avataaars/png?seed=ichiro-suzuki&backgroundColor=b6e3f4&radius=50&size=200&mouth=smile&eyes=happy",
     department: "営業部 > 第一営業課",
     position: "主任",
     grade: "S3",
