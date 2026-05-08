@@ -89,47 +89,39 @@ function getGreetingMessages(employee: Employee): string[] {
 
 export default function GreetingBanner({ employee }: { employee: Employee }) {
   const [messages] = useState(() => getGreetingMessages(employee));
-  const [messageIndex, setMessageIndex] = useState(0);
   const [displayText, setDisplayText] = useState("");
-  const [charIndex, setCharIndex] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
-    if (isPaused) return;
+    let msgIdx = 0;
+    let charIdx = 0;
+    let timer: ReturnType<typeof setTimeout>;
 
-    const currentMessage = messages[messageIndex];
+    const type = () => {
+      const msg = messages[msgIdx];
+      if (charIdx < msg.length) {
+        charIdx++;
+        setDisplayText(msg.slice(0, charIdx));
+        timer = setTimeout(type, 45);
+      } else {
+        timer = setTimeout(erase, 2500);
+      }
+    };
 
-    if (!isDeleting) {
-      if (charIndex < currentMessage.length) {
-        const timeout = setTimeout(() => {
-          setDisplayText(currentMessage.slice(0, charIndex + 1));
-          setCharIndex((c) => c + 1);
-        }, 45);
-        return () => clearTimeout(timeout);
+    const erase = () => {
+      const msg = messages[msgIdx];
+      if (charIdx > 0) {
+        charIdx--;
+        setDisplayText(msg.slice(0, charIdx));
+        timer = setTimeout(erase, 18);
       } else {
-        // 表示完了 → 2.5秒停止してから削除開始
-        setIsPaused(true);
-        const timeout = setTimeout(() => {
-          setIsPaused(false);
-          setIsDeleting(true);
-        }, 2500);
-        return () => clearTimeout(timeout);
+        msgIdx = (msgIdx + 1) % messages.length;
+        timer = setTimeout(type, 300);
       }
-    } else {
-      if (charIndex > 0) {
-        const timeout = setTimeout(() => {
-          setDisplayText(currentMessage.slice(0, charIndex - 1));
-          setCharIndex((c) => c - 1);
-        }, 18);
-        return () => clearTimeout(timeout);
-      } else {
-        // 削除完了 → 次のメッセージへ
-        setIsDeleting(false);
-        setMessageIndex((i) => (i + 1) % messages.length);
-      }
-    }
-  }, [charIndex, isDeleting, isPaused, messageIndex, messages]);
+    };
+
+    timer = setTimeout(type, 400);
+    return () => clearTimeout(timer);
+  }, [messages]);
 
   const hour = new Date().getHours();
   const icon =
