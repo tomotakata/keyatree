@@ -90,7 +90,7 @@ export const employees: Employee[] = [
     id: "001",
     name: "鈴木 一郎",
     nameKana: "スズキ イチロウ",
-    photo: "/avatars/001.png",
+    photo: "/avatars/suzuki_ichiro.png",
     department: "営業部 > 第一営業課",
     position: "主任",
     grade: "S3",
