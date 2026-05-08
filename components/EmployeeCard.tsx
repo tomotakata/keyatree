@@ -18,8 +18,17 @@ export default function EmployeeCard({ employee }: { employee: Employee }) {
 
   return (
     <div className="flex flex-col items-center gap-4 p-6">
-      {/* アバター */}
-      <Avatar name={employee.name} size="lg" className="shadow-lg" />
+      {/* アバター or 写真 */}
+      {employee.photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={employee.photo}
+          alt={employee.name}
+          className="w-24 h-24 rounded-full object-cover shadow-lg"
+        />
+      ) : (
+        <Avatar name={employee.name} size="lg" className="shadow-lg" />
+      )}
 
       {/* 名前 */}
       <div className="text-center">

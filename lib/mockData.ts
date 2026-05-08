@@ -90,7 +90,7 @@ export const employees: Employee[] = [
     id: "001",
     name: "鈴木 一郎",
     nameKana: "スズキ イチロウ",
-    photo: "https://api.dicebear.com/9.x/avataaars/png?seed=ichiro&skinColor=yellow&hairColor=black&top=shortHairShortWaved&facialHairType=beardLight&facialHairColor=black&backgroundColor=b6e3f4&radius=50&size=200&mouth=smile",
+    photo: "/avatars/001.png",
     department: "営業部 > 第一営業課",
     position: "主任",
     grade: "S3",
