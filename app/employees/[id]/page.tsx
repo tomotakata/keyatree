@@ -6,6 +6,7 @@ import SkillRadar from "@/components/SkillRadar";
 import GoalSection from "@/components/GoalSection";
 import ThanksHistory from "@/components/ThanksHistory";
 import GreetingBanner from "@/components/GreetingBanner";
+import NewsTicker from "@/components/NewsTicker";
 import MonthlyGoalCard from "@/components/MonthlyGoalCard";
 
 const rankColors: Record<string, { bg: string; text: string; border: string }> = {
@@ -45,6 +46,9 @@ export default async function EmployeePage({
 
       {/* グリーティングバナー */}
       <GreetingBanner employee={employee} />
+
+      {/* 社内通知ティッカー */}
+      <NewsTicker />
 
       <main className="max-w-5xl mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row gap-6">
