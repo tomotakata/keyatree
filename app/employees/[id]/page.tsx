@@ -9,6 +9,7 @@ import GreetingBanner from "@/components/GreetingBanner";
 import NewsTicker from "@/components/NewsTicker";
 import TaskAlertPanel from "@/components/TaskAlertPanel";
 import MonthlyGoalCard from "@/components/MonthlyGoalCard";
+import BravoButton from "@/components/BravoButton";
 
 const rankColors: Record<string, { bg: string; text: string; border: string }> = {
   S: { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200" },
@@ -62,6 +63,12 @@ export default async function EmployeePage({
             {/* プロフィールカード */}
             <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
               <EmployeeCard employee={employee} />
+              <div className="px-5 pb-5">
+                <BravoButton
+                  employeeId={employee.id}
+                  initialCount={employee.monthlyGoal.cheers}
+                />
+              </div>
             </div>
 
             {/* 基本情報 */}

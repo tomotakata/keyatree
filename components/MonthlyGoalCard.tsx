@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { MonthlyGoal, CheerComment, Reply, markHotComments } from "@/lib/mockData";
 import Avatar from "@/components/Avatar";
 
-const MAX_BRAVO = 10;
-const STORAGE_KEY = (id: string) => `bravo_${id}_${new Date().toISOString().slice(0, 10)}`;
 const LIKES_KEY = (employeeId: string) => `likes_${employeeId}`;
 const REPLIES_KEY = (employeeId: string) => `replies_${employeeId}`;
 
@@ -143,10 +141,6 @@ export default function MonthlyGoalCard({
   monthlyGoal: MonthlyGoal;
   employeeName: string;
 }) {
-  const [bravoCount, setBravoCount] = useState(monthlyGoal.cheers);
-  const [myBravo, setMyBravo] = useState(0);
-  const [bravoAnim, setBravoAnim] = useState(false);
-  const [showMax, setShowMax] = useState(false);
   const [viewMode, setViewMode] = useState<"carousel" | "list">("carousel");
   const [current, setCurrent] = useState(0);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
@@ -155,23 +149,11 @@ export default function MonthlyGoalCard({
   const hotComments = markHotComments(monthlyGoal.comments);
 
   useEffect(() => {
-    const saved = parseInt(localStorage.getItem(STORAGE_KEY(employeeId)) ?? "0");
-    setMyBravo(saved);
     const savedLikes: string[] = JSON.parse(localStorage.getItem(LIKES_KEY(employeeId)) ?? "[]");
     setLikedIds(new Set(savedLikes));
     const savedReplies: Record<string, Reply[]> = JSON.parse(localStorage.getItem(REPLIES_KEY(employeeId)) ?? "{}");
     setExtraReplies(savedReplies);
   }, [employeeId]);
-
-  const handleBravo = () => {
-    if (myBravo >= MAX_BRAVO) { setShowMax(true); setTimeout(() => setShowMax(false), 2000); return; }
-    const next = myBravo + 1;
-    setMyBravo(next);
-    setBravoCount((c) => c + 1);
-    localStorage.setItem(STORAGE_KEY(employeeId), String(next));
-    setBravoAnim(true);
-    setTimeout(() => setBravoAnim(false), 600);
-  };
 
   const handleLike = (commentId: string) => {
     if (likedIds.has(commentId)) return;
@@ -193,7 +175,6 @@ export default function MonthlyGoalCard({
     localStorage.setItem(REPLIES_KEY(employeeId), JSON.stringify(updated));
   };
 
-  const remaining = MAX_BRAVO - myBravo;
   const total = hotComments.length;
   const prev = () => setCurrent((c) => (c - 1 + total) % total);
   const next = () => setCurrent((c) => (c + 1) % total);
@@ -217,32 +198,6 @@ export default function MonthlyGoalCard({
             "{monthlyGoal.declaration}"
           </p>
           <p className="text-right text-xs text-gray-400 mt-2">— {employeeName}</p>
-        </div>
-
-        {/* ブラボーボタン */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <p className="text-3xl font-black text-emerald-500">{bravoCount}</p>
-              <p className="text-xs text-gray-400">BRAVO!</p>
-            </div>
-            <button
-              onClick={handleBravo}
-              disabled={myBravo >= MAX_BRAVO}
-              className={`flex flex-col items-center justify-center w-20 h-20 rounded-full font-bold text-white shadow-lg transition-all duration-150 select-none
-                ${myBravo >= MAX_BRAVO ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" : "bg-gradient-to-br from-amber-400 to-orange-500 hover:scale-105 active:scale-95"}
-                ${bravoAnim ? "scale-125" : ""}`}
-            >
-              <span className="text-xs mt-0.5">BRAVO!</span>
-            </button>
-            <div className="text-center">
-              <p className={`text-3xl font-black ${remaining > 0 ? "text-orange-400" : "text-gray-300"}`}>{remaining}</p>
-              <p className="text-xs text-gray-400">残り回数</p>
-            </div>
-          </div>
-          {showMax && <p className="text-xs text-orange-500 font-medium animate-bounce">今日のブラボーは使い切りました！明日また応援できます</p>}
-          {!showMax && myBravo === 0 && <p className="text-xs text-gray-400">1日{MAX_BRAVO}回まで応援できます</p>}
-          {!showMax && myBravo > 0 && myBravo < MAX_BRAVO && <p className="text-xs text-gray-400">今日あと{remaining}回応援できます</p>}
         </div>
 
         {/* 応援コメント ヘッダー */}
