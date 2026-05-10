@@ -52,7 +52,7 @@ function CommentCard({
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColor}`}>{comment.role}</span>
             {isHot && (
               <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-rose-500 text-white animate-pulse">
-                🔥 HOT
+                HOT
               </span>
             )}
             <span className="text-xs text-gray-400 ml-auto">{comment.date}</span>
@@ -69,7 +69,7 @@ function CommentCard({
             }`}
           >
             <span className={`text-base transition-transform ${liked ? "scale-125" : ""}`}>
-              {liked ? "❤️" : "🤍"}
+              {liked ? "♥" : "♡"}
             </span>
             {likeCount}
           </button>
@@ -77,7 +77,7 @@ function CommentCard({
             onClick={() => setShowReply(!showReply)}
             className="text-xs text-gray-400 hover:text-emerald-500 font-medium transition-colors"
           >
-            💬 返信
+            返信
           </button>
         </div>
 
@@ -207,7 +207,6 @@ export default function MonthlyGoalCard({
             <p className="text-xs text-emerald-100 font-medium">{monthlyGoal.month}の目標宣言</p>
             <h3 className="text-white font-bold text-base mt-0.5">今月の目標</h3>
           </div>
-          <span className="text-2xl">🎯</span>
         </div>
       </div>
 
@@ -234,7 +233,6 @@ export default function MonthlyGoalCard({
                 ${myBravo >= MAX_BRAVO ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" : "bg-gradient-to-br from-amber-400 to-orange-500 hover:scale-105 active:scale-95"}
                 ${bravoAnim ? "scale-125" : ""}`}
             >
-              <span className={`text-2xl transition-transform ${bravoAnim ? "scale-150" : ""}`}>👏</span>
               <span className="text-xs mt-0.5">BRAVO!</span>
             </button>
             <div className="text-center">
