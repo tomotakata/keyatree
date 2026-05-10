@@ -12,20 +12,22 @@ export default function NewsTicker({ items = newsItems }: { items?: string[] }) 
   const repeated = [...items, ...items]; // シームレスループ用に2倍
 
   return (
-    <div className="bg-white border-b border-gray-100 flex items-stretch overflow-hidden">
-      {/* NEWSラベル */}
-      <div className="flex-shrink-0 bg-emerald-500 text-white text-xs font-black px-3 flex items-center tracking-widest">
-        NEWS
-      </div>
+    <div className="bg-white border-b border-gray-100 overflow-hidden">
+      <div className="max-w-5xl mx-auto px-4 flex items-stretch">
+        {/* NEWSラベル */}
+        <div className="flex-shrink-0 bg-emerald-500 text-white text-xs font-black px-3 flex items-center tracking-widest">
+          NEWS
+        </div>
 
-      {/* スクロールエリア */}
-      <div className="flex-1 overflow-hidden relative py-2">
-        <div className="flex whitespace-nowrap animate-ticker">
-          {repeated.map((item, i) => (
-            <span key={i} className="text-xs text-gray-600 font-medium px-8">
-              {item}
-            </span>
-          ))}
+        {/* スクロールエリア */}
+        <div className="flex-1 overflow-hidden relative py-2">
+          <div className="flex whitespace-nowrap animate-ticker">
+            {repeated.map((item, i) => (
+              <span key={i} className="text-xs text-gray-600 font-medium px-8">
+                {item}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </div>

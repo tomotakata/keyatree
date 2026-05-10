@@ -125,8 +125,8 @@ export default function GreetingBanner({ employee }: { employee: Employee }) {
 
   const hour = new Date().getHours();
   return (
-    <div className="bg-gradient-to-r from-emerald-400 to-teal-500 px-4 py-3">
-      <div className="max-w-5xl mx-auto flex items-center gap-3">
+    <div className="bg-gradient-to-r from-emerald-400 to-teal-500 py-3">
+      <div className="max-w-5xl mx-auto px-4 flex items-center gap-3">
         <p className="text-sm text-white font-bold min-h-[1.25rem] drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)] tracking-wide">
           {displayText}
           <span className="inline-block w-0.5 h-4 bg-white ml-0.5 animate-pulse align-middle opacity-80" />
