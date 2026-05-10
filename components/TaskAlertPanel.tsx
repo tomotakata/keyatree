@@ -229,21 +229,62 @@ function MyTaskRow({ task, onStatusChange, onComplete, onDeadlineRequest }: {
   );
 }
 
+const notifyOptions = [
+  { id: "check",    label: "タスク確認依頼",   desc: "進捗の確認をお願いします" },
+  { id: "report",   label: "報告依頼",         desc: "現状の報告をお願いします" },
+  { id: "deadline", label: "期日厳守リマインド", desc: "期日が迫っています。対応をお願いします" },
+  { id: "support",  label: "サポート提供",      desc: "困っていることがあればお手伝いします" },
+];
+
 // ---- 組織タスク行 ----
-function TeamTaskRow({ task }: { task: Task }) {
+function TeamTaskRow({ task, onNotify }: { task: Task; onNotify: (taskId: string, type: string, assignee: string) => void }) {
+  const [open, setOpen] = useState(false);
   const cfg = statusConfig[task.status];
+
   return (
-    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${cfg.bg} ${cfg.border}`}>
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-gray-700 font-medium truncate">{task.title}</p>
-        {task.assignee && <p className="text-xs text-gray-400 mt-0.5">{task.assignee}</p>}
+    <div className={`rounded-lg border transition-all ${cfg.bg} ${cfg.border}`}>
+      {/* メイン行 */}
+      <div className="flex items-center gap-3 px-3 py-2.5">
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-gray-700 font-medium truncate">{task.title}</p>
+          {task.assignee && <p className="text-xs text-gray-400 mt-0.5">{task.assignee}</p>}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-xs text-gray-400">{task.dueDate}</span>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
+          <span className="text-xs text-gray-400 bg-white border border-gray-200 px-2 py-0.5 rounded-full">{task.category}</span>
+          <button
+            onClick={() => setOpen(!open)}
+            className="text-xs text-indigo-600 font-semibold bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg hover:bg-indigo-100 transition flex-shrink-0"
+          >
+            通知
+          </button>
+        </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-xs text-gray-400">{task.dueDate}</span>
-        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
-        <span className="text-xs text-gray-400 bg-white border border-gray-200 px-2 py-0.5 rounded-full">{task.category}</span>
-      </div>
+
+      {/* 通知メニュー */}
+      {open && (
+        <div className="border-t border-dashed border-gray-200 px-4 py-3 bg-white/80">
+          <p className="text-xs text-gray-500 font-semibold mb-2">
+            {task.assignee ?? "担当者"} に通知を送る
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {notifyOptions.map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => {
+                  onNotify(task.id, opt.id, task.assignee ?? "担当者");
+                  setOpen(false);
+                }}
+                className="text-xs bg-white border border-indigo-200 text-indigo-600 px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-50 transition"
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -279,6 +320,11 @@ export default function TaskAlertPanel() {
     setMyTasks((prev) => prev.map((t) => t.id === deadlineTarget ? { ...t, dueDate: newDate, status: "normal" } : t));
     setDeadlineTarget(null);
     showToast("期日変更依頼を申請しました。関係メンバーに通知を送信しました。");
+  };
+
+  const handleNotify = (taskId: string, type: string, assignee: string) => {
+    const opt = notifyOptions.find((o) => o.id === type);
+    showToast(`${assignee} に「${opt?.label}」の通知を送信しました`);
   };
 
   const activeTasks = myTasks.filter((t) => t.status !== "done");
@@ -339,7 +385,7 @@ export default function TaskAlertPanel() {
           </div>
           {showTeamTasks && (
             <div className="p-3 space-y-2">
-              {teamTasks.map((t) => <TeamTaskRow key={t.id} task={t} />)}
+              {teamTasks.map((t) => <TeamTaskRow key={t.id} task={t} onNotify={handleNotify} />)}
             </div>
           )}
         </div>
