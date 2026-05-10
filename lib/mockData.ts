@@ -35,11 +35,29 @@ export type CheerComment = {
   replies: Reply[];
 };
 
+export type GoalProgress = {
+  title: string;
+  target: string;
+  current: string;
+  progress: number;
+};
+
+export type LastMonthResult = {
+  month: string;
+  declaration: string;
+  achieved: boolean;
+  reflection: string;
+  improvement: string;
+  goalResults: GoalProgress[];
+};
+
 export type MonthlyGoal = {
   month: string;
   declaration: string;
   cheers: number;
   comments: CheerComment[];
+  currentProgress: GoalProgress[];
+  lastMonth: LastMonthResult;
 };
 
 export type Employee = {
@@ -193,6 +211,23 @@ export const employees: Employee[] = [
           replies: [],
         },
       ],
+      currentProgress: [
+        { title: "営業売上目標", target: "3,000万円", current: "1,840万円", progress: 61 },
+        { title: "ありがとうメッセージ獲得", target: "100件", current: "67件", progress: 67 },
+        { title: "新規顧客アポイント", target: "20件", current: "14件", progress: 70 },
+      ],
+      lastMonth: {
+        month: "2025年4月",
+        declaration: "新規顧客10件獲得と既存顧客満足度向上を実現する！",
+        achieved: true,
+        reflection: "新規顧客は11件獲得でき目標をクリアできた。ただし、月末に案件が集中してしまい、対応品質にバラつきが出た点は反省。既存顧客のフォロー頻度も想定より少なかった。",
+        improvement: "案件進捗を週次で確認するルーティンを設けて、月末集中を防ぐ。顧客フォローは週1回のメール送付を習慣化し、接触頻度を上げる。",
+        goalResults: [
+          { title: "新規顧客獲得", target: "10件", current: "11件", progress: 100 },
+          { title: "既存顧客フォロー", target: "30件", current: "22件", progress: 73 },
+          { title: "提案書作成", target: "15件", current: "15件", progress: 100 },
+        ],
+      },
     },
   },
 ];
