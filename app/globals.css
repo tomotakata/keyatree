@@ -133,7 +133,10 @@
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
+.animate-ticker { animation: ticker 30s linear infinite; }
 
-.animate-ticker {
-  animation: ticker 30s linear infinite;
+@keyframes fade-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
+.animate-fade-in { animation: fade-in 0.25s ease-out forwards; }
