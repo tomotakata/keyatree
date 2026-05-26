@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KeyaTree — 開発ドキュメント</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Inter:wght@400;600;700;800&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans JP', 'Inter', sans-serif;
+    background: #f9fafb;
+    color: #111827;
+    min-height: 100vh;
+  }
+  header {
+    background: linear-gradient(135deg, #064e3b, #0d9488);
+    padding: 48px 40px 40px;
+  }
+  .logo { font-family: 'Inter', sans-serif; font-size: 28px; font-weight: 800; color: white; letter-spacing: -1px; }
+  .logo span { color: #6ee7b7; }
+  header p { color: #a7f3d0; font-size: 13px; margin-top: 6px; }
+  main { max-width: 800px; margin: 0 auto; padding: 40px 24px; }
+  h2 { font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+  .doc-list { display: flex; flex-direction: column; gap: 12px; }
+  .doc-card {
+    background: white;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .doc-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-color: #10b981; transform: translateY(-1px); }
+  .doc-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg, #10b981, #0d9488);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 800;
+    color: white; flex-shrink: 0; letter-spacing: 0.02em;
+  }
+  .doc-icon.amber { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+  .doc-icon.blue  { background: linear-gradient(135deg, #3b82f6, #6366f1); }
+  .doc-body { flex: 1; min-width: 0; }
+  .doc-title { font-size: 15px; font-weight: 700; color: #111827; }
+  .doc-desc  { font-size: 12px; color: #6b7280; margin-top: 3px; line-height: 1.6; }
+  .doc-meta  { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .doc-tag {
+    font-size: 10px; font-weight: 600; padding: 2px 10px; border-radius: 100px;
+    background: #d1fae5; color: #065f46;
+  }
+  .doc-tag.gray { background: #f3f4f6; color: #6b7280; }
+  .doc-date { font-size: 11px; color: #9ca3af; flex-shrink: 0; }
+  footer { text-align: center; padding: 40px; font-size: 12px; color: #9ca3af; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Keya<span>Tree</span></div>
+  <p>開発ドキュメント一覧 — 技術資料・開発ログ・設計書</p>
+</header>
+<main>
+  <h2>ドキュメント一覧</h2>
+  <div class="doc-list">
+
+    <a href="/docs/tech-overview.html" class="doc-card">
+      <div class="doc-icon">TECH</div>
+      <div class="doc-body">
+        <div class="doc-title">技術構成・インフラ環境および予算概算</div>
+        <div class="doc-desc">開発言語・フレームワーク・インフラ構成・セキュリティ方針・月額費用概算・開発ロードマップをまとめた技術提案資料。</div>
+        <div class="doc-meta">
+          <span class="doc-tag">Next.js</span>
+          <span class="doc-tag">Vercel</span>
+          <span class="doc-tag">Supabase</span>
+          <span class="doc-tag">費用概算</span>
+        </div>
+      </div>
+      <div class="doc-date">2025.05</div>
+    </a>
+
+    <div class="doc-card" style="opacity:0.5; cursor:default; pointer-events:none;">
+      <div class="doc-icon amber">LOG</div>
+      <div class="doc-body">
+        <div class="doc-title">開発ログ #01 — フェーズ1 実装記録</div>
+        <div class="doc-desc">社員詳細・一覧・登録・認証・マスター管理の実装内容と意思決定の記録。（作成予定）</div>
+        <div class="doc-meta">
+          <span class="doc-tag gray">作成予定</span>
+        </div>
+      </div>
+      <div class="doc-date">準備中</div>
+    </div>
+
+    <div class="doc-card" style="opacity:0.5; cursor:default; pointer-events:none;">
+      <div class="doc-icon blue">DB</div>
+      <div class="doc-body">
+        <div class="doc-title">DB設計書 — Supabase スキーマ定義</div>
+        <div class="doc-desc">テーブル定義・リレーション・インデックス・RLS ポリシーの設計書。（フェーズ2 作成予定）</div>
+        <div class="doc-meta">
+          <span class="doc-tag gray">作成予定</span>
+        </div>
+      </div>
+      <div class="doc-date">準備中</div>
+    </div>
+
+  </div>
+</main>
+<footer>KeyaTree — 社内開発ドキュメント | https://keyatree.vercel.app</footer>
+</body>
+</html>

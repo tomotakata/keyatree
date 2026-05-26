@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KeyaTree 技術・インフラ概要 / 予算概算</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Inter:wght@300;400;600;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --emerald: #10b981;
+    --emerald-dark: #059669;
+    --emerald-light: #d1fae5;
+    --teal: #0d9488;
+    --gray-900: #111827;
+    --gray-700: #374151;
+    --gray-500: #6b7280;
+    --gray-200: #e5e7eb;
+    --gray-50: #f9fafb;
+    --amber: #f59e0b;
+    --blue: #3b82f6;
+    --rose: #f43f5e;
+  }
+
+  body {
+    font-family: 'Noto Sans JP', 'Inter', sans-serif;
+    color: var(--gray-900);
+    background: #fff;
+    line-height: 1.7;
+    font-size: 14px;
+  }
+
+  /* ── Cover ── */
+  .cover {
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 40%, #0d9488 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px 60px;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 70% 40%, rgba(16,185,129,0.18) 0%, transparent 70%);
+  }
+  .cover-grid {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .cover-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(12px);
+    border-radius: 100px;
+    padding: 8px 20px;
+    color: #a7f3d0;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    position: relative;
+  }
+  .cover-badge::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--emerald);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100%{ opacity:1; transform: scale(1); }
+    50%{ opacity:0.5; transform: scale(1.3); }
+  }
+  .cover-logo {
+    font-family: 'Inter', sans-serif;
+    font-size: 72px;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -3px;
+    line-height: 1;
+    position: relative;
+  }
+  .cover-logo span { color: var(--emerald); }
+  .cover-sub {
+    font-size: 22px;
+    color: #6ee7b7;
+    font-weight: 300;
+    margin-top: 16px;
+    letter-spacing: 0.02em;
+    position: relative;
+  }
+  .cover-title {
+    margin-top: 56px;
+    position: relative;
+  }
+  .cover-title h1 {
+    font-size: 38px;
+    color: white;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.5px;
+  }
+  .cover-title p {
+    color: #a7f3d0;
+    margin-top: 16px;
+    font-size: 15px;
+    font-weight: 300;
+    max-width: 560px;
+    line-height: 1.8;
+  }
+  .cover-meta {
+    position: absolute;
+    bottom: 60px;
+    left: 60px;
+    right: 60px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .cover-meta-item { color: rgba(255,255,255,0.4); font-size: 12px; line-height: 1.8; }
+  .cover-meta-item strong { color: rgba(255,255,255,0.8); display: block; font-size: 13px; }
+
+  /* ── Page Layout ── */
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 64px 60px;
+  }
+
+  /* ── Section Header ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--gray-200);
+  }
+  .section-number {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--emerald), var(--teal));
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gray-900);
+    letter-spacing: -0.3px;
+  }
+  .section-header p {
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-top: 2px;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px;
+    background: var(--gray-200);
+    margin: 56px 0;
+  }
+
+  /* ── Tech Stack Cards ── */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .stack-card {
+    border: 1.5px solid var(--gray-200);
+    border-radius: 16px;
+    padding: 24px;
+    background: var(--gray-50);
+    position: relative;
+    overflow: hidden;
+  }
+  .stack-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 16px 16px 0 0;
+  }
+  .stack-card.green::before  { background: linear-gradient(90deg, #10b981, #0d9488); }
+  .stack-card.blue::before   { background: linear-gradient(90deg, #3b82f6, #6366f1); }
+  .stack-card.amber::before  { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+  .stack-card.purple::before { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+  .stack-card.teal::before   { background: linear-gradient(90deg, #14b8a6, #06b6d4); }
+  .stack-card.rose::before   { background: linear-gradient(90deg, #f43f5e, #f97316); }
+
+  .stack-card-layer {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--gray-500);
+    margin-bottom: 6px;
+  }
+  .stack-card-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gray-900);
+    font-family: 'Inter', sans-serif;
+    margin-bottom: 4px;
+  }
+  .stack-card-version {
+    display: inline-block;
+    font-size: 10px;
+    color: var(--emerald-dark);
+    background: var(--emerald-light);
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .stack-card-desc {
+    font-size: 12px;
+    color: var(--gray-500);
+    line-height: 1.7;
+  }
+  .stack-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .tag {
+    font-size: 10px;
+    background: white;
+    border: 1px solid var(--gray-200);
+    color: var(--gray-700);
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-weight: 500;
+  }
+
+  /* ── Architecture Diagram ── */
+  .arch-diagram {
+    background: #0f172a;
+    border-radius: 16px;
+    padding: 32px;
+    margin: 24px 0;
+  }
+  .arch-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 10px 0;
+    justify-content: center;
+  }
+  .arch-box {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    text-align: center;
+    min-width: 120px;
+  }
+  .arch-box.user   { background: #1e3a5f; color: #93c5fd; border: 1px solid #2563eb; }
+  .arch-box.vercel { background: #0f1f0f; color: #4ade80; border: 1px solid #16a34a; }
+  .arch-box.next   { background: #1a1a2e; color: #c4b5fd; border: 1px solid #7c3aed; }
+  .arch-box.supa   { background: #0f2027; color: #34d399; border: 1px solid #059669; }
+  .arch-box.auth   { background: #1a0f2e; color: #f9a8d4; border: 1px solid #db2777; }
+  .arch-box.cdn    { background: #1f1000; color: #fcd34d; border: 1px solid #d97706; }
+  .arch-arrow { color: #475569; font-size: 16px; }
+  .arch-label { color: #64748b; font-size: 10px; font-family: 'Inter', sans-serif; }
+  .arch-section-label {
+    color: #475569;
+    font-size: 10px;
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 16px 0 8px;
+    text-align: center;
+  }
+
+  /* ── Budget Table ── */
+  .budget-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1.5px solid var(--gray-200);
+  }
+  .budget-table th {
+    background: var(--gray-900);
+    color: white;
+    padding: 14px 20px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .budget-table th:last-child { text-align: right; }
+  .budget-table td {
+    padding: 14px 20px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--gray-200);
+    vertical-align: top;
+  }
+  .budget-table tr:last-child td { border-bottom: none; }
+  .budget-table tr:nth-child(even) td { background: var(--gray-50); }
+  .budget-table td:last-child { text-align: right; font-weight: 700; font-family: 'Inter', sans-serif; }
+  .budget-table .total-row td {
+    background: #ecfdf5;
+    font-weight: 700;
+    font-size: 14px;
+    border-top: 2px solid var(--emerald);
+  }
+  .budget-table .total-row td:last-child { color: var(--emerald-dark); font-size: 16px; }
+  .plan-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 100px;
+    margin-left: 6px;
+  }
+  .plan-free  { background: #dcfce7; color: #166534; }
+  .plan-paid  { background: #fef3c7; color: #92400e; }
+  .budget-note {
+    font-size: 11px;
+    color: var(--gray-500);
+    margin-top: 6px;
+    line-height: 1.6;
+  }
+
+  /* ── Phase Timeline ── */
+  .phase-list { list-style: none; position: relative; padding-left: 0; }
+  .phase-list::before {
+    content: '';
+    position: absolute;
+    left: 22px;
+    top: 24px;
+    bottom: 24px;
+    width: 2px;
+    background: linear-gradient(180deg, var(--emerald), var(--teal), #e5e7eb);
+  }
+  .phase-item {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .phase-dot {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .phase-dot.done    { background: var(--emerald); color: white; }
+  .phase-dot.active  { background: var(--amber); color: white; }
+  .phase-dot.pending { background: var(--gray-200); color: var(--gray-500); }
+  .phase-content {
+    flex: 1;
+    background: var(--gray-50);
+    border: 1.5px solid var(--gray-200);
+    border-radius: 14px;
+    padding: 16px 20px;
+  }
+  .phase-content h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 4px;
+  }
+  .phase-content p {
+    font-size: 12px;
+    color: var(--gray-500);
+    line-height: 1.7;
+  }
+  .phase-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+
+  /* ── Security List ── */
+  .security-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .security-card {
+    background: var(--gray-50);
+    border: 1.5px solid var(--gray-200);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .security-icon {
+    font-size: 11px;
+    font-weight: 800;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.05em;
+    color: var(--emerald-dark);
+    background: var(--emerald-light);
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
+  .security-card h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 6px;
+  }
+  .security-card p {
+    font-size: 11px;
+    color: var(--gray-500);
+    line-height: 1.7;
+  }
+
+  /* ── Callout ── */
+  .callout {
+    border-left: 4px solid var(--emerald);
+    background: #ecfdf5;
+    border-radius: 0 12px 12px 0;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .callout p { font-size: 13px; color: #065f46; line-height: 1.8; }
+  .callout strong { font-weight: 700; }
+
+  .callout.amber {
+    border-left-color: var(--amber);
+    background: #fffbeb;
+  }
+  .callout.amber p { color: #78350f; }
+
+  /* ── Footer ── */
+  .doc-footer {
+    background: var(--gray-900);
+    color: rgba(255,255,255,0.5);
+    padding: 40px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+  .doc-footer strong { color: rgba(255,255,255,0.9); }
+
+  /* ── Print ── */
+  @media print {
+    .cover { min-height: auto; padding: 60px; }
+    .page { padding: 48px 60px; }
+    .divider { margin: 40px 0; }
+    @page { margin: 0; size: A4; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======== COVER ======== -->
+<div class="cover">
+  <div class="cover-grid"></div>
+
+  <div class="cover-badge">Confidential Document</div>
+
+  <div class="cover-logo" style="position:relative">
+    Keya<span>Tree</span>
+  </div>
+  <div class="cover-sub">組織・人事管理システム</div>
+
+  <div class="cover-title">
+    <h1>技術構成・インフラ環境<br>および 予算概算のご説明</h1>
+    <p>本ドキュメントでは、KeyaTree の開発に使用している技術スタック、クラウドインフラの構成、
+    セキュリティ方針、および月次・年次の費用概算をまとめています。
+    今後のDB連携・本番運用フェーズも含めた全体像をご確認ください。</p>
+  </div>
+
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <strong>作成日</strong>2025年5月
+    </div>
+    <div class="cover-meta-item" style="text-align:center">
+      <strong>対象システム</strong>KeyaTree v1.0（モック実装フェーズ）
+    </div>
+    <div class="cover-meta-item" style="text-align:right">
+      <strong>開発環境</strong>Vercel / GitHub / Next.js
+    </div>
+  </div>
+</div>
+
+
+<!-- ======== SECTION 1: TECH STACK ======== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-number">1</div>
+    <div>
+      <h2>技術スタック（開発言語・フレームワーク）</h2>
+      <p>フロントエンドからデータベースまでの使用技術一覧</p>
+    </div>
+  </div>
+
+  <div class="stack-grid">
+
+    <div class="stack-card green">
+      <div class="stack-card-layer">Frontend Framework</div>
+      <div class="stack-card-name">Next.js</div>
+      <div class="stack-card-version">v14（App Router）</div>
+      <div class="stack-card-desc">
+        React ベースのフルスタックフレームワーク。URLルーティング、サーバーサイドレンダリング、APIルートを一体で管理できる。Vercel との親和性が非常に高く、デプロイが自動化される。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">React 18</span>
+        <span class="tag">TypeScript</span>
+        <span class="tag">SSR / SSG</span>
+        <span class="tag">App Router</span>
+      </div>
+    </div>
+
+    <div class="stack-card blue">
+      <div class="stack-card-layer">Language</div>
+      <div class="stack-card-name">TypeScript</div>
+      <div class="stack-card-version">v5</div>
+      <div class="stack-card-desc">
+        JavaScript に型定義を加えた言語。バグの早期発見、コード補完、リファクタリングの安全性が大幅に向上する。チーム開発・長期運用において特に効果を発揮する。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">静的型検査</span>
+        <span class="tag">IDE補完</span>
+        <span class="tag">型安全</span>
+      </div>
+    </div>
+
+    <div class="stack-card teal">
+      <div class="stack-card-layer">Styling</div>
+      <div class="stack-card-name">Tailwind CSS</div>
+      <div class="stack-card-version">v3</div>
+      <div class="stack-card-desc">
+        ユーティリティファーストの CSS フレームワーク。クラス名でスタイルを直接記述するため、CSSファイルを別途管理する必要がなく、開発速度が大幅に向上する。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">レスポンシブ対応</span>
+        <span class="tag">ダークモード対応</span>
+        <span class="tag">PC / スマホ両対応</span>
+      </div>
+    </div>
+
+    <div class="stack-card purple">
+      <div class="stack-card-layer">UI Components</div>
+      <div class="stack-card-name">shadcn/ui</div>
+      <div class="stack-card-version">最新版</div>
+      <div class="stack-card-desc">
+        Radix UI + Tailwind CSS で構築された高品質 UI コンポーネント集。カード、バッジ、プログレスバーなどをコピー&amp;カスタマイズして使用。依存ライブラリが少なく軽量。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">アクセシビリティ対応</span>
+        <span class="tag">カスタマイズ自由</span>
+      </div>
+    </div>
+
+    <div class="stack-card amber">
+      <div class="stack-card-layer">Data Visualization</div>
+      <div class="stack-card-name">Recharts</div>
+      <div class="stack-card-version">v2</div>
+      <div class="stack-card-desc">
+        React 向けのチャートライブラリ。スキルマップのレーダーチャート・目標進捗のプログレスバーに使用。SVGベースで印刷・PDF出力にも対応。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">レーダーチャート</span>
+        <span class="tag">棒グラフ</span>
+        <span class="tag">折れ線グラフ</span>
+      </div>
+    </div>
+
+    <div class="stack-card rose">
+      <div class="stack-card-layer">Database（導入予定）</div>
+      <div class="stack-card-name">Supabase</div>
+      <div class="stack-card-version">PostgreSQL ベース</div>
+      <div class="stack-card-desc">
+        Firebase に近い使用感でオープンソースのバックエンド基盤。DB・認証・ストレージ・APIを一括管理できる。現在はモックデータで実装中、次フェーズで接続予定。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">認証機能</span>
+        <span class="tag">リアルタイムDB</span>
+        <span class="tag">ストレージ</span>
+        <span class="tag">REST / GraphQL API</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="callout" style="margin-top:28px">
+    <p><strong>現フェーズの実装状況：</strong>現在はモックデータ（固定値）で全画面を実装済み。Next.js + Vercel の構成が完成しており、Supabase を接続するだけでリアルデータへの切り替えが可能な設計になっています。</p>
+  </div>
+
+  <div class="divider"></div>
+
+
+  <!-- SECTION 2: INFRASTRUCTURE -->
+  <div class="section-header">
+    <div class="section-number">2</div>
+    <div>
+      <h2>インフラ構成</h2>
+      <p>ホスティング・CI/CD・認証・ストレージの全体構成</p>
+    </div>
+  </div>
+
+  <div class="arch-diagram">
+    <div class="arch-section-label">ユーザー</div>
+    <div class="arch-row">
+      <div class="arch-box user">PC ブラウザ</div>
+      <div class="arch-box user">スマートフォン</div>
+    </div>
+    <div class="arch-row"><div class="arch-arrow">↓ HTTPS</div></div>
+
+    <div class="arch-section-label">CDN / ホスティング</div>
+    <div class="arch-row">
+      <div class="arch-box cdn">Vercel Edge CDN<br><span style="font-size:10px;opacity:0.7">世界中のエッジサーバー</span></div>
+    </div>
+    <div class="arch-row"><div class="arch-arrow">↓</div></div>
+
+    <div class="arch-section-label">アプリケーション</div>
+    <div class="arch-row">
+      <div class="arch-box next">Next.js App<br><span style="font-size:10px;opacity:0.7">ページ / API Routes</span></div>
+    </div>
+    <div class="arch-row" style="gap:32px">
+      <div class="arch-arrow">↓ DB接続</div>
+      <div class="arch-arrow">↓ 認証</div>
+      <div class="arch-arrow">↓ ストレージ</div>
+    </div>
+
+    <div class="arch-section-label">バックエンド（Supabase）</div>
+    <div class="arch-row" style="gap:24px">
+      <div class="arch-box supa">PostgreSQL<br><span style="font-size:10px;opacity:0.7">社員データ / タスク</span></div>
+      <div class="arch-box auth">Auth<br><span style="font-size:10px;opacity:0.7">ログイン管理</span></div>
+      <div class="arch-box supa">Storage<br><span style="font-size:10px;opacity:0.7">プロフィール写真</span></div>
+    </div>
+
+    <div class="arch-section-label" style="margin-top:20px">CI / CD</div>
+    <div class="arch-row">
+      <div class="arch-box vercel">GitHub → Vercel 自動デプロイ<br><span style="font-size:10px;opacity:0.7">main ブランチへの Push で即時公開</span></div>
+    </div>
+  </div>
+
+  <div class="callout amber" style="margin-top:20px">
+    <p><strong>デプロイの仕組み：</strong>GitHub の main ブランチにコードをプッシュすると、Vercel が自動検知して約 30 秒でビルド・公開が完了します。手動でのサーバー操作は一切不要です。</p>
+  </div>
+
+</div><!-- /page -->
+
+
+<!-- ======== SECTION 3 + 4: BUDGET + SECURITY ======== -->
+<div class="page">
+
+  <div class="section-header">
+    <div class="section-number">3</div>
+    <div>
+      <h2>費用概算</h2>
+      <p>月次ランニングコストと初期費用の目安（円換算は 1USD ≒ 155円で計算）</p>
+    </div>
+  </div>
+
+  <table class="budget-table">
+    <thead>
+      <tr>
+        <th style="width:180px">サービス</th>
+        <th>内容・利用目的</th>
+        <th style="width:100px">プラン</th>
+        <th style="width:130px">月額費用</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Vercel</strong><br><span class="budget-note">ホスティング / CDN</span></td>
+        <td>
+          Next.js アプリのホスティング・CDN・自動デプロイ。<br>
+          <span class="budget-note">Pro プランで商用利用・カスタムドメイン・チームメンバー追加が可能</span>
+        </td>
+        <td>
+          <span class="plan-badge plan-free">無料</span>〜<br>
+          <span class="plan-badge plan-paid">Pro</span>
+        </td>
+        <td>¥0 〜 ¥3,100<br><span class="budget-note">（$0 〜 $20）</span></td>
+      </tr>
+      <tr>
+        <td><strong>Supabase</strong><br><span class="budget-note">DB / 認証 / ストレージ</span></td>
+        <td>
+          PostgreSQL データベース、ログイン認証、写真ストレージ。<br>
+          <span class="budget-note">Pro プランで自動バックアップ・メール認証が解放される</span>
+        </td>
+        <td>
+          <span class="plan-badge plan-free">無料</span>〜<br>
+          <span class="plan-badge plan-paid">Pro</span>
+        </td>
+        <td>¥0 〜 ¥3,900<br><span class="budget-note">（$0 〜 $25）</span></td>
+      </tr>
+      <tr>
+        <td><strong>GitHub</strong><br><span class="budget-note">ソースコード管理</span></td>
+        <td>
+          ソースコードのバージョン管理・バックアップ。<br>
+          <span class="budget-note">プライベートリポジトリ・チームコラボレーション</span>
+        </td>
+        <td><span class="plan-badge plan-free">無料</span>〜</td>
+        <td>¥0 〜 ¥620<br><span class="budget-note">（$0 〜 $4）</span></td>
+      </tr>
+      <tr>
+        <td><strong>独自ドメイン</strong><br><span class="budget-note">カスタムURL取得</span></td>
+        <td>
+          例：keyatree.jp など希望ドメインを取得。<br>
+          <span class="budget-note">お名前.com / Cloudflare 等で取得。年払い。</span>
+        </td>
+        <td><span class="plan-badge plan-paid">年払い</span></td>
+        <td>¥150 〜 ¥300<br><span class="budget-note">（年間 ¥1,800〜¥3,600）</span></td>
+      </tr>
+      <tr>
+        <td><strong>メール送信</strong><br><span class="budget-note">通知・パスワードリセット</span></td>
+        <td>
+          タスク通知・パスワードリセットメールの送信。<br>
+          <span class="budget-note">Resend または SendGrid 利用想定。月3,000通まで無料。</span>
+        </td>
+        <td><span class="plan-badge plan-free">無料</span>〜</td>
+        <td>¥0 〜 ¥1,550<br><span class="budget-note">（$0 〜 $10）</span></td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="3"><strong>月額合計（目安）</strong></td>
+        <td><strong>¥0 〜 約¥9,000 / 月</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="margin-top:20px">
+    <p><strong>スタートアップ期（〜10名規模）は無料プランで十分に運用可能です。</strong>利用人数が増えたタイミング（目安：20名以上）で各サービスの有料プランに切り替えることを推奨します。月額合計でも約 9,000 円以下で運用できます。</p>
+  </div>
+
+  <div class="divider"></div>
+
+
+  <!-- SECTION 4: SECURITY -->
+  <div class="section-header">
+    <div class="section-number">4</div>
+    <div>
+      <h2>セキュリティ対応方針</h2>
+      <p>現在の対応と今後の強化ポイント</p>
+    </div>
+  </div>
+
+  <div class="security-grid">
+    <div class="security-card">
+      <div class="security-icon">SSL</div>
+      <h4>HTTPS 常時暗号化</h4>
+      <p>Vercel が自動で SSL 証明書を発行・更新。全通信が HTTPS で保護される。</p>
+    </div>
+    <div class="security-card">
+      <div class="security-icon">ACL</div>
+      <h4>権限ベースアクセス制御</h4>
+      <p>5段階の権限（管理者〜閲覧専用）でページ・操作へのアクセスを制御。</p>
+    </div>
+    <div class="security-card">
+      <div class="security-icon">AUTH</div>
+      <h4>セッション管理</h4>
+      <p>ログイン情報を Cookie（8時間有効）で管理。Middleware で未認証アクセスをブロック。</p>
+    </div>
+    <div class="security-card">
+      <div class="security-icon">KEY</div>
+      <h4>Supabase Auth（予定）</h4>
+      <p>DB 連携時にパスワードを bcrypt でハッシュ化。メール認証・2段階認証を導入予定。</p>
+    </div>
+    <div class="security-card">
+      <div class="security-icon">BKP</div>
+      <h4>自動バックアップ（予定）</h4>
+      <p>Supabase Pro プランで日次バックアップを自動取得。7日間のポイントインタイムリカバリ対応。</p>
+    </div>
+    <div class="security-card">
+      <div class="security-icon">CD</div>
+      <h4>CI/CD セキュリティ</h4>
+      <p>GitHub の main ブランチ保護設定でレビューなしの直接プッシュを禁止（設定可能）。</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+
+  <!-- SECTION 5: ROADMAP -->
+  <div class="section-header">
+    <div class="section-number">5</div>
+    <div>
+      <h2>開発ロードマップ</h2>
+      <p>現在地と今後のフェーズ計画</p>
+    </div>
+  </div>
+
+  <ul class="phase-list">
+    <li class="phase-item">
+      <div class="phase-dot done">P1</div>
+      <div class="phase-content">
+        <h4>フェーズ 1 — UI / モックデータ実装（完了）</h4>
+        <p>社員詳細・社員一覧・登録・マスター管理・権限管理ページをモックデータで実装。Vercel にデプロイしてURLで共有可能な状態。</p>
+        <div class="phase-tags">
+          <span class="tag" style="background:#d1fae5;color:#065f46;border-color:#6ee7b7">完了</span>
+          <span class="tag">Next.js</span><span class="tag">Tailwind</span><span class="tag">Vercel</span>
+        </div>
+      </div>
+    </li>
+    <li class="phase-item">
+      <div class="phase-dot active">P2</div>
+      <div class="phase-content">
+        <h4>フェーズ 2 — データベース接続（次ステップ）</h4>
+        <p>Supabase PostgreSQL を接続してモックデータをリアルDBに差し替え。社員登録・編集・削除が実際にDBに反映されるようにする。写真アップロード機能も追加。</p>
+        <div class="phase-tags">
+          <span class="tag" style="background:#fef3c7;color:#92400e;border-color:#fcd34d">進行予定</span>
+          <span class="tag">Supabase</span><span class="tag">PostgreSQL</span><span class="tag">Storage</span>
+        </div>
+      </div>
+    </li>
+    <li class="phase-item">
+      <div class="phase-dot active">P3</div>
+      <div class="phase-content">
+        <h4>フェーズ 3 — 認証強化・権限制御の実装</h4>
+        <p>Supabase Auth でメール認証・パスワードリセットを本番実装。権限に応じたページ・ボタンの表示制御をシステムレベルで適用する。</p>
+        <div class="phase-tags">
+          <span class="tag" style="background:#fef3c7;color:#92400e;border-color:#fcd34d">進行予定</span>
+          <span class="tag">Supabase Auth</span><span class="tag">RBAC</span>
+        </div>
+      </div>
+    </li>
+    <li class="phase-item">
+      <div class="phase-dot pending">P4</div>
+      <div class="phase-content">
+        <h4>フェーズ 4 — 評価管理・通知機能</h4>
+        <p>人事評価の入力・集計機能。タスク通知・期日リマインダーのメール送信。サンクスカードの送受信をDBで永続化。</p>
+        <div class="phase-tags">
+          <span class="tag">評価管理</span><span class="tag">メール通知</span><span class="tag">サンクスカード</span>
+        </div>
+      </div>
+    </li>
+    <li class="phase-item">
+      <div class="phase-dot pending">P5</div>
+      <div class="phase-content">
+        <h4>フェーズ 5 — 組織分析・レポート機能</h4>
+        <p>部門別・個人別のパフォーマンス集計。目標達成率・タスク完了率・感謝数のダッシュボード。PDF出力機能。</p>
+        <div class="phase-tags">
+          <span class="tag">ダッシュボード</span><span class="tag">PDF出力</span><span class="tag">組織分析</span>
+        </div>
+      </div>
+    </li>
+  </ul>
+
+</div><!-- /page -->
+
+
+<!-- ======== FOOTER ======== -->
+<div class="doc-footer">
+  <div>
+    <strong>KeyaTree</strong><br>
+    組織・人事管理システム 技術構成資料
+  </div>
+  <div style="text-align:center">
+    <strong>https://keyatree.vercel.app</strong><br>
+    GitHub: tomotakata/keyatree
+  </div>
+  <div style="text-align:right">
+    <strong>2025年5月</strong><br>
+    Confidential
+  </div>
+</div>
+
+</body>
+</html>
