@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { employees, calcTenure } from "@/lib/mockData";
 import Avatar from "@/components/Avatar";
+import HeaderNav from "@/components/HeaderNav";
 
 const rankColors: Record<string, { bg: string; text: string; border: string }> = {
   S: { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-300" },
@@ -33,31 +34,12 @@ export default function EmployeeListPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ヘッダー */}
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-          <Link href="/employees" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">K</span>
-          </Link>
-          <Link href="/employees" className="font-bold text-gray-800 text-sm">KeyaTree</Link>
-          <span className="text-gray-300 mx-1">›</span>
-          <span className="text-gray-700 text-sm font-medium">従業員一覧</span>
-          <div className="ml-auto flex items-center gap-2">
-            <Link
-              href="/settings/masters"
-              className="text-xs border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium px-3 py-2 rounded-lg transition"
-            >
-              マスター管理
-            </Link>
-            <Link
-              href="/employees/new"
-              className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg transition"
-            >
-              + 新規登録
-            </Link>
-          </div>
+      <HeaderNav currentLabel="従業員一覧" extraRight={
+        <div className="flex items-center gap-2">
+          <Link href="/settings/masters" className="text-xs border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium px-3 py-2 rounded-lg transition">マスター管理</Link>
+          <Link href="/employees/new" className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg transition">+ 新規登録</Link>
         </div>
-      </header>
+      } />
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-5">
         {/* 検索・フィルター */}
