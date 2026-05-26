@@ -42,7 +42,13 @@ export default function EmployeeListPage() {
           <Link href="/employees" className="font-bold text-gray-800 text-sm">KeyaTree</Link>
           <span className="text-gray-300 mx-1">›</span>
           <span className="text-gray-700 text-sm font-medium">従業員一覧</span>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <Link
+              href="/settings/masters"
+              className="text-xs border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium px-3 py-2 rounded-lg transition"
+            >
+              マスター管理
+            </Link>
             <Link
               href="/employees/new"
               className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg transition"
