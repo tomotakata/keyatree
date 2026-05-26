@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getEmployee, calcTenure } from "@/lib/mockData";
 import EmployeeCard from "@/components/EmployeeCard";
 import BasicInfo from "@/components/BasicInfo";
@@ -38,9 +39,9 @@ export default async function EmployeePage({
           <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
             <span className="text-white text-xs font-bold">K</span>
           </div>
-          <span className="font-bold text-gray-800 text-sm">KeyaTree</span>
+          <Link href="/employees" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">KeyaTree</Link>
           <span className="text-gray-300 mx-1">›</span>
-          <span className="text-gray-500 text-sm">社員情報</span>
+          <Link href="/employees" className="text-gray-500 text-sm hover:text-emerald-600 transition">従業員一覧</Link>
           <span className="text-gray-300 mx-1">›</span>
           <span className="text-gray-700 text-sm font-medium">{employee.name}</span>
         </div>
