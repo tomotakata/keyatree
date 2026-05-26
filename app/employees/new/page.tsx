@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { permissions, Permission } from "@/lib/permissions";
 
 const departments = ["営業部 > 第一営業課", "営業部 > 第二営業課", "管理部 > 総務課", "物件管理部 > 物件課", "経営管理部"];
 const positions = ["代表取締役", "部長", "課長", "主任", "担当者"];
@@ -15,24 +15,38 @@ const enneagramTypes = [
   { type: 7, label: "熱中者" }, { type: 8, label: "挑戦者" }, { type: 9, label: "平和主義者" },
 ];
 
+const permColorMap: Record<string, { badge: string; ring: string; border: string; bg: string }> = {
+  rose:    { badge: "bg-rose-100 text-rose-700 border-rose-200",    ring: "ring-rose-400",    border: "border-rose-400",    bg: "bg-rose-50" },
+  amber:   { badge: "bg-amber-100 text-amber-700 border-amber-200", ring: "ring-amber-400",   border: "border-amber-400",   bg: "bg-amber-50" },
+  blue:    { badge: "bg-blue-100 text-blue-700 border-blue-200",    ring: "ring-blue-400",    border: "border-blue-400",    bg: "bg-blue-50" },
+  emerald: { badge: "bg-emerald-100 text-emerald-700 border-emerald-200", ring: "ring-emerald-400", border: "border-emerald-400", bg: "bg-emerald-50" },
+  gray:    { badge: "bg-gray-100 text-gray-600 border-gray-200",    ring: "ring-gray-400",    border: "border-gray-400",    bg: "bg-gray-50" },
+};
+
 type FormData = {
   name: string; nameKana: string; department: string; position: string;
   grade: string; jobType: string; employmentType: string; joinedAt: string;
   enneagramType: string; bio: string;
+  email: string; password: string; confirmPassword: string;
+  permissionId: string;
 };
 
 const initial: FormData = {
   name: "", nameKana: "", department: departments[0], position: positions[4],
   grade: grades[2], jobType: jobTypes[0], employmentType: employmentTypes[0],
   joinedAt: new Date().toISOString().slice(0, 10), enneagramType: "3", bio: "",
+  email: "", password: "", confirmPassword: "", permissionId: "staff",
 };
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({ label, required, hint, children }: { label: string; required?: boolean; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-        {label} {required && <span className="text-rose-500">*</span>}
-      </label>
+      <div className="flex items-baseline gap-2 mb-1.5">
+        <label className="text-xs font-semibold text-gray-600">
+          {label} {required && <span className="text-rose-500">*</span>}
+        </label>
+        {hint && <span className="text-xs text-gray-400">{hint}</span>}
+      </div>
       {children}
     </div>
   );
@@ -41,8 +55,9 @@ function Field({ label, required, children }: { label: string; required?: boolea
 const inputCls = "w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-white";
 
 export default function NewEmployeePage() {
-  const router = useRouter();
   const [form, setForm] = useState<FormData>(initial);
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
 
@@ -51,11 +66,20 @@ export default function NewEmployeePage() {
     setErrors((e) => ({ ...e, [key]: "" }));
   };
 
+  const selectedPerm = permissions.find((p) => p.id === form.permissionId)!;
+  const pc = permColorMap[selectedPerm.color];
+
   const validate = () => {
     const err: Partial<Record<keyof FormData, string>> = {};
     if (!form.name.trim()) err.name = "氏名を入力してください";
     if (!form.nameKana.trim()) err.nameKana = "フリガナを入力してください";
     if (!form.joinedAt) err.joinedAt = "入社日を入力してください";
+    if (!form.email.trim()) err.email = "メールアドレスを入力してください";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) err.email = "正しいメールアドレスの形式で入力してください";
+    if (!form.password) err.password = "パスワードを入力してください";
+    else if (form.password.length < 8) err.password = "8文字以上で設定してください";
+    if (!form.confirmPassword) err.confirmPassword = "確認用パスワードを入力してください";
+    else if (form.password !== form.confirmPassword) err.confirmPassword = "パスワードが一致しません";
     return err;
   };
 
@@ -71,23 +95,16 @@ export default function NewEmployeePage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-sm border p-10 text-center max-w-sm w-full mx-4">
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-emerald-500 text-3xl font-bold">✓</span>
+            <span className="text-emerald-500 text-3xl">✓</span>
           </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">登録が完了しました</h2>
-          <p className="text-sm text-gray-500 mb-6">
-            <span className="font-bold text-gray-700">{form.name}</span> さんの従業員情報を登録しました。
-          </p>
+          <h2 className="text-xl font-bold text-gray-800 mb-1">登録が完了しました</h2>
+          <p className="text-sm text-gray-500 mb-1"><span className="font-bold text-gray-700">{form.name}</span> さんのアカウントを作成しました。</p>
+          <p className="text-xs text-gray-400 mb-6">ログイン情報は登録メールアドレス宛に送信されます。</p>
           <div className="flex flex-col gap-2">
-            <Link
-              href="/employees"
-              className="w-full text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl transition text-center"
-            >
+            <Link href="/employees" className="w-full text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl transition text-center">
               従業員一覧へ戻る
             </Link>
-            <button
-              onClick={() => { setForm(initial); setSubmitted(false); }}
-              className="w-full text-sm border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium py-2.5 rounded-xl transition"
-            >
+            <button onClick={() => { setForm(initial); setSubmitted(false); }} className="w-full text-sm border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium py-2.5 rounded-xl transition">
               続けて登録する
             </button>
           </div>
@@ -98,7 +115,6 @@ export default function NewEmployeePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ヘッダー */}
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/employees" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
@@ -115,37 +131,27 @@ export default function NewEmployeePage() {
       <main className="max-w-3xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-gray-800">従業員 新規登録</h1>
-          <p className="text-sm text-gray-500 mt-1">新しい従業員の基本情報を入力してください。</p>
+          <p className="text-sm text-gray-500 mt-1">基本情報・ログイン情報・権限をまとめて設定します。</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 基本情報 */}
-          <div className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
-            <h2 className="text-sm font-bold text-gray-700 border-b pb-2">基本情報</h2>
 
+          {/* ① 基本情報 */}
+          <section className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
+            <h2 className="text-sm font-bold text-gray-700 pb-2 border-b">基本情報</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="氏名" required>
-                <input
-                  type="text" value={form.name} onChange={(e) => set("name", e.target.value)}
-                  placeholder="例：鈴木 一郎" className={inputCls}
-                />
+                <input type="text" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="例：鈴木 一郎" className={inputCls} />
                 {errors.name && <p className="text-xs text-rose-500 mt-1">{errors.name}</p>}
               </Field>
               <Field label="フリガナ" required>
-                <input
-                  type="text" value={form.nameKana} onChange={(e) => set("nameKana", e.target.value)}
-                  placeholder="例：スズキ イチロウ" className={inputCls}
-                />
+                <input type="text" value={form.nameKana} onChange={(e) => set("nameKana", e.target.value)} placeholder="例：スズキ イチロウ" className={inputCls} />
                 {errors.nameKana && <p className="text-xs text-rose-500 mt-1">{errors.nameKana}</p>}
               </Field>
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="入社日" required>
-                <input
-                  type="date" value={form.joinedAt} onChange={(e) => set("joinedAt", e.target.value)}
-                  className={inputCls}
-                />
+                <input type="date" value={form.joinedAt} onChange={(e) => set("joinedAt", e.target.value)} className={inputCls} />
                 {errors.joinedAt && <p className="text-xs text-rose-500 mt-1">{errors.joinedAt}</p>}
               </Field>
               <Field label="雇用形態">
@@ -154,18 +160,16 @@ export default function NewEmployeePage() {
                 </select>
               </Field>
             </div>
-          </div>
+          </section>
 
-          {/* 所属・役職 */}
-          <div className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
-            <h2 className="text-sm font-bold text-gray-700 border-b pb-2">所属・役職</h2>
-
+          {/* ② 所属・役職 */}
+          <section className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
+            <h2 className="text-sm font-bold text-gray-700 pb-2 border-b">所属・役職</h2>
             <Field label="部署">
               <select value={form.department} onChange={(e) => set("department", e.target.value)} className={inputCls}>
                 {departments.map((d) => <option key={d}>{d}</option>)}
               </select>
             </Field>
-
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Field label="役職">
                 <select value={form.position} onChange={(e) => set("position", e.target.value)} className={inputCls}>
@@ -183,43 +187,122 @@ export default function NewEmployeePage() {
                 </select>
               </Field>
             </div>
-          </div>
+          </section>
 
-          {/* パーソナリティ */}
-          <div className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
-            <h2 className="text-sm font-bold text-gray-700 border-b pb-2">パーソナリティ</h2>
+          {/* ③ ログイン情報 */}
+          <section className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
+            <h2 className="text-sm font-bold text-gray-700 pb-2 border-b">ログイン情報</h2>
+            <Field label="メールアドレス" required hint="ログインIDになります">
+              <input
+                type="email" value={form.email} onChange={(e) => set("email", e.target.value)}
+                placeholder="例：suzuki@keyaki-s.com" className={inputCls}
+              />
+              {errors.email && <p className="text-xs text-rose-500 mt-1">{errors.email}</p>}
+            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="パスワード" required hint="8文字以上">
+                <div className="relative">
+                  <input
+                    type={showPass ? "text" : "password"} value={form.password}
+                    onChange={(e) => set("password", e.target.value)}
+                    placeholder="••••••••" className={`${inputCls} pr-10`}
+                  />
+                  <button type="button" onClick={() => setShowPass(!showPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-medium">
+                    {showPass ? "隠す" : "表示"}
+                  </button>
+                </div>
+                {errors.password && <p className="text-xs text-rose-500 mt-1">{errors.password}</p>}
+              </Field>
+              <Field label="パスワード（確認）" required>
+                <div className="relative">
+                  <input
+                    type={showConfirm ? "text" : "password"} value={form.confirmPassword}
+                    onChange={(e) => set("confirmPassword", e.target.value)}
+                    placeholder="••••••••" className={`${inputCls} pr-10`}
+                  />
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-medium">
+                    {showConfirm ? "隠す" : "表示"}
+                  </button>
+                </div>
+                {errors.confirmPassword && <p className="text-xs text-rose-500 mt-1">{errors.confirmPassword}</p>}
+              </Field>
+            </div>
+          </section>
 
+          {/* ④ 権限設定 */}
+          <section className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b">
+              <h2 className="text-sm font-bold text-gray-700">権限設定</h2>
+              <Link href="/settings/permissions" className="text-xs text-emerald-600 hover:underline">
+                権限一覧を見る
+              </Link>
+            </div>
+
+            {/* 権限カード選択 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {permissions.map((p) => {
+                const c = permColorMap[p.color];
+                const isSelected = form.permissionId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => set("permissionId", p.id)}
+                    className={`text-left p-4 rounded-xl border-2 transition-all ${
+                      isSelected ? `${c.border} ${c.bg} ring-2 ${c.ring}` : "border-gray-100 hover:border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${c.badge}`}>{p.name}</span>
+                      {isSelected && <span className="text-xs font-bold text-emerald-600">選択中</span>}
+                    </div>
+                    <p className="text-xs text-gray-500 leading-relaxed mt-1">{p.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 選択中権限の詳細 */}
+            <div className={`rounded-xl p-4 border ${pc.bg} ${pc.border.replace("border-", "border-")}`}>
+              <p className="text-xs font-bold text-gray-600 mb-2">「{selectedPerm.name}」でできること</p>
+              <ul className="space-y-1">
+                {selectedPerm.notes.map((n, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
+                    <span className="text-emerald-500 mt-0.5 flex-shrink-0">✓</span>
+                    {n}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          {/* ⑤ パーソナリティ（任意） */}
+          <section className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
+            <h2 className="text-sm font-bold text-gray-700 pb-2 border-b">パーソナリティ <span className="text-xs font-normal text-gray-400">（任意）</span></h2>
             <Field label="エニアグラムタイプ">
               <select value={form.enneagramType} onChange={(e) => set("enneagramType", e.target.value)} className={inputCls}>
                 {enneagramTypes.map((et) => (
-                  <option key={et.type} value={String(et.type)}>
-                    Type {et.type}・{et.label}
-                  </option>
+                  <option key={et.type} value={String(et.type)}>Type {et.type}・{et.label}</option>
                 ))}
               </select>
             </Field>
-
             <Field label="自己紹介・一言コメント">
-              <textarea
-                value={form.bio} onChange={(e) => set("bio", e.target.value)}
-                rows={3} placeholder="例：お客様に寄り添った提案を心がけています。"
-                className={`${inputCls} resize-none`}
-              />
+              <textarea value={form.bio} onChange={(e) => set("bio", e.target.value)} rows={3}
+                placeholder="例：お客様に寄り添った提案を心がけています。"
+                className={`${inputCls} resize-none`} />
             </Field>
-          </div>
+          </section>
 
-          {/* ボタン */}
-          <div className="flex gap-3">
-            <Link
-              href="/employees"
-              className="flex-1 text-sm border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium py-3 rounded-xl transition text-center"
-            >
+          {/* 送信ボタン */}
+          <div className="flex gap-3 pb-8">
+            <Link href="/employees"
+              className="flex-1 text-sm border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium py-3 rounded-xl transition text-center">
               キャンセル
             </Link>
-            <button
-              type="submit"
-              className="flex-1 text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition"
-            >
+            <button type="submit"
+              className="flex-1 text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition">
               登録する
             </button>
           </div>
