@@ -895,12 +895,13 @@
       <div class="stack-card-layer">Supabase / Performance</div>
       <div class="stack-card-name">利用者 約60人で重くならないか</div>
       <div class="stack-card-desc">
-        <strong>回答：</strong>60人規模であれば、一般的な社員管理・評価管理・タスク管理用途では<strong>十分に軽快に運用可能</strong>です。<br>
-        本システムは同時に60人全員が高頻度アクセスする前提ではなく、日中に分散アクセスする想定であり、Vercel + Supabase の標準構成で問題なく対応可能です。<br>
-        さらに、一覧画面のページネーション、画像最適化、集計処理のキャッシュ化を行うことで、将来的な負荷にも備えられます。
+        <strong>回答：</strong>60人規模の利用、および一定の同時アクセスが発生する前提でも、<strong>適切な設計を行えば十分に安定運用が可能</strong>です。<br>
+        Vercel + Supabase は同時アクセスに対応しやすいクラウド構成であり、社員管理・評価管理・タスク管理といった業務用途であれば、60名規模は無理のないレンジです。<br>
+        一覧画面のページネーション、画像最適化、集計処理のキャッシュ化、クエリ最適化を行うことで、同時利用時の負荷にも十分備えられます。
       </div>
       <div class="stack-card-tags">
         <span class="tag">60名規模対応</span>
+        <span class="tag">同時アクセス対応</span>
         <span class="tag">ページネーション</span>
         <span class="tag">キャッシュ</span>
       </div>
