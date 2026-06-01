@@ -862,6 +862,206 @@
     </li>
   </ul>
 
+  <div class="divider"></div>
+
+
+  <!-- SECTION 6: Q&A -->
+  <div class="section-header">
+    <div class="section-number">6</div>
+    <div>
+      <h2>追加質問への回答</h2>
+      <p>Supabase・運用保守・ランニングコスト・セキュリティに関する補足回答</p>
+    </div>
+  </div>
+
+  <div style="display:grid; gap:18px;">
+
+    <div class="stack-card green" style="background:#ffffff;">
+      <div class="stack-card-layer">Supabase / Data Governance</div>
+      <div class="stack-card-name">更新履歴・削除履歴は追えるか</div>
+      <div class="stack-card-desc">
+        <strong>回答：</strong>標準DBだけでは「誰が・いつ・何を変更したか」を完全には残しませんが、<strong>監査ログ用テーブル</strong>を追加することで対応可能です。<br>
+        具体的には、社員情報・評価・タスクなどの主要テーブルに対して、更新前データ / 更新後データ / 操作者 / 操作日時 / 操作種別（作成・更新・削除）を別テーブルへ自動記録します。<br>
+        将来的に「履歴を元に戻す」「差分比較を表示する」運用も設計可能です。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">監査ログ</span>
+        <span class="tag">変更履歴</span>
+        <span class="tag">削除履歴</span>
+      </div>
+    </div>
+
+    <div class="stack-card blue" style="background:#ffffff;">
+      <div class="stack-card-layer">Supabase / Performance</div>
+      <div class="stack-card-name">利用者 約60人で重くならないか</div>
+      <div class="stack-card-desc">
+        <strong>回答：</strong>60人規模であれば、一般的な社員管理・評価管理・タスク管理用途では<strong>十分に軽快に運用可能</strong>です。<br>
+        本システムは同時に60人全員が高頻度アクセスする前提ではなく、日中に分散アクセスする想定であり、Vercel + Supabase の標準構成で問題なく対応可能です。<br>
+        さらに、一覧画面のページネーション、画像最適化、集計処理のキャッシュ化を行うことで、将来的な負荷にも備えられます。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">60名規模対応</span>
+        <span class="tag">ページネーション</span>
+        <span class="tag">キャッシュ</span>
+      </div>
+    </div>
+
+    <div class="stack-card purple" style="background:#ffffff;">
+      <div class="stack-card-layer">Supabase / Portability</div>
+      <div class="stack-card-name">将来 他クラウドへDB移行できるか</div>
+      <div class="stack-card-desc">
+        <strong>回答：</strong><strong>可能です。</strong>Supabase は PostgreSQL ベースのため、将来的に AWS RDS / Google Cloud SQL / Azure Database for PostgreSQL / 自社サーバーPostgreSQL へ移行しやすい構成です。<br>
+        ベンダーロックインを避けるため、アプリ側でも可能な限り標準SQL・標準PostgreSQL機能を中心に設計する方針が望ましいです。<br>
+        画像ファイルは Storage、認証は Auth を使うため、その2点だけ移行時に追加対応が必要ですが、DB自体の移行性は高いです。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">PostgreSQL互換</span>
+        <span class="tag">移行可能</span>
+        <span class="tag">ベンダーロック回避</span>
+      </div>
+    </div>
+
+    <div class="stack-card amber" style="background:#ffffff;">
+      <div class="stack-card-layer">Operations / SLA</div>
+      <div class="stack-card-name">障害発生時のサポート体制・対応時間</div>
+      <div class="stack-card-desc">
+        <strong>想定運用案：</strong><br>
+        ・一次連絡手段：メール / Chatwork / Slack / 電話（緊急時）<br>
+        ・受付時間：平日 9:00〜18:00<br>
+        ・一次回答目安：<strong>重大障害 2時間以内</strong>、中障害 1営業日以内、軽微不具合 3営業日以内<br>
+        ・復旧対応：原因切り分け → 暫定対処 → 恒久対策 の順で対応<br>
+        なお、正式なSLAは保守契約時に「障害レベル定義」と「対応時間帯」を明文化することを推奨します。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">SLA案</span>
+        <span class="tag">平日9:00-18:00</span>
+        <span class="tag">重大障害2時間以内</span>
+      </div>
+    </div>
+
+    <div class="stack-card teal" style="background:#ffffff;">
+      <div class="stack-card-layer">Operations / Maintenance</div>
+      <div class="stack-card-name">保守費用と保守範囲の考え方</div>
+      <div class="stack-card-desc">
+        <strong>想定保守範囲：</strong>軽微修正、エラー調査、アカウント管理補助、ライブラリアップデート、バックアップ確認、監視確認。<br>
+        <strong>概算：</strong>小規模運用では <strong>月額 3万円〜10万円</strong>程度が目安です。<br>
+        目標としては、初期フェーズでは「軽保守（障害時対応中心）」、本格運用後は「月次改善・定例対応込み」の運用保守へ切り替える形が現実的です。<br>
+        大規模改修や新機能追加は保守費用に含めず、別見積とするのが一般的です。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">軽保守</span>
+        <span class="tag">月3万〜10万円</span>
+        <span class="tag">新機能は別見積</span>
+      </div>
+    </div>
+
+    <div class="stack-card rose" style="background:#ffffff;">
+      <div class="stack-card-layer">Cost / Scale Conditions</div>
+      <div class="stack-card-name">月額コストが増加する条件</div>
+      <div class="stack-card-desc">
+        <strong>増加要因：</strong><br>
+        1. 利用ユーザー数の増加（認証・アクセス数増）<br>
+        2. 写真・添付ファイル保存量の増加（Storage増）<br>
+        3. 月間閲覧数・APIアクセス数の増加<br>
+        4. 通知メール送信数の増加<br>
+        5. バックアップ保持期間の延長<br>
+        6. ログ保存期間の長期化<br>
+        7. リアルタイム同期や分析集計処理の追加<br>
+        8. 本番・検証・開発の3環境運用への拡張<br>
+        9. 外部連携（LINE / 会計ソフト / 勤怠システム等）の追加
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">ユーザー増</span>
+        <span class="tag">ストレージ増</span>
+        <span class="tag">通知増</span>
+        <span class="tag">環境増</span>
+      </div>
+    </div>
+
+    <div class="stack-card green" style="background:#ffffff;">
+      <div class="stack-card-layer">Cost Simulation / 60 Users</div>
+      <div class="stack-card-name">60人運用時の月額シミュレーション</div>
+      <div class="stack-card-desc">
+        <strong>前提：</strong>60名利用、プロフィール画像あり、通知メールあり、年間利用によるデータ蓄積を加味。<br>
+        ・Vercel Pro： 約 ¥3,100 / 月<br>
+        ・Supabase Pro： 約 ¥3,900 / 月<br>
+        ・メール送信（通知・パスワードリセット）： 約 ¥1,550 / 月<br>
+        ・独自ドメイン按分： 約 ¥300 / 月<br>
+        ・監視・ログ・予備費： 約 ¥2,000 〜 ¥5,000 / 月<br>
+        <strong>合計目安：</strong> 約 <strong>¥10,800 〜 ¥13,800 / 月</strong><br>
+        <strong>年間目安：</strong> 約 <strong>¥129,600 〜 ¥165,600 / 年</strong><br>
+        社員写真やPDF添付、通知ログを多めに保存しても、60名規模であればこのレンジ内に収まる可能性が高いです。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">60名想定</span>
+        <span class="tag">月1.1万〜1.4万円</span>
+        <span class="tag">年13万〜17万円</span>
+      </div>
+    </div>
+
+    <div class="stack-card blue" style="background:#ffffff;">
+      <div class="stack-card-layer">Security / Access Control</div>
+      <div class="stack-card-name">IP制限は可能か</div>
+      <div class="stack-card-desc">
+        <strong>回答：</strong><strong>可能です。</strong>方法は複数あり、用途に応じて選択します。<br>
+        ・Vercel / WAF / Reverse Proxy 側で許可IPのみアクセス許可<br>
+        ・ログイン後アプリ側でIPチェックして制御<br>
+        ・管理画面のみ社内IP制限、社員閲覧画面は外部許可という分離運用<br>
+        ただし、外出先やスマホ利用を想定する場合は、IP制限を厳しくしすぎると利便性が下がるため、対象画面の切り分けが重要です。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">IP制限可</span>
+        <span class="tag">管理画面のみ制限も可</span>
+      </div>
+    </div>
+
+    <div class="stack-card purple" style="background:#ffffff;">
+      <div class="stack-card-layer">Security / Detection</div>
+      <div class="stack-card-name">不正アクセス検知はあるか</div>
+      <div class="stack-card-desc">
+        <strong>回答：</strong>標準機能だけで完全なSOCレベル監視ではありませんが、<strong>ログイン失敗回数の記録</strong>、異常IPアクセス検出、急激なAPIリクエスト増加の監視、エラーログ通知などを組み合わせて検知可能です。<br>
+        必要に応じて、Sentry / Logtail / Datadog 等の監視サービスを追加し、管理者に自動通知する構成に拡張できます。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">異常検知</span>
+        <span class="tag">監視ツール連携可</span>
+      </div>
+    </div>
+
+    <div class="stack-card amber" style="background:#ffffff;">
+      <div class="stack-card-layer">Security / Audit</div>
+      <div class="stack-card-name">各ユーザーの操作ログは全て取得可能か</div>
+      <div class="stack-card-desc">
+        <strong>回答：</strong><strong>可能です。</strong>ログイン、閲覧、作成、更新、削除、承認、通知送信などのイベントをすべて監査ログテーブルへ保存する設計にできます。<br>
+        推奨項目は「ユーザーID」「対象データID」「操作内容」「日時」「IP」「端末情報」「変更前後データ」です。<br>
+        実装時には、個人情報保護の観点から「何をどこまで保存するか」を事前に定義します。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">操作ログ取得可</span>
+        <span class="tag">監査証跡</span>
+      </div>
+    </div>
+
+    <div class="stack-card teal" style="background:#ffffff;">
+      <div class="stack-card-layer">Backup / Recovery</div>
+      <div class="stack-card-name">バックアップ頻度・保存期間・復旧時間・復旧方法</div>
+      <div class="stack-card-desc">
+        <strong>想定方針：</strong><br>
+        ・頻度：日次バックアップ（重要データは将来的に複数回/日も検討可）<br>
+        ・保存期間：7日〜30日（契約プランに応じて設定）<br>
+        ・復旧時間目安：軽微障害は数十分〜数時間、重大障害は半日〜1営業日<br>
+        ・復旧方法：Supabase のバックアップ復元、またはエクスポートSQL / CSV から再投入<br>
+        より高い可用性が必要な場合は、定期エクスポートを別クラウドへ二重保存する運用も可能です。
+      </div>
+      <div class="stack-card-tags">
+        <span class="tag">日次バックアップ</span>
+        <span class="tag">7〜30日保存</span>
+        <span class="tag">二重保存可</span>
+      </div>
+    </div>
+
+  </div>
+
 </div><!-- /page -->
 
 
