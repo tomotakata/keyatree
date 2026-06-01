@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { findAccount } from "@/lib/mockAccounts";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = useMemo(() => searchParams.get("redirect") || "/employees", [searchParams]);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -17,7 +20,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    await new Promise((r) => setTimeout(r, 600)); // ローディング演出
+    await new Promise((r) => setTimeout(r, 600));
 
     const account = findAccount(email.trim(), password);
     if (!account) {
@@ -26,7 +29,6 @@ export default function LoginPage() {
       return;
     }
 
-    // セッションをcookieに保存
     document.cookie = `kt_session=${JSON.stringify({
       id: account.id,
       name: account.name,
@@ -34,15 +36,20 @@ export default function LoginPage() {
       permissionId: account.permissionId,
       permissionName: account.permissionName,
       employeeId: account.employeeId,
-    })}; path=/; max-age=${60 * 60 * 8}`; // 8時間
+    })}; path=/; max-age=${60 * 60 * 8}`;
 
-    router.push("/employees");
+    router.push(redirectTo);
   };
+
+  const destinationLabel = redirectTo.startsWith("/docs")
+    ? "ドキュメント"
+    : redirectTo.startsWith("/employees")
+      ? "従業員管理"
+      : "システム";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-600 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        {/* ロゴ */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur mb-4">
             <span className="text-white text-3xl font-black">K</span>
@@ -51,9 +58,9 @@ export default function LoginPage() {
           <p className="text-emerald-100 text-sm mt-1">組織・人事管理システム</p>
         </div>
 
-        {/* フォームカード */}
         <div className="bg-white rounded-3xl shadow-2xl p-8">
-          <h2 className="text-lg font-bold text-gray-800 mb-6 text-center">ログイン</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-2 text-center">ログイン</h2>
+          <p className="text-xs text-gray-400 text-center mb-6">ログイン後は {destinationLabel} ページへ移動します</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -109,14 +116,13 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* デモ用アカウント情報 */}
           <div className="mt-6 pt-5 border-t">
             <p className="text-xs text-gray-400 font-semibold mb-2 text-center">デモアカウント</p>
             <div className="space-y-1.5">
               {[
                 { role: "システム管理者", email: "admin@keyaki-s.com", pass: "admin1234" },
-                { role: "人事管理者",     email: "tanaka@keyaki-s.com", pass: "password123" },
-                { role: "一般社員",       email: "suzuki@keyaki-s.com", pass: "password123" },
+                { role: "人事管理者", email: "tanaka@keyaki-s.com", pass: "password123" },
+                { role: "一般社員", email: "suzuki@keyaki-s.com", pass: "password123" },
               ].map((d) => (
                 <button
                   key={d.email}
@@ -134,5 +140,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-600" />}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
