@@ -13,6 +13,17 @@ const docs = [
     status: "公開中",
   },
   {
+    id: "infra-qa",
+    href: "/docs/infra-qa.html",
+    label: "Q&A",
+    color: "from-blue-500 to-indigo-500",
+    title: "インフラ・運用・セキュリティに関するご質問事項への回答書",
+    desc: "Supabase、運用保守、ランニングコスト、SLA、バックアップ、IP制限、操作ログなどへの提出用回答資料。",
+    tags: ["提出用", "セキュリティ", "運用保守", "SLA"],
+    date: "2025.05",
+    status: "公開中",
+  },
+  {
     id: "dev-log-01",
     href: null,
     label: "LOG",
