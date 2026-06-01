@@ -14,6 +14,18 @@ export type Account = {
 
 export const mockAccounts: Account[] = [
   {
+    id: "acc_sugita",
+    employeeId: "",
+    name: "杉田 様",
+    email: "k.sugita@365keyaki.onmicrosoft.com",
+    password: "password123",
+    permissionId: "admin",
+    permissionName: "システム管理者",
+    isActive: true,
+    lastLoginAt: null,
+    createdAt: "2025-06-01",
+  },
+  {
     id: "acc001",
     employeeId: "001",
     name: "鈴木 一郎",
