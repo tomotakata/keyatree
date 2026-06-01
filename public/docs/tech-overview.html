@@ -1005,11 +1005,11 @@
       <div class="stack-card-layer">Security / Access Control</div>
       <div class="stack-card-name">IP制限は可能か</div>
       <div class="stack-card-desc">
-        <strong>回答：</strong><strong>可能です。</strong>方法は複数あり、用途に応じて選択します。<br>
-        ・Vercel / WAF / Reverse Proxy 側で許可IPのみアクセス許可<br>
-        ・ログイン後アプリ側でIPチェックして制御<br>
-        ・管理画面のみ社内IP制限、社員閲覧画面は外部許可という分離運用<br>
-        ただし、外出先やスマホ利用を想定する場合は、IP制限を厳しくしすぎると利便性が下がるため、対象画面の切り分けが重要です。
+        <strong>回答：</strong><strong>可能です。</strong>ただし、IP制限は「開発するシステムのログイン時における制御」と「インフラ側でのアクセス制御」を分けて考える必要があります。<br>
+        ・システム側：ログイン時に許可IPのみ認証を受け付ける制御が可能<br>
+        ・インフラ側：Vercel / WAF / Reverse Proxy 側で特定IPのみアクセス許可が可能<br>
+        ・運用分離：管理者のみ社内IP制限、社員閲覧画面は通常アクセス許可といった設計も可能<br>
+        外出先やスマホ利用を想定する場合は、ログイン制限をかける対象ユーザーと、インフラ側で制限する対象画面を切り分けることが重要です。
       </div>
       <div class="stack-card-tags">
         <span class="tag">IP制限可</span>
