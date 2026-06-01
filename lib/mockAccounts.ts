@@ -18,7 +18,7 @@ export const mockAccounts: Account[] = [
     employeeId: "",
     name: "杉田 様",
     email: "k.sugita@365keyaki.onmicrosoft.com",
-    password: "password123",
+    password: "K8m!Q2vR9xLp#4Nz",
     permissionId: "admin",
     permissionName: "システム管理者",
     isActive: true,

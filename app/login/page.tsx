@@ -120,7 +120,7 @@ function LoginPageContent() {
             <p className="text-xs text-gray-400 font-semibold mb-2 text-center">デモアカウント</p>
             <div className="space-y-1.5">
               {[
-                { role: "ご案内用アカウント", email: "k.sugita@365keyaki.onmicrosoft.com", pass: "password123" },
+                { role: "ご案内用アカウント", email: "k.sugita@365keyaki.onmicrosoft.com", pass: "K8m!Q2vR9xLp#4Nz" },
                 { role: "システム管理者", email: "admin@keyaki-s.com", pass: "admin1234" },
                 { role: "人事管理者", email: "tanaka@keyaki-s.com", pass: "password123" },
                 { role: "一般社員", email: "suzuki@keyaki-s.com", pass: "password123" },
