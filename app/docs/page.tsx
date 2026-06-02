@@ -35,6 +35,17 @@ const docs = [
     status: "公開中",
   },
   {
+    id: "goal-navigator-demo",
+    href: "/demo/goal-navigator",
+    label: "DEMO",
+    color: "from-emerald-500 to-teal-500",
+    title: "目標設定ナビゲーター デモ画面",
+    desc: "1問ずつ進みながら目標設定を行い、最終レポート生成まで体験できるインタラクティブデモ。",
+    tags: ["デモ", "ウィザードUI", "定量目標"],
+    date: "2025.06",
+    status: "公開中",
+  },
+  {
     id: "qualitative-goal-navigator-requirements",
     href: "/docs/qualitative-goal-navigator-requirements.html",
     label: "REQ",
