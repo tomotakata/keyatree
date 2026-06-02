@@ -57,6 +57,17 @@ const docs = [
     status: "公開中",
   },
   {
+    id: "qualitative-goal-navigator-demo",
+    href: "/demo/qualitative-goal-navigator",
+    label: "DEMO",
+    color: "from-blue-500 to-indigo-500",
+    title: "定性目標設定ナビゲーター デモ画面",
+    desc: "PDF準拠の固定選択項目を用いて、定性目標設定から行動3つ、最終レポート生成まで体験できるデモ画面。",
+    tags: ["デモ", "定性目標", "PDF準拠"],
+    date: "2025.06",
+    status: "公開中",
+  },
+  {
     id: "dev-log-01",
     href: null,
     label: "LOG",
