@@ -105,6 +105,8 @@ export default function TrackedDocPage({
   docTarget,
   docAuthor,
   iframeSrc,
+  demoHref,
+  demoLabel,
 }: {
   docId: string;
   docTitle: string;
@@ -114,6 +116,8 @@ export default function TrackedDocPage({
   docTarget: string;
   docAuthor: string;
   iframeSrc: string;
+  demoHref?: string;
+  demoLabel?: string;
 }) {
   const session = typeof window !== "undefined" ? parseCookieSession() : null;
   const [records, setRecords] = useState<ViewRecord[]>([]);
@@ -302,7 +306,15 @@ export default function TrackedDocPage({
                   <span className="text-gray-700 font-medium text-right">{item.value}</span>
                 </div>
               ))}
-              <div className="pt-2 border-t mt-2">
+              <div className="pt-2 border-t mt-2 space-y-2">
+                {demoHref && (
+                  <Link
+                    href={demoHref}
+                    className="w-full flex items-center justify-center gap-2 text-xs text-white bg-emerald-500 rounded-lg py-2 hover:bg-emerald-600 transition font-bold"
+                  >
+                    {demoLabel ?? "デモを見る"}
+                  </Link>
+                )}
                 <a href={iframeSrc} target="_blank" className="w-full flex items-center justify-center gap-2 text-xs text-gray-500 border border-gray-200 rounded-lg py-2 hover:bg-gray-50 transition">
                   新しいタブで開く
                 </a>

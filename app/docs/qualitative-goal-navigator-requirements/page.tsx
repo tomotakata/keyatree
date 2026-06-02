@@ -11,6 +11,8 @@ export default function QualitativeGoalNavigatorRequirementsPage() {
       docTarget="定性目標設定機能 要件定義"
       docAuthor="開発チーム"
       iframeSrc="/docs/qualitative-goal-navigator-requirements.html"
+      demoHref="/demo/qualitative-goal-navigator"
+      demoLabel="定性版デモを見る"
     />
   );
 }
