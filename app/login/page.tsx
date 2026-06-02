@@ -120,7 +120,6 @@ function LoginPageContent() {
             <p className="text-xs text-gray-400 font-semibold mb-2 text-center">デモアカウント</p>
             <div className="space-y-1.5">
               {[
-                { role: "ご案内用アカウント", email: "k.sugita@365keyaki.onmicrosoft.com", pass: "K8m!Q2vR9xLp#4Nz" },
                 { role: "システム管理者", email: "admin@keyaki-s.com", pass: "admin1234" },
                 { role: "人事管理者", email: "tanaka@keyaki-s.com", pass: "password123" },
                 { role: "一般社員", email: "suzuki@keyaki-s.com", pass: "password123" },
@@ -129,10 +128,12 @@ function LoginPageContent() {
                   key={d.email}
                   type="button"
                   onClick={() => { setEmail(d.email); setPassword(d.pass); setError(""); }}
-                  className="w-full text-left flex items-center justify-between bg-gray-50 hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 rounded-lg px-3 py-2 transition"
+                  className="w-full text-left bg-gray-50 hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 rounded-lg px-4 py-3 transition"
                 >
-                  <span className="text-xs font-medium text-gray-700">{d.role}</span>
-                  <span className="text-xs text-gray-400 font-mono">{d.email}</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-gray-700">{d.role}</span>
+                    <span className="text-xs text-gray-400 font-mono break-all">{d.email}</span>
+                  </div>
                 </button>
               ))}
             </div>
