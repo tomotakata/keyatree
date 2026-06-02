@@ -10,6 +10,14 @@ const whyPrompts = [
   "今回その目標に取り組む一番大きな意味は何でしょうか？",
 ];
 
+const departmentOptions = [
+  "営業部 > 第一営業課",
+  "営業部 > 第二営業課",
+  "管理部 > 総務課",
+  "物件管理部 > 物件課",
+  "経営管理部",
+];
+
 type StepKey =
   | "name"
   | "department"
@@ -40,35 +48,35 @@ type StepKey =
   | "action33"
   | "support";
 
-const steps: { key: StepKey; title: string; prompt: string; placeholder: string; section: string }[] = [
-  { key: "name", title: "STEP0 基本情報", prompt: "お名前を入力してください。", placeholder: "例：鈴木 一郎", section: "基本情報" },
-  { key: "department", title: "STEP0 基本情報", prompt: "部署名または役割・チーム名を入力してください。", placeholder: "例：営業部 第一営業課", section: "基本情報" },
-  { key: "deadline", title: "STEP1 目標", prompt: "目標の期限を入力してください。", placeholder: "例：2025年9月末", section: "目標" },
-  { key: "goal", title: "STEP1 目標", prompt: "目標をひと言で表現してください。", placeholder: "例：新規契約件数を月10件達成する", section: "目標" },
-  { key: "why1", title: "STEP2 Why", prompt: whyPrompts[0], placeholder: "理由を入力", section: "Why" },
-  { key: "why2", title: "STEP2 Why", prompt: whyPrompts[1], placeholder: "変化を入力", section: "Why" },
-  { key: "why3", title: "STEP2 Why", prompt: whyPrompts[2], placeholder: "背景を入力", section: "Why" },
-  { key: "why4", title: "STEP2 Why", prompt: whyPrompts[3], placeholder: "意味を入力", section: "Why" },
-  { key: "purpose", title: "STEP3 統合", prompt: "上記を踏まえて、目的と目標を統合した文章を確認・調整してください。", placeholder: "統合文を入力", section: "統合" },
-  { key: "kr1", title: "STEP4 KR", prompt: "主要な結果（KR）1を入力してください。", placeholder: "例：月間新規契約 10件", section: "KR" },
-  { key: "kr2", title: "STEP4 KR", prompt: "主要な結果（KR）2を入力してください。", placeholder: "例：紹介案件比率 20%", section: "KR" },
-  { key: "kr3", title: "STEP4 KR", prompt: "主要な結果（KR）3を入力してください。", placeholder: "例：顧客満足度 4.5以上", section: "KR" },
-  { key: "state1", title: "STEP5 現状と課題", prompt: "KR1の現状（事実）を入力してください。", placeholder: "例：現在は月6件", section: "現状と課題" },
-  { key: "issue1", title: "STEP5 現状と課題", prompt: "KR1の課題を入力してください。", placeholder: "例：新規接点数が不足している", section: "現状と課題" },
-  { key: "state2", title: "STEP5 現状と課題", prompt: "KR2の現状（事実）を入力してください。", placeholder: "例：現在は12%", section: "現状と課題" },
-  { key: "issue2", title: "STEP5 現状と課題", prompt: "KR2の課題を入力してください。", placeholder: "例：既存顧客への依頼頻度が低い", section: "現状と課題" },
-  { key: "state3", title: "STEP5 現状と課題", prompt: "KR3の現状（事実）を入力してください。", placeholder: "例：現在は4.1", section: "現状と課題" },
-  { key: "issue3", title: "STEP5 現状と課題", prompt: "KR3の課題を入力してください。", placeholder: "例：初回対応品質にばらつきがある", section: "現状と課題" },
-  { key: "action11", title: "STEP6 行動", prompt: "KR1に対する具体行動①を入力してください。", placeholder: "例：毎週月曜に見込み顧客20件へ連絡する", section: "行動" },
-  { key: "action12", title: "STEP6 行動", prompt: "KR1に対する具体行動②を入力してください。", placeholder: "例：毎日17時に進捗を記録する", section: "行動" },
-  { key: "action13", title: "STEP6 行動", prompt: "KR1に対する具体行動③を入力してください。", placeholder: "例：週1回ロープレを実施する", section: "行動" },
-  { key: "action21", title: "STEP6 行動", prompt: "KR2に対する具体行動①を入力してください。", placeholder: "例：毎週3件紹介依頼を行う", section: "行動" },
-  { key: "action22", title: "STEP6 行動", prompt: "KR2に対する具体行動②を入力してください。", placeholder: "例：成功事例を週次で共有する", section: "行動" },
-  { key: "action23", title: "STEP6 行動", prompt: "KR2に対する具体行動③を入力してください。", placeholder: "例：紹介依頼のテンプレを整備する", section: "行動" },
-  { key: "action31", title: "STEP6 行動", prompt: "KR3に対する具体行動①を入力してください。", placeholder: "例：初回対応チェックリストを毎回確認する", section: "行動" },
-  { key: "action32", title: "STEP6 行動", prompt: "KR3に対する具体行動②を入力してください。", placeholder: "例：週1回フィードバックを受ける", section: "行動" },
-  { key: "action33", title: "STEP6 行動", prompt: "KR3に対する具体行動③を入力してください。", placeholder: "例：対応後に毎回自己振り返りを行う", section: "行動" },
-  { key: "support", title: "STEP7 支援設計", prompt: "誰の、どんな支援を受けるか入力してください。", placeholder: "例：上長に週1回進捗レビューを依頼する", section: "支援設計" },
+const steps: { key: StepKey; title: string; prompt: string; placeholder?: string; section: string; kind?: "text" | "textarea" | "select" }[] = [
+  { key: "name", title: "STEP0 基本情報", prompt: "お名前を入力してください。", placeholder: "例：鈴木 一郎", section: "基本情報", kind: "text" },
+  { key: "department", title: "STEP0 基本情報", prompt: "部署を選択してください。", section: "基本情報", kind: "select" },
+  { key: "deadline", title: "STEP1 目標", prompt: "目標の期限を入力してください。", placeholder: "例：2025年9月末", section: "目標", kind: "text" },
+  { key: "goal", title: "STEP1 目標", prompt: "目標をひと言で表現してください。", placeholder: "例：新規契約件数を月10件達成する", section: "目標", kind: "textarea" },
+  { key: "why1", title: "STEP2 Why", prompt: whyPrompts[0], placeholder: "理由を入力", section: "Why", kind: "textarea" },
+  { key: "why2", title: "STEP2 Why", prompt: whyPrompts[1], placeholder: "変化を入力", section: "Why", kind: "textarea" },
+  { key: "why3", title: "STEP2 Why", prompt: whyPrompts[2], placeholder: "背景を入力", section: "Why", kind: "textarea" },
+  { key: "why4", title: "STEP2 Why", prompt: whyPrompts[3], placeholder: "意味を入力", section: "Why", kind: "textarea" },
+  { key: "purpose", title: "STEP3 統合", prompt: "上記を踏まえて、目的と目標を統合した文章を確認・調整してください。", placeholder: "統合文を入力", section: "統合", kind: "textarea" },
+  { key: "kr1", title: "STEP4 KR", prompt: "主要な結果（KR）1を入力してください。", placeholder: "例：月間新規契約 10件", section: "KR", kind: "text" },
+  { key: "kr2", title: "STEP4 KR", prompt: "主要な結果（KR）2を入力してください。", placeholder: "例：紹介案件比率 20%", section: "KR", kind: "text" },
+  { key: "kr3", title: "STEP4 KR", prompt: "主要な結果（KR）3を入力してください。", placeholder: "例：顧客満足度 4.5以上", section: "KR", kind: "text" },
+  { key: "state1", title: "STEP5 現状と課題", prompt: "KR1の現状（事実）を入力してください。", placeholder: "例：現在は月6件", section: "現状と課題", kind: "textarea" },
+  { key: "issue1", title: "STEP5 現状と課題", prompt: "KR1の課題を入力してください。", placeholder: "例：新規接点数が不足している", section: "現状と課題", kind: "textarea" },
+  { key: "state2", title: "STEP5 現状と課題", prompt: "KR2の現状（事実）を入力してください。", placeholder: "例：現在は12%", section: "現状と課題", kind: "textarea" },
+  { key: "issue2", title: "STEP5 現状と課題", prompt: "KR2の課題を入力してください。", placeholder: "例：既存顧客への依頼頻度が低い", section: "現状と課題", kind: "textarea" },
+  { key: "state3", title: "STEP5 現状と課題", prompt: "KR3の現状（事実）を入力してください。", placeholder: "例：現在は4.1", section: "現状と課題", kind: "textarea" },
+  { key: "issue3", title: "STEP5 現状と課題", prompt: "KR3の課題を入力してください。", placeholder: "例：初回対応品質にばらつきがある", section: "現状と課題", kind: "textarea" },
+  { key: "action11", title: "STEP6 行動", prompt: "KR1に対する具体行動①を入力してください。", placeholder: "例：毎週月曜に見込み顧客20件へ連絡する", section: "行動", kind: "textarea" },
+  { key: "action12", title: "STEP6 行動", prompt: "KR1に対する具体行動②を入力してください。", placeholder: "例：毎日17時に進捗を記録する", section: "行動", kind: "textarea" },
+  { key: "action13", title: "STEP6 行動", prompt: "KR1に対する具体行動③を入力してください。", placeholder: "例：週1回ロープレを実施する", section: "行動", kind: "textarea" },
+  { key: "action21", title: "STEP6 行動", prompt: "KR2に対する具体行動①を入力してください。", placeholder: "例：毎週3件紹介依頼を行う", section: "行動", kind: "textarea" },
+  { key: "action22", title: "STEP6 行動", prompt: "KR2に対する具体行動②を入力してください。", placeholder: "例：成功事例を週次で共有する", section: "行動", kind: "textarea" },
+  { key: "action23", title: "STEP6 行動", prompt: "KR2に対する具体行動③を入力してください。", placeholder: "例：紹介依頼のテンプレを整備する", section: "行動", kind: "textarea" },
+  { key: "action31", title: "STEP6 行動", prompt: "KR3に対する具体行動①を入力してください。", placeholder: "例：初回対応チェックリストを毎回確認する", section: "行動", kind: "textarea" },
+  { key: "action32", title: "STEP6 行動", prompt: "KR3に対する具体行動②を入力してください。", placeholder: "例：週1回フィードバックを受ける", section: "行動", kind: "textarea" },
+  { key: "action33", title: "STEP6 行動", prompt: "KR3に対する具体行動③を入力してください。", placeholder: "例：対応後に毎回自己振り返りを行う", section: "行動", kind: "textarea" },
+  { key: "support", title: "STEP7 支援設計", prompt: "誰の、どんな支援を受けるか入力してください。", placeholder: "例：上長に週1回進捗レビューを依頼する", section: "支援設計", kind: "textarea" },
 ];
 
 export default function GoalNavigatorDemoPage() {
@@ -86,6 +94,7 @@ export default function GoalNavigatorDemoPage() {
   }, [answers]);
 
   const value = current?.key === "purpose" ? (answers.purpose ?? autoPurpose) : (answers[current?.key] ?? "");
+  const options = current?.key === "department" ? departmentOptions : [];
 
   const setValue = (val: string) => {
     setAnswers((prev) => ({
@@ -149,13 +158,39 @@ export default function GoalNavigatorDemoPage() {
               </div>
 
               <div>
-                <textarea
-                  rows={6}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  placeholder={current.placeholder}
-                  className="w-full text-sm border border-gray-200 rounded-2xl px-4 py-4 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-300"
-                />
+                {current.kind === "select" ? (
+                  <div className="space-y-3">
+                    {options.map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => setValue(option)}
+                        className={`w-full text-left px-4 py-4 rounded-2xl border transition ${
+                          value === option
+                            ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+                            : "border-gray-200 hover:border-emerald-200 hover:bg-gray-50 text-gray-700"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                ) : current.kind === "text" ? (
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder={current.placeholder}
+                    className="w-full text-sm border border-gray-200 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  />
+                ) : (
+                  <textarea
+                    rows={6}
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder={current.placeholder}
+                    className="w-full text-sm border border-gray-200 rounded-2xl px-4 py-4 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  />
+                )}
                 <p className="text-xs text-gray-400 mt-2">質問は一度に1つだけ表示する仕様を想定しています。</p>
               </div>
 
