@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KeyaTree 定性目標設定ナビゲーター機能 要件定義書</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Inter:wght@400;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue:#2563eb; --indigo:#4f46e5; --gray-900:#111827; --gray-700:#374151;
+    --gray-500:#6b7280; --gray-200:#e5e7eb; --gray-100:#f3f4f6; --gray-50:#f9fafb;
+    --emerald:#10b981; --amber:#f59e0b;
+  }
+  body { font-family:'Noto Sans JP','Inter',sans-serif; color:var(--gray-900); background:#fff; line-height:1.8; font-size:14px; }
+  .cover { min-height:56vh; padding:72px 64px; color:#fff; background:linear-gradient(135deg,#1e3a8a 0%,#3730a3 48%,#4f46e5 100%); position:relative; overflow:hidden; }
+  .cover::before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 78% 18%,rgba(255,255,255,.13),transparent 28%); }
+  .cover-inner { position:relative; z-index:1; max-width:920px; }
+  .eyebrow { display:inline-block; padding:6px 14px; border:1px solid rgba(255,255,255,.24); border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.08em; color:#dbeafe; margin-bottom:28px; }
+  .brand { font-family:'Inter',sans-serif; font-size:34px; font-weight:800; letter-spacing:-.04em; }
+  .brand span { color:#93c5fd; }
+  h1 { margin-top:42px; font-size:38px; line-height:1.4; font-weight:800; letter-spacing:-.02em; }
+  .cover p { margin-top:16px; max-width:720px; color:rgba(255,255,255,.9); }
+  .meta { margin-top:38px; display:flex; gap:32px; flex-wrap:wrap; font-size:12px; color:rgba(255,255,255,.78); }
+  .meta strong { display:block; color:#fff; margin-bottom:4px; }
+  .page { max-width:980px; margin:0 auto; padding:56px 40px 80px; }
+  .intro { background:linear-gradient(180deg,#eff6ff 0%,#fff 100%); border:1px solid #bfdbfe; border-radius:18px; padding:24px 26px; }
+  .intro h2 { font-size:18px; color:#1d4ed8; margin-bottom:10px; }
+  .section { margin-top:42px; }
+  .section-head { display:flex; gap:14px; align-items:center; padding-bottom:14px; border-bottom:2px solid var(--gray-200); margin-bottom:22px; }
+  .no { width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,var(--blue),var(--indigo)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-family:'Inter',sans-serif; flex-shrink:0; }
+  .section-head h3 { font-size:22px; letter-spacing:-.02em; }
+  .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+  .card { border:1.5px solid var(--gray-200); border-radius:18px; background:#fff; overflow:hidden; }
+  .card-head { background:var(--gray-50); border-bottom:1px solid var(--gray-200); padding:14px 18px; }
+  .card-head h4 { font-size:16px; }
+  .card-body { padding:18px; }
+  .bullet { padding-left:18px; margin-top:10px; }
+  .bullet li { margin:6px 0; color:var(--gray-700); }
+  .step-list { display:grid; gap:14px; }
+  .step { display:flex; gap:16px; align-items:flex-start; border:1.5px solid var(--gray-200); border-radius:16px; padding:16px 18px; background:#fff; }
+  .step-badge { min-width:74px; text-align:center; padding:8px 10px; border-radius:12px; background:#eff6ff; color:#1d4ed8; font-weight:800; font-size:12px; font-family:'Inter',sans-serif; }
+  .step h5 { font-size:15px; margin-bottom:4px; }
+  .step p { font-size:13px; color:var(--gray-700); }
+  table { width:100%; border-collapse:collapse; border:1.5px solid var(--gray-200); border-radius:16px; overflow:hidden; }
+  th { background:#111827; color:#fff; text-align:left; padding:14px 16px; font-size:11px; letter-spacing:.05em; text-transform:uppercase; }
+  td { padding:14px 16px; border-bottom:1px solid var(--gray-200); vertical-align:top; font-size:13px; }
+  tr:last-child td { border-bottom:none; }
+  tr:nth-child(even) td { background:var(--gray-50); }
+  .pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:10px; font-weight:700; }
+  .pill.green { background:#d1fae5; color:#065f46; }
+  .pill.blue { background:#dbeafe; color:#1d4ed8; }
+  .pill.amber { background:#fef3c7; color:#92400e; }
+  .note { margin-top:14px; background:#fff7ed; border:1px solid #fdba74; border-radius:14px; padding:14px 16px; color:#9a3412; font-size:12px; }
+  .footer { margin-top:56px; padding-top:20px; border-top:1px solid var(--gray-200); display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; font-size:12px; color:var(--gray-500); }
+  @media print { @page { size:A4; margin:0; } .cover { min-height:auto; } .page { padding:40px 44px 60px; } }
+</style>
+</head>
+<body>
+<div class="cover">
+  <div class="cover-inner">
+    <div class="eyebrow">REQUIREMENTS DOCUMENT</div>
+    <div class="brand">Keya<span>Tree</span></div>
+    <h1>定性目標設定ナビゲーター機能<br>要件定義書</h1>
+    <p>「誰でも簡単にできる目標設定シート（PDF）」を唯一の基盤とした、定性目標設定ナビゲーター機能をシステム化するための要件を整理した文書です。</p>
+    <div class="meta">
+      <div><strong>対象機能</strong>定性目標設定ナビゲーター</div>
+      <div><strong>対象システム</strong>KeyaTree</div>
+      <div><strong>作成日</strong>2025年6月</div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="intro">
+    <h2>目的</h2>
+    <p>PDF準拠のステージ・グレード・カテゴリ・コンピテンシーを基盤とし、定性目標を迷わず設定できる伴走型ウィザードを構築する。最終的には、本人の言葉による目標と行動計画を Word提出前提のレポートとして出力できる状態を実現する。</p>
+  </div>
+
+  <section class="section">
+    <div class="section-head"><div class="no">1</div><h3>機能概要</h3></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><h4>対象ユーザー</h4></div><div class="card-body"><ul class="bullet"><li>一般社員（定性目標設定者）</li><li>上長（確認・差戻し・承認）</li><li>人事管理者（全体管理・マスター管理）</li></ul></div></div>
+      <div class="card"><div class="card-head"><h4>基本方針</h4></div><div class="card-body"><ul class="bullet"><li>PDFを唯一の基盤とする</li><li>選択項目の言い換え・要約は禁止</li><li>質問は1回に1つだけ</li><li>必ず行動3つまで落とし込む</li></ul></div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">2</div><h3>進行フロー要件</h3></div>
+    <div class="step-list">
+      <div class="step"><div class="step-badge">INIT</div><div><h5>初期ヒアリング</h5><p>名前、部署を順に1問ずつ取得する。完了までPRE-STEPへ進めない。</p></div></div>
+      <div class="step"><div class="step-badge">PRE-A</div><div><h5>ステージ選択</h5><p>PDFに定義されたステージから選択させる。言い換え・要約は禁止。</p></div></div>
+      <div class="step"><div class="step-badge">PRE-B</div><div><h5>グレード選択</h5><p>選択したステージに紐づくグレード候補を提示し、確定する。</p></div></div>
+      <div class="step"><div class="step-badge">PRE-C</div><div><h5>定性目標カテゴリ選択</h5><p>PDF準拠のカテゴリをそのまま提示し、選択させる。</p></div></div>
+      <div class="step"><div class="step-badge">PRE-D</div><div><h5>コンピテンシー選択</h5><p>No.1〜135 の中から、該当するコンピテンシーを原文のまま選択させる。</p></div></div>
+      <div class="step"><div class="step-badge">STEP0</div><div><h5>期限・目標文入力</h5><p>期限と、ユーザー自身の言葉による目標文を入力する。</p></div></div>
+      <div class="step"><div class="step-badge">STEP1</div><div><h5>行動計画の設計</h5><p>達成のための行動を必ず3つ設定する。具体的で、今日から実行可能であること。</p></div></div>
+      <div class="step"><div class="step-badge">STEP2</div><div><h5>最終確認</h5><p>選択項目、目標文、行動①〜③を確認し、提出前レビューを行う。</p></div></div>
+      <div class="step"><div class="step-badge">STEP3</div><div><h5>レポート出力</h5><p>Word提出前提の構成でレポート生成し、固定締め文を末尾に入れる。</p></div></div>
+    </div>
+    <div class="note">重要制約として、選択済みのステージ名・グレード名・カテゴリ名・コンピテンシー原文には一切手を加えず、そのまま表示・出力すること。</div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">3</div><h3>マスターデータ要件</h3></div>
+    <table>
+      <thead><tr><th>マスター</th><th>内容</th><th>備考</th></tr></thead>
+      <tbody>
+        <tr><td>qualitative_stages</td><td>PDF準拠のステージ一覧</td><td>表示順保持必須</td></tr>
+        <tr><td>qualitative_grades</td><td>PDF準拠のグレード一覧</td><td>ステージ紐付けあり</td></tr>
+        <tr><td>qualitative_categories</td><td>定性目標カテゴリ一覧</td><td>言い換え禁止</td></tr>
+        <tr><td>competencies</td><td>No.1〜135、原文全文</td><td>No / 本文 / 並び順 / 有効フラグを保持</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">4</div><h3>画面要件</h3></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><h4>入力画面</h4></div><div class="card-body"><ul class="bullet"><li>1問ずつ表示</li><li>選択肢はPDF原文そのまま</li><li>現在ステップ表示</li><li>途中保存・再開</li><li>右側に確定済みサマリー</li></ul></div></div>
+      <div class="card"><div class="card-head"><h4>確認画面</h4></div><div class="card-body"><ul class="bullet"><li>目標・選択項目・行動3つを一覧表示</li><li>編集戻り導線</li><li>提出前プレビュー</li><li>Word/PDF出力ボタン</li></ul></div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">5</div><h3>データ要件</h3></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><h4>主テーブル案</h4></div><div class="card-body"><ul class="bullet"><li><strong>qualitative_goal_sessions</strong></li><li><strong>qualitative_goal_answers</strong></li><li><strong>qualitative_goal_actions</strong></li><li><strong>qualitative_goal_reports</strong></li></ul></div></div>
+      <div class="card"><div class="card-head"><h4>保存項目</h4></div><div class="card-body"><ul class="bullet"><li>name / department</li><li>deadline / goal_text</li><li>stage_id / grade_id / category_id / competency_id</li><li>action_1 / action_2 / action_3</li><li>status / submitted_at / approved_at</li></ul></div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">6</div><h3>AI利用ルール</h3></div>
+    <table>
+      <thead><tr><th>分類</th><th>可否</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>質問進行</td><td><span class="pill green">可</span></td><td>1問ずつ進行、入力不足時の再質問、行動の具体化促進</td></tr>
+        <tr><td>選択項目の変換</td><td><span class="pill amber">不可</span></td><td>ステージ・グレード・カテゴリ・コンピテンシーの要約や言い換えは禁止</td></tr>
+        <tr><td>評価・採点</td><td><span class="pill amber">不可</span></td><td>正解、模範解答、採点、比較は禁止</td></tr>
+        <tr><td>文書整形</td><td><span class="pill blue">限定可</span></td><td>Wordレポートの体裁整形のみ可。原文改変は禁止</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">7</div><h3>出力要件</h3></div>
+    <div class="card">
+      <div class="card-head"><h4>Wordレポート構成</h4></div>
+      <div class="card-body">
+        <ol class="bullet">
+          <li>表紙情報：名前 / 部署 / 作成日</li>
+          <li>目標：期限 / 目標文</li>
+          <li>選択した定性目標：ステージ / グレード / カテゴリ / コンピテンシーNo / 原文全文</li>
+          <li>行動計画：行動① / 行動② / 行動③</li>
+        </ol>
+        <p style="margin-top:12px; color:var(--gray-700);">本文末尾には必ず次の固定文言を入れる：<strong>「この目標は、今日決めたこの一歩から始まります。」</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">8</div><h3>非機能要件</h3></div>
+    <ul class="bullet">
+      <li>PDF原文の整合性を保つこと</li>
+      <li>スマートフォンでも操作可能であること</li>
+      <li>途中保存・再開・差戻し履歴を保持すること</li>
+      <li>人事評価管理画面から一覧・提出状況確認ができること</li>
+      <li>操作ログ・変更履歴を取得できること</li>
+    </ul>
+  </section>
+
+  <div class="footer">
+    <div>KeyaTree — 定性目標設定ナビゲーター機能 要件定義書</div>
+    <div>2025年6月 / Requirements Document</div>
+  </div>
+</div>
+</body>
+</html>
