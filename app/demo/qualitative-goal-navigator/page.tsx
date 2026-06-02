@@ -4,6 +4,13 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 
 const stageOptions = ["Stage 1 基礎遂行", "Stage 2 自律推進", "Stage 3 周囲牽引"];
+const departmentOptions = [
+  "営業部 > 第一営業課",
+  "営業部 > 第二営業課",
+  "管理部 > 総務課",
+  "物件管理部 > 物件課",
+  "経営管理部",
+];
 const gradeMap: Record<string, string[]> = {
   "Stage 1 基礎遂行": ["Grade A", "Grade B"],
   "Stage 2 自律推進": ["Grade C", "Grade D"],
@@ -33,7 +40,7 @@ type Step =
 
 const flow: { key: Step; title: string; kind: "text" | "select" | "textarea"; prompt: string; placeholder?: string }[] = [
   { key: "name", title: "初期ヒアリング", kind: "text", prompt: "お名前を入力してください。", placeholder: "例：鈴木 一郎" },
-  { key: "department", title: "初期ヒアリング", kind: "text", prompt: "部署を入力してください。", placeholder: "例：営業部 第一営業課" },
+  { key: "department", title: "初期ヒアリング", kind: "select", prompt: "部署を選択してください。" },
   { key: "stage", title: "PRE-STEP A", kind: "select", prompt: "ステージを選択してください。" },
   { key: "grade", title: "PRE-STEP B", kind: "select", prompt: "グレードを選択してください。" },
   { key: "category", title: "PRE-STEP C", kind: "select", prompt: "定性目標カテゴリを選択してください。" },
@@ -56,6 +63,7 @@ export default function QualitativeGoalNavigatorDemoPage() {
   const gradeOptions = gradeMap[answers.stage] ?? [];
 
   const options = useMemo(() => {
+    if (current.key === "department") return departmentOptions;
     if (current.key === "stage") return stageOptions;
     if (current.key === "grade") return gradeOptions;
     if (current.key === "category") return categoryOptions;
