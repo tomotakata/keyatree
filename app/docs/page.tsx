@@ -24,6 +24,17 @@ const docs = [
     status: "公開中",
   },
   {
+    id: "floorplan-requirements",
+    href: "/docs/floorplan-requirements.html",
+    label: "REQ",
+    color: "from-blue-500 to-teal-500",
+    title: "賃貸物件 間取り作成機能 要件定義書",
+    desc: "賃貸募集図面向けの間取り作成機能について、画面構成・編集機能・保存形式・技術構成・段階的な開発方針を整理した要件定義資料。",
+    tags: ["要件定義", "物件管理", "間取り作成"],
+    date: "2025.06",
+    status: "公開中",
+  },
+  {
     id: "goal-navigator-requirements",
     href: "/docs/goal-navigator-requirements.html",
     label: "REQ",

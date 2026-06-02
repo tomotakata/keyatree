@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KeyaTree 賃貸物件 間取り作成機能 要件定義書</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Inter:wght@400;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --slate:#0f172a; --gray-900:#111827; --gray-700:#374151; --gray-500:#6b7280;
+    --gray-200:#e5e7eb; --gray-100:#f3f4f6; --gray-50:#f9fafb;
+    --emerald:#10b981; --teal:#0d9488; --blue:#2563eb; --indigo:#4f46e5; --amber:#f59e0b;
+  }
+  body { font-family:'Noto Sans JP','Inter',sans-serif; color:var(--gray-900); background:#fff; line-height:1.8; font-size:14px; }
+  .cover {
+    min-height:56vh; padding:72px 64px; color:#fff;
+    background:linear-gradient(135deg,#0f172a 0%, #1e3a8a 45%, #0d9488 100%);
+    position:relative; overflow:hidden;
+  }
+  .cover::before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 78% 18%, rgba(255,255,255,.12), transparent 28%); }
+  .cover-inner { position:relative; z-index:1; max-width:940px; }
+  .eyebrow { display:inline-block; padding:6px 14px; border:1px solid rgba(255,255,255,.24); border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.08em; color:#bfdbfe; margin-bottom:28px; }
+  .brand { font-family:'Inter',sans-serif; font-size:34px; font-weight:800; letter-spacing:-.04em; }
+  .brand span { color:#6ee7b7; }
+  h1 { margin-top:42px; font-size:38px; line-height:1.4; font-weight:800; letter-spacing:-.02em; }
+  .cover p { margin-top:16px; max-width:720px; color:rgba(255,255,255,.9); }
+  .meta { margin-top:38px; display:flex; gap:32px; flex-wrap:wrap; font-size:12px; color:rgba(255,255,255,.78); }
+  .meta strong { display:block; color:#fff; margin-bottom:4px; }
+  .page { max-width:1000px; margin:0 auto; padding:56px 40px 80px; }
+  .intro { background:linear-gradient(180deg,#eff6ff 0%,#fff 100%); border:1px solid #bfdbfe; border-radius:18px; padding:24px 26px; }
+  .intro h2 { font-size:18px; color:#1d4ed8; margin-bottom:10px; }
+  .section { margin-top:42px; }
+  .section-head { display:flex; gap:14px; align-items:center; padding-bottom:14px; border-bottom:2px solid var(--gray-200); margin-bottom:22px; }
+  .no { width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,var(--blue),var(--teal)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-family:'Inter',sans-serif; flex-shrink:0; }
+  .section-head h3 { font-size:22px; letter-spacing:-.02em; }
+  .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+  .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .card { border:1.5px solid var(--gray-200); border-radius:18px; background:#fff; overflow:hidden; }
+  .card-head { background:var(--gray-50); border-bottom:1px solid var(--gray-200); padding:14px 18px; }
+  .card-head h4 { font-size:16px; }
+  .card-body { padding:18px; }
+  .bullet { padding-left:18px; margin-top:10px; }
+  .bullet li { margin:6px 0; color:var(--gray-700); }
+  .phase { border:1.5px solid var(--gray-200); border-radius:18px; padding:18px 20px; background:#fff; }
+  .phase h4 { font-size:16px; margin-bottom:8px; }
+  .phase p { font-size:13px; color:var(--gray-700); }
+  .tag { display:inline-block; font-size:10px; font-weight:700; padding:2px 10px; border-radius:999px; margin-right:6px; }
+  .tag.green { background:#d1fae5; color:#065f46; }
+  .tag.blue { background:#dbeafe; color:#1d4ed8; }
+  .tag.amber { background:#fef3c7; color:#92400e; }
+  table { width:100%; border-collapse:collapse; border:1.5px solid var(--gray-200); border-radius:16px; overflow:hidden; }
+  th { background:#111827; color:#fff; text-align:left; padding:14px 16px; font-size:11px; letter-spacing:.05em; text-transform:uppercase; }
+  td { padding:14px 16px; border-bottom:1px solid var(--gray-200); vertical-align:top; font-size:13px; }
+  tr:last-child td { border-bottom:none; }
+  tr:nth-child(even) td { background:var(--gray-50); }
+  .note { margin-top:14px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:14px; padding:14px 16px; color:#065f46; font-size:12px; }
+  .warn { margin-top:14px; background:#fffbeb; border:1px solid #fcd34d; border-radius:14px; padding:14px 16px; color:#92400e; font-size:12px; }
+  .footer { margin-top:56px; padding-top:20px; border-top:1px solid var(--gray-200); display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; font-size:12px; color:var(--gray-500); }
+  @media print { @page { size:A4; margin:0; } .cover { min-height:auto; } .page { padding:40px 44px 60px; } }
+</style>
+</head>
+<body>
+<div class="cover">
+  <div class="cover-inner">
+    <div class="eyebrow">REQUIREMENTS DOCUMENT</div>
+    <div class="brand">Keya<span>Tree</span></div>
+    <h1>賃貸物件 間取り作成機能<br>要件定義書</h1>
+    <p>募集図面・提案資料として利用できる賃貸物件向けの間取り作成機能について、Webシステム上で実装する際の目的、対象範囲、機能要件、データ要件、段階的な開発方針を整理した文書です。</p>
+    <div class="meta">
+      <div><strong>対象機能</strong>賃貸物件 間取り作成</div>
+      <div><strong>対象システム</strong>KeyaTree / 物件管理モジュール</div>
+      <div><strong>作成日</strong>2025年6月</div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="intro">
+    <h2>目的</h2>
+    <p>不動産会社の実務において、賃貸物件の募集図面や提案資料をWeb上で簡単に作成・保存・再編集・出力できる機能を提供する。営業担当・管理担当が直感的に操作できることを優先し、建築CADレベルではなく「募集図面を業務で使える水準」を第一目標とする。</p>
+  </div>
+
+  <section class="section">
+    <div class="section-head"><div class="no">1</div><h3>機能の位置づけ</h3></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h4>システム内の配置</h4></div>
+        <div class="card-body">
+          <ul class="bullet">
+            <li>社員管理・評価管理とは別モジュールとして実装</li>
+            <li>物件管理機能の一部として構成</li>
+            <li>物件詳細ページと間取りデータを紐づけて管理</li>
+          </ul>
+          <p style="margin-top:10px; color:var(--gray-700);">想定URL例：<br><strong>/properties</strong><br><strong>/properties/[id]</strong><br><strong>/properties/[id]/floorplan</strong></p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h4>対象ユーザー</h4></div>
+        <div class="card-body">
+          <ul class="bullet">
+            <li>営業担当者</li>
+            <li>物件管理担当者</li>
+            <li>管理者（テンプレート管理・最終確認）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">2</div><h3>対象範囲</h3></div>
+    <div class="grid-3">
+      <div class="phase">
+        <span class="tag green">Phase 1</span>
+        <h4>簡易版</h4>
+        <p>部屋の枠、テキスト、ドア、窓、ラベル配置、画像保存、PDF出力まで。最短で業務利用できる最小構成。</p>
+      </div>
+      <div class="phase">
+        <span class="tag blue">Phase 2</span>
+        <h4>実用版</h4>
+        <p>グリッド吸着、寸法表示、テンプレート保存、複製、複数部屋パーツ管理などを追加。</p>
+      </div>
+      <div class="phase">
+        <span class="tag amber">Phase 3</span>
+        <h4>高機能版</h4>
+        <p>自動整形、複数階管理、AI補助、既存間取りの再編集など、CADに近い体験を段階的に検討。</p>
+      </div>
+    </div>
+    <div class="warn">本要件定義では、まず不動産募集図面として実用的な「Phase 1〜2」を主対象とする。</div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">3</div><h3>主要機能要件</h3></div>
+    <table>
+      <thead><tr><th>分類</th><th>機能</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>図面編集</td><td>部屋配置</td><td>矩形ベースで部屋枠を作成し、名称（洋室、DK等）を表示できること</td></tr>
+        <tr><td>図面編集</td><td>壁・ドア・窓配置</td><td>壁線、ドア、窓をパーツとして配置・移動・削除できること</td></tr>
+        <tr><td>図面編集</td><td>テキスト挿入</td><td>帖数、部屋名、注記などを任意位置に表示できること</td></tr>
+        <tr><td>図面編集</td><td>アイコン配置</td><td>浴室、トイレ、キッチン、収納等の設備アイコンを配置できること</td></tr>
+        <tr><td>操作補助</td><td>ドラッグ移動</td><td>各パーツをマウス操作で移動できること</td></tr>
+        <tr><td>操作補助</td><td>拡大縮小</td><td>キャンバスのズームイン/ズームアウトが可能であること</td></tr>
+        <tr><td>操作補助</td><td>グリッド吸着</td><td>一定単位で吸着し、レイアウトを整えやすくすること</td></tr>
+        <tr><td>保存管理</td><td>下書き保存</td><td>作成途中の図面を再編集可能な形で保存できること</td></tr>
+        <tr><td>保存管理</td><td>テンプレート化</td><td>よく使う間取りをテンプレート保存して再利用できること</td></tr>
+        <tr><td>出力</td><td>PNG/PDF出力</td><td>営業資料・募集図面用に画像/PDF出力できること</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">4</div><h3>画面要件</h3></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h4>物件一覧・詳細</h4></div>
+        <div class="card-body">
+          <ul class="bullet">
+            <li>物件一覧から対象物件を選択</li>
+            <li>物件詳細に「間取り作成」ボタン表示</li>
+            <li>保存済み図面のサムネイル表示</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h4>間取り編集画面</h4></div>
+        <div class="card-body">
+          <ul class="bullet">
+            <li>中央：編集キャンバス</li>
+            <li>左：パーツ一覧（部屋、ドア、窓、設備）</li>
+            <li>右：選択中パーツの属性編集</li>
+            <li>上部：保存、複製、出力、プレビュー</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">5</div><h3>データ要件</h3></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h4>保存形式</h4></div>
+        <div class="card-body">
+          <p>図面データは再編集しやすいよう、JSON形式で保存する。</p>
+          <div class="note">画像（PNG/PDF）とは別に、編集用の構造化データを保持することが重要。</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h4>主テーブル案</h4></div>
+        <div class="card-body">
+          <ul class="bullet">
+            <li><strong>properties</strong>：物件基本情報</li>
+            <li><strong>floorplans</strong>：図面本体</li>
+            <li><strong>floorplan_templates</strong>：テンプレート</li>
+            <li><strong>floorplan_exports</strong>：出力履歴</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <table style="margin-top:18px;">
+      <thead><tr><th>項目</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>property_id</td><td>物件との紐付け</td></tr>
+        <tr><td>canvas_json</td><td>部屋、壁、ドア、窓、テキスト、座標、サイズ情報</td></tr>
+        <tr><td>thumbnail_url</td><td>一覧表示用サムネイル画像</td></tr>
+        <tr><td>export_file_url</td><td>PNG/PDF出力ファイル保存先</td></tr>
+        <tr><td>updated_by</td><td>更新者</td></tr>
+        <tr><td>updated_at</td><td>更新日時</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">6</div><h3>技術構成案</h3></div>
+    <table>
+      <thead><tr><th>レイヤー</th><th>候補技術</th><th>備考</th></tr></thead>
+      <tbody>
+        <tr><td>フロントエンド</td><td>Next.js / TypeScript / Tailwind CSS</td><td>既存システムとの統一が可能</td></tr>
+        <tr><td>描画エンジン</td><td>Konva.js / Fabric.js / SVG</td><td>ドラッグ・編集・レイヤー管理に適する</td></tr>
+        <tr><td>バックエンド</td><td>Supabase / PostgreSQL</td><td>物件情報・図面メタデータ保存</td></tr>
+        <tr><td>ストレージ</td><td>Supabase Storage</td><td>図面画像、PDF、テンプレート保存</td></tr>
+        <tr><td>出力</td><td>Canvas export / PDF生成</td><td>営業資料用PNG・PDF作成</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">7</div><h3>非機能要件</h3></div>
+    <ul class="bullet">
+      <li>PCで快適に編集できること（主対象）</li>
+      <li>スマートフォンでは閲覧中心、編集は限定的でも可</li>
+      <li>自動保存または明示保存に対応すること</li>
+      <li>編集履歴、更新者、更新日時を保持すること</li>
+      <li>サムネイル生成により一覧画面で視認性を高めること</li>
+      <li>権限に応じて編集・閲覧・出力操作を制御すること</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div class="no">8</div><h3>今後の拡張候補</h3></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h4>運用拡張</h4></div>
+        <div class="card-body">
+          <ul class="bullet">
+            <li>間取りテンプレートの社内共有</li>
+            <li>営業資料への自動差し込み</li>
+            <li>物件写真・設備情報との連携</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h4>高度化</h4></div>
+        <div class="card-body">
+          <ul class="bullet">
+            <li>AI補助による間取り自動生成</li>
+            <li>既存図面の再編集</li>
+            <li>複数階管理</li>
+            <li>寸法自動補正</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">
+    <div>KeyaTree — 賃貸物件 間取り作成機能 要件定義書</div>
+    <div>2025年6月 / Requirements Document</div>
+  </div>
+</div>
+</body>
+</html>
