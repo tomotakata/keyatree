@@ -1,5 +1,7 @@
 import Link from "next/link";
 import HeaderNav from "@/components/HeaderNav";
+import ClientDraftHistory from "@/components/goal-navigator/ClientDraftHistory";
+import HistoryEmptyState from "@/components/goal-navigator/HistoryEmptyState";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
 import { getMyNavigatorRecords } from "@/lib/goalNavigatorActions";
 
@@ -27,10 +29,17 @@ export default async function GoalNavigatorHistoryPage() {
         </div>
 
         <div className="space-y-3">
+          <ClientDraftHistory
+            storageKey="keyatree_goal_navigator_draft"
+            href="/goal-navigator"
+            emptyLabel="目標設定の下書き"
+          />
           {records.length === 0 ? (
-            <div className="rounded-2xl border bg-white p-10 text-center text-sm text-gray-400 shadow-sm">
-              保存履歴はまだありません
-            </div>
+            <HistoryEmptyState
+              title="サーバー保存の履歴はまだありません"
+              href="/goal-navigator"
+              buttonLabel="新しく作成"
+            />
           ) : (
             records.map((record) => (
               <div key={record.id} className="rounded-2xl border bg-white p-5 shadow-sm">
@@ -43,8 +52,16 @@ export default async function GoalNavigatorHistoryPage() {
                     <p className="text-sm text-gray-500">{record.department}</p>
                     <p className="text-xs text-gray-400">更新日 {formatDate(record.updatedAt)}</p>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {record.approvedAt ? `承認日 ${formatDate(record.approvedAt)}` : record.submittedAt ? `提出日 ${formatDate(record.submittedAt)}` : "下書き保存"}
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm text-gray-500">
+                      {record.approvedAt ? `承認日 ${formatDate(record.approvedAt)}` : record.submittedAt ? `提出日 ${formatDate(record.submittedAt)}` : "下書き保存"}
+                    </div>
+                    <Link
+                      href="/goal-navigator"
+                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-600 transition hover:bg-gray-50"
+                    >
+                      開く
+                    </Link>
                   </div>
                 </div>
               </div>
