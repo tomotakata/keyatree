@@ -426,7 +426,7 @@ export default function QualitativeGoalNavigatorPage() {
                   onClick={printPdf}
                   className="px-5 py-3 rounded-xl border border-gray-200 text-sm text-gray-700 font-bold hover:bg-gray-50 transition"
                 >
-                  PDF印刷
+                  PDF出力
                 </button>
                 <button
                   onClick={submitForApproval}
