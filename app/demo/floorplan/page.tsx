@@ -137,15 +137,72 @@ export default function FloorplanDemo() {
     setEditLabel(null);
   }, [editLabel]);
 
-  const handleDownload = () => {
+  const exportSvgSource = useCallback(() => {
     const svg = svgRef.current;
-    if (!svg) return;
+    if (!svg) return null;
     const serializer = new XMLSerializer();
-    const source = '<?xml version="1.0" encoding="utf-8"?>\n' + serializer.serializeToString(svg);
+    return '<?xml version="1.0" encoding="utf-8"?>\n' + serializer.serializeToString(svg);
+  }, []);
+
+  const handleDownloadSvg = () => {
+    const source = exportSvgSource();
+    if (!source) return;
     const a = document.createElement("a");
     a.href = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
     a.download = `${propertyName}_間取り.svg`;
     a.click();
+  };
+
+  const handleDownloadJson = () => {
+    const payload = {
+      propertyName,
+      canvas: {
+        width: CANVAS_W,
+        height: CANVAS_H,
+        grid: GRID,
+      },
+      rooms,
+      exportedAt: new Date().toISOString(),
+    };
+    const a = document.createElement("a");
+    const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
+    a.href = url;
+    a.download = `${propertyName}_間取り.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPng = async () => {
+    const source = exportSvgSource();
+    if (!source) return;
+    const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const image = new Image();
+
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("png export failed"));
+      image.src = url;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = CANVAS_W * 2;
+    canvas.height = CANVAS_H * 2;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = `${propertyName}_間取り.png`;
+    a.click();
+  };
+
+  const handlePrintPdf = () => {
+    window.print();
   };
 
   const totalArea = rooms.reduce((s, r) => s + (r.w * r.h) / (GRID * GRID), 0);
@@ -167,9 +224,20 @@ export default function FloorplanDemo() {
             <Link href="/docs/floorplan-requirements" className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg transition font-medium">
               要件定義書
             </Link>
-            <button onClick={handleDownload} className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition font-bold">
-              SVG保存
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={handleDownloadSvg} className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition font-bold">
+                SVG保存
+              </button>
+              <button onClick={handleDownloadPng} className="text-xs bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg transition font-bold">
+                PNG保存
+              </button>
+              <button onClick={handleDownloadJson} className="text-xs bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg transition font-bold">
+                JSON保存
+              </button>
+              <button onClick={handlePrintPdf} className="text-xs bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-3 py-1.5 rounded-lg transition font-bold">
+                PDF印刷
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -243,6 +311,7 @@ export default function FloorplanDemo() {
               <li>右下角をドラッグでサイズ変更</li>
               <li>ダブルクリックでラベル編集</li>
               <li>Deleteキーで選択部屋を削除</li>
+              <li>SVG / PNG / JSON / PDF印刷に対応</li>
             </ul>
           </div>
         </aside>
@@ -414,7 +483,7 @@ export default function FloorplanDemo() {
         <div className="max-w-7xl mx-auto flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-gray-500">デモ注記</span>
-            <span className="text-xs text-gray-400">本デモはブラウザ内のみで動作するプロトタイプです。実装版ではSupabaseへの保存・PDF出力・寸法表示・物件連携に対応予定。</span>
+            <span className="text-xs text-gray-400">本デモはブラウザ内のみで動作するプロトタイプです。実装版ではSupabase保存、正式PDF出力、寸法表示、物件連携に対応予定です。</span>
           </div>
           <Link
             href="/docs/floorplan-requirements"
