@@ -80,3 +80,10 @@ export async function getApprovalNavigatorRecords(kind?: NavigatorKind): Promise
   const records = await listNavigatorRecords({ kind, includeAll: true });
   return records.filter((record) => record.status !== "approved");
 }
+
+export async function getApprovedNavigatorRecords(kind?: NavigatorKind): Promise<NavigatorRecord[]> {
+  const session = await getServerSession();
+  if (!canApprove(session)) return [];
+  const records = await listNavigatorRecords({ kind, includeAll: true });
+  return records.filter((record) => record.status === "approved");
+}

@@ -1,9 +1,7 @@
 import HeaderNav from "@/components/HeaderNav";
-import ApprovalButton from "@/components/goal-navigator/ApprovalButton";
+import ClientApprovedList from "@/components/goal-navigator/ClientApprovedList";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
-import ClientPendingApprovals from "./_components/ClientPendingApprovals";
-import { getApprovalNavigatorRecords } from "@/lib/goalNavigatorActions";
-import Link from "next/link";
+import { getApprovedNavigatorRecords } from "@/lib/goalNavigatorActions";
 
 function formatDate(iso?: string) {
   if (!iso) return "-";
@@ -11,31 +9,23 @@ function formatDate(iso?: string) {
   return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
-export default async function GoalNavigatorApprovalPage() {
-  const records = await getApprovalNavigatorRecords();
+export default async function ApprovedGoalNavigatorPage() {
+  const records = await getApprovedNavigatorRecords();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <HeaderNav currentLabel="目標設定承認" />
+      <HeaderNav currentLabel="承認済み一覧" />
       <main className="mx-auto max-w-6xl space-y-5 px-4 py-6">
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <h1 className="text-lg font-bold text-gray-800">目標設定・定性目標 承認一覧</h1>
-          <p className="mt-1 text-sm text-gray-500">上長・人事管理者向けの承認待ち一覧です。</p>
-          <div className="mt-4">
-            <Link
-              href="/approvals/goal-navigators/approved"
-              className="inline-flex rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
-            >
-              承認済み一覧を見る
-            </Link>
-          </div>
+          <h1 className="text-lg font-bold text-gray-800">目標設定・定性目標 承認済み一覧</h1>
+          <p className="mt-1 text-sm text-gray-500">承認済みの目標設定と定性目標を確認できます。</p>
         </div>
 
         <div className="space-y-4">
-          <ClientPendingApprovals />
+          <ClientApprovedList />
           {records.length === 0 ? (
             <div className="rounded-2xl border bg-white p-10 text-center text-sm text-gray-400 shadow-sm">
-              承認待ちのレコードはありません
+              承認済みのレコードはまだありません
             </div>
           ) : (
             records.map((record) => (
@@ -50,9 +40,12 @@ export default async function GoalNavigatorApprovalPage() {
                       </span>
                     </div>
                     <p className="text-sm text-gray-600">{record.employeeName} / {record.department}</p>
-                    <p className="text-xs text-gray-400">提出日 {formatDate(record.submittedAt || record.updatedAt)}</p>
+                    <p className="text-xs text-gray-400">承認日 {formatDate(record.approvedAt || record.updatedAt)}</p>
                   </div>
-                  <ApprovalButton recordId={record.id} />
+                  <div className="text-right text-xs text-gray-400">
+                    <p>承認者</p>
+                    <p className="mt-1 text-sm font-medium text-gray-600">{record.approvedBy || "-"}</p>
+                  </div>
                 </div>
               </div>
             ))
