@@ -109,6 +109,20 @@ export default function HeaderNav({ currentLabel, extraRight }: { currentLabel?:
                   >
                     権限管理
                   </Link>
+                  <Link
+                    href="/goal-navigator"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    目標設定ナビ
+                  </Link>
+                  <Link
+                    href="/qualitative-goal-navigator"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    定性目標ナビ
+                  </Link>
                   <div className="border-t my-1" />
                   <button
                     onClick={handleLogout}
