@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { Document, Packer, Paragraph, TextRun } from "docx";
+import { jsPDF } from "jspdf";
+import { saveNavigatorRecord } from "@/lib/goalNavigatorActions";
 
 const stageOptions = ["Stage 1 基礎遂行", "Stage 2 自律推進", "Stage 3 周囲牽引"];
 const departmentOptions = [
@@ -58,6 +61,8 @@ export default function QualitativeGoalNavigatorPage() {
   const [submitted, setSubmitted] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
+  const [recordId, setRecordId] = useState<string>("");
+  const [isPending, startTransition] = useTransition();
 
   const current = flow[stepIndex];
   const progress = Math.round(((stepIndex + 1) / flow.length) * 100);
@@ -78,10 +83,11 @@ export default function QualitativeGoalNavigatorPage() {
     const saved = window.localStorage.getItem("keyatree_qualitative_goal_navigator_draft");
     if (!saved) return;
     try {
-      const parsed = JSON.parse(saved) as { answers?: Record<string, string>; stepIndex?: number; submitted?: boolean };
+      const parsed = JSON.parse(saved) as { answers?: Record<string, string>; stepIndex?: number; submitted?: boolean; recordId?: string };
       if (parsed.answers) setAnswers(parsed.answers);
       if (typeof parsed.stepIndex === "number") setStepIndex(parsed.stepIndex);
       if (typeof parsed.submitted === "boolean") setSubmitted(parsed.submitted);
+      if (parsed.recordId) setRecordId(parsed.recordId);
     } catch {}
   }, []);
 
@@ -109,68 +115,134 @@ export default function QualitativeGoalNavigatorPage() {
     setStepIndex((prev) => prev - 1);
   };
 
-  const saveDraft = () => {
+  const persistLocal = (nextRecordId?: string) => {
     window.localStorage.setItem(
       "keyatree_qualitative_goal_navigator_draft",
       JSON.stringify({
         answers,
         stepIndex,
         submitted,
+        recordId: nextRecordId ?? recordId,
         savedAt: new Date().toISOString(),
       })
     );
-    setNotice("下書きを保存しました");
-    window.setTimeout(() => setNotice(""), 2500);
   };
 
-  const downloadWord = () => {
-    const content = `
-      <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>定性目標設定レポート</title>
-        <style>
-          body { font-family: sans-serif; line-height: 1.8; padding: 32px; color: #1f2937; }
-          h1 { font-size: 24px; margin-bottom: 24px; }
-          h2 { font-size: 18px; margin: 24px 0 8px; }
-          ul { margin: 0; padding-left: 20px; }
-        </style>
-      </head>
-      <body>
-        <h1>定性目標設定レポート</h1>
-        <h2>表紙情報</h2>
-        <p>名前：${answers.name || ""}</p>
-        <p>部署：${answers.department || ""}</p>
-        <p>作成日：2025/06/12</p>
-        <h2>1. 目標</h2>
-        <p>期限：${answers.deadline || ""}</p>
-        <p>目標文：${answers.goal || ""}</p>
-        <h2>2. 選択した定性目標</h2>
-        <p>ステージ：${answers.stage || ""}</p>
-        <p>グレード：${answers.grade || ""}</p>
-        <p>定性目標カテゴリ：${answers.category || ""}</p>
-        <p>選択コンピテンシー：${answers.competency || ""}</p>
-        <h2>3. 行動計画</h2>
-        <ul>
-          <li>${answers.action1 || ""}</li>
-          <li>${answers.action2 || ""}</li>
-          <li>${answers.action3 || ""}</li>
-        </ul>
-        <p><strong>この目標は、今日決めたこの一歩から始まります。</strong></p>
-      </body>
-      </html>
-    `;
-    const blob = new Blob([content], { type: "application/msword" });
+  const saveDraft = () => {
+    startTransition(async () => {
+      const result = await saveNavigatorRecord({
+        id: recordId || undefined,
+        kind: "qualitative",
+        title: answers.goal || "定性目標設定シート",
+        department: answers.department || "",
+        answers,
+        status: "draft",
+      });
+      if (!result.ok) {
+        setNotice(result.message);
+        return;
+      }
+      setRecordId(result.record.id);
+      persistLocal(result.record.id);
+      setNotice("下書きを保存しました");
+      window.setTimeout(() => setNotice(""), 2500);
+    });
+  };
+
+  const submitForApproval = () => {
+    startTransition(async () => {
+      const result = await saveNavigatorRecord({
+        id: recordId || undefined,
+        kind: "qualitative",
+        title: answers.goal || "定性目標設定シート",
+        department: answers.department || "",
+        answers,
+        status: "submitted",
+      });
+      if (!result.ok) {
+        setNotice(result.message);
+        return;
+      }
+      setRecordId(result.record.id);
+      persistLocal(result.record.id);
+      setNotice("承認依頼を送信しました");
+      window.setTimeout(() => setNotice(""), 2500);
+    });
+  };
+
+  const downloadWord = async () => {
+    const doc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({ children: [new TextRun({ text: "定性目標設定レポート", bold: true, size: 32 })] }),
+            new Paragraph(""),
+            new Paragraph({ children: [new TextRun({ text: "表紙情報", bold: true })] }),
+            new Paragraph(`名前：${answers.name || ""}`),
+            new Paragraph(`部署：${answers.department || ""}`),
+            new Paragraph(`作成日：${new Date().toLocaleDateString("ja-JP")}`),
+            new Paragraph({ children: [new TextRun({ text: "1. 目標", bold: true })] }),
+            new Paragraph(`期限：${answers.deadline || ""}`),
+            new Paragraph(`目標文：${answers.goal || ""}`),
+            new Paragraph({ children: [new TextRun({ text: "2. 選択した定性目標", bold: true })] }),
+            new Paragraph(`ステージ：${answers.stage || ""}`),
+            new Paragraph(`グレード：${answers.grade || ""}`),
+            new Paragraph(`定性目標カテゴリ：${answers.category || ""}`),
+            new Paragraph(`選択コンピテンシー：${answers.competency || ""}`),
+            new Paragraph({ children: [new TextRun({ text: "3. 行動計画", bold: true })] }),
+            new Paragraph(`・${answers.action1 || ""}`),
+            new Paragraph(`・${answers.action2 || ""}`),
+            new Paragraph(`・${answers.action3 || ""}`),
+            new Paragraph(""),
+            new Paragraph({ children: [new TextRun({ text: "この目標は、今日決めたこの一歩から始まります。", bold: true })] }),
+          ],
+        },
+      ],
+    });
+    const blob = await Packer.toBlob(doc);
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "qualitative-goal-navigator-report.doc";
+    a.download = "qualitative-goal-navigator-report.docx";
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const printPdf = () => {
-    window.print();
+    const pdf = new jsPDF({ unit: "mm", format: "a4" });
+    let y = 15;
+    const lines = [
+      "定性目標設定レポート",
+      "",
+      "表紙情報",
+      `名前：${answers.name || ""}`,
+      `部署：${answers.department || ""}`,
+      `作成日：${new Date().toLocaleDateString("ja-JP")}`,
+      "",
+      "1. 目標",
+      `期限：${answers.deadline || ""}`,
+      `目標文：${answers.goal || ""}`,
+      "",
+      "2. 選択した定性目標",
+      `ステージ：${answers.stage || ""}`,
+      `グレード：${answers.grade || ""}`,
+      `定性目標カテゴリ：${answers.category || ""}`,
+      `選択コンピテンシー：${answers.competency || ""}`,
+      "",
+      "3. 行動計画",
+      `・${answers.action1 || ""}`,
+      `・${answers.action2 || ""}`,
+      `・${answers.action3 || ""}`,
+      "",
+      "この目標は、今日決めたこの一歩から始まります。",
+    ];
+    pdf.setFont("helvetica", "normal");
+    lines.forEach((line) => {
+      const wrapped = pdf.splitTextToSize(line, 180);
+      pdf.text(wrapped, 15, y);
+      y += wrapped.length * 7;
+    });
+    pdf.save("qualitative-goal-navigator-report.pdf");
   };
 
   return (
@@ -266,9 +338,10 @@ export default function QualitativeGoalNavigatorPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={saveDraft}
+                    disabled={isPending}
                     className="px-5 py-3 rounded-xl border border-indigo-200 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition"
                   >
-                    下書き保存
+                    {isPending ? "保存中..." : "下書き保存"}
                   </button>
                   <button
                     onClick={next}
@@ -343,12 +416,31 @@ export default function QualitativeGoalNavigatorPage() {
                 >
                   PDF印刷
                 </button>
+                <button
+                  onClick={submitForApproval}
+                  disabled={isPending}
+                  className="px-5 py-3 rounded-xl bg-amber-500 text-sm text-white font-bold hover:bg-amber-600 transition disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isPending ? "送信中..." : "承認依頼を送信"}
+                </button>
               </div>
             </div>
           )}
         </section>
 
         <aside className="space-y-6">
+          <div className="bg-white rounded-3xl border shadow-sm p-5">
+            <h3 className="text-sm font-bold text-gray-800 mb-4">保存・履歴</h3>
+            <div className="flex flex-col gap-2">
+              <Link href="/qualitative-goal-navigator/history" className="text-sm text-indigo-600 hover:underline font-medium">
+                定性目標の保存履歴を見る
+              </Link>
+              <Link href="/approvals/goal-navigators" className="text-sm text-amber-600 hover:underline font-medium">
+                承認一覧を見る
+              </Link>
+            </div>
+          </div>
+
           <div className="bg-white rounded-3xl border shadow-sm p-5">
             <h3 className="text-sm font-bold text-gray-800 mb-4">この画面でできること</h3>
             <ul className="space-y-2 text-sm text-gray-600 leading-6">
