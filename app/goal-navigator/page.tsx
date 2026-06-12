@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 const whyPrompts = [
@@ -83,6 +83,7 @@ export default function GoalNavigatorPage() {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [notice, setNotice] = useState("");
 
   const current = steps[stepIndex];
   const progress = Math.round(((stepIndex + 1) / steps.length) * 100);
@@ -95,6 +96,17 @@ export default function GoalNavigatorPage() {
 
   const value = current?.key === "purpose" ? (answers.purpose ?? autoPurpose) : (answers[current?.key] ?? "");
   const options = current?.key === "department" ? departmentOptions : [];
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("keyatree_goal_navigator_draft");
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved) as { answers?: Record<string, string>; stepIndex?: number; submitted?: boolean };
+      if (parsed.answers) setAnswers(parsed.answers);
+      if (typeof parsed.stepIndex === "number") setStepIndex(parsed.stepIndex);
+      if (typeof parsed.submitted === "boolean") setSubmitted(parsed.submitted);
+    } catch {}
+  }, []);
 
   const setValue = (val: string) => {
     setAnswers((prev) => ({
@@ -115,6 +127,66 @@ export default function GoalNavigatorPage() {
   const prev = () => {
     if (stepIndex === 0) return;
     setStepIndex((prev) => prev - 1);
+  };
+
+  const saveDraft = () => {
+    window.localStorage.setItem(
+      "keyatree_goal_navigator_draft",
+      JSON.stringify({
+        answers,
+        stepIndex,
+        submitted,
+        savedAt: new Date().toISOString(),
+      })
+    );
+    setNotice("下書きを保存しました");
+    window.setTimeout(() => setNotice(""), 2500);
+  };
+
+  const downloadWord = () => {
+    const content = `
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>目標設定レポート</title>
+        <style>
+          body { font-family: sans-serif; line-height: 1.8; padding: 32px; color: #1f2937; }
+          h1 { font-size: 24px; margin-bottom: 24px; }
+          h2 { font-size: 18px; margin: 24px 0 8px; }
+          ul { margin: 0; padding-left: 20px; }
+        </style>
+      </head>
+      <body>
+        <h1>目標設定レポート</h1>
+        <h2>1. 基本情報</h2>
+        <p>名前：${answers.name || ""}</p>
+        <p>部署：${answers.department || ""}</p>
+        <h2>2. 目標</h2>
+        <p>期限：${answers.deadline || ""}</p>
+        <p>目標：${answers.goal || ""}</p>
+        <p>統合文：${answers.purpose || autoPurpose || ""}</p>
+        <h2>3. KR</h2>
+        <ul>
+          <li>${answers.kr1 || ""}</li>
+          <li>${answers.kr2 || ""}</li>
+          <li>${answers.kr3 || ""}</li>
+        </ul>
+        <h2>4. 支援設計</h2>
+        <p>${answers.support || ""}</p>
+      </body>
+      </html>
+    `;
+    const blob = new Blob([content], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "goal-navigator-report.doc";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const printPdf = () => {
+    window.print();
   };
 
   return (
@@ -158,6 +230,11 @@ export default function GoalNavigatorPage() {
               </div>
 
               <div>
+                {notice ? (
+                  <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                    {notice}
+                  </div>
+                ) : null}
                 {current.kind === "select" ? (
                   <div className="space-y-3">
                     {options.map((option) => (
@@ -204,7 +281,7 @@ export default function GoalNavigatorPage() {
                 </button>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => alert("下書き保存しました。現在はモック保存です。")}
+                    onClick={saveDraft}
                     className="px-5 py-3 rounded-xl border border-emerald-200 text-sm text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition"
                   >
                     下書き保存
@@ -267,10 +344,16 @@ export default function GoalNavigatorPage() {
                   もう一度入力
                 </button>
                 <button
-                  onClick={() => alert("Word/PDF出力は次段階で接続します。")}
+                  onClick={downloadWord}
                   className="px-5 py-3 rounded-xl bg-emerald-600 text-sm text-white font-bold hover:bg-emerald-700 transition"
                 >
-                  出力準備
+                  Word出力
+                </button>
+                <button
+                  onClick={printPdf}
+                  className="px-5 py-3 rounded-xl border border-gray-200 text-sm text-gray-700 font-bold hover:bg-gray-50 transition"
+                >
+                  PDF印刷
                 </button>
               </div>
             </div>

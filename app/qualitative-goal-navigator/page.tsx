@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 const stageOptions = ["Stage 1 基礎遂行", "Stage 2 自律推進", "Stage 3 周囲牽引"];
@@ -57,6 +57,7 @@ export default function QualitativeGoalNavigatorPage() {
   const [stepIndex, setStepIndex] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [notice, setNotice] = useState("");
 
   const current = flow[stepIndex];
   const progress = Math.round(((stepIndex + 1) / flow.length) * 100);
@@ -72,6 +73,17 @@ export default function QualitativeGoalNavigatorPage() {
   }, [current.key, gradeOptions]);
 
   const currentValue = answers[current.key] ?? "";
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("keyatree_qualitative_goal_navigator_draft");
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved) as { answers?: Record<string, string>; stepIndex?: number; submitted?: boolean };
+      if (parsed.answers) setAnswers(parsed.answers);
+      if (typeof parsed.stepIndex === "number") setStepIndex(parsed.stepIndex);
+      if (typeof parsed.submitted === "boolean") setSubmitted(parsed.submitted);
+    } catch {}
+  }, []);
 
   const onChange = (value: string) => {
     setAnswers((prev) => {
@@ -95,6 +107,70 @@ export default function QualitativeGoalNavigatorPage() {
   const prev = () => {
     if (stepIndex === 0) return;
     setStepIndex((prev) => prev - 1);
+  };
+
+  const saveDraft = () => {
+    window.localStorage.setItem(
+      "keyatree_qualitative_goal_navigator_draft",
+      JSON.stringify({
+        answers,
+        stepIndex,
+        submitted,
+        savedAt: new Date().toISOString(),
+      })
+    );
+    setNotice("下書きを保存しました");
+    window.setTimeout(() => setNotice(""), 2500);
+  };
+
+  const downloadWord = () => {
+    const content = `
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>定性目標設定レポート</title>
+        <style>
+          body { font-family: sans-serif; line-height: 1.8; padding: 32px; color: #1f2937; }
+          h1 { font-size: 24px; margin-bottom: 24px; }
+          h2 { font-size: 18px; margin: 24px 0 8px; }
+          ul { margin: 0; padding-left: 20px; }
+        </style>
+      </head>
+      <body>
+        <h1>定性目標設定レポート</h1>
+        <h2>表紙情報</h2>
+        <p>名前：${answers.name || ""}</p>
+        <p>部署：${answers.department || ""}</p>
+        <p>作成日：2025/06/12</p>
+        <h2>1. 目標</h2>
+        <p>期限：${answers.deadline || ""}</p>
+        <p>目標文：${answers.goal || ""}</p>
+        <h2>2. 選択した定性目標</h2>
+        <p>ステージ：${answers.stage || ""}</p>
+        <p>グレード：${answers.grade || ""}</p>
+        <p>定性目標カテゴリ：${answers.category || ""}</p>
+        <p>選択コンピテンシー：${answers.competency || ""}</p>
+        <h2>3. 行動計画</h2>
+        <ul>
+          <li>${answers.action1 || ""}</li>
+          <li>${answers.action2 || ""}</li>
+          <li>${answers.action3 || ""}</li>
+        </ul>
+        <p><strong>この目標は、今日決めたこの一歩から始まります。</strong></p>
+      </body>
+      </html>
+    `;
+    const blob = new Blob([content], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "qualitative-goal-navigator-report.doc";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const printPdf = () => {
+    window.print();
   };
 
   return (
@@ -138,6 +214,11 @@ export default function QualitativeGoalNavigatorPage() {
               </div>
 
               <div>
+                {notice ? (
+                  <div className="mb-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-700">
+                    {notice}
+                  </div>
+                ) : null}
                 {current.kind === "select" ? (
                   <div className="space-y-3">
                     {options.map((option) => (
@@ -184,7 +265,7 @@ export default function QualitativeGoalNavigatorPage() {
                 </button>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => alert("下書き保存しました。現在はモック保存です。")}
+                    onClick={saveDraft}
                     className="px-5 py-3 rounded-xl border border-indigo-200 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition"
                   >
                     下書き保存
@@ -251,10 +332,16 @@ export default function QualitativeGoalNavigatorPage() {
                   もう一度入力
                 </button>
                 <button
-                  onClick={() => alert("Word/PDF出力は次段階で接続します。")}
+                  onClick={downloadWord}
                   className="px-5 py-3 rounded-xl bg-indigo-600 text-sm text-white font-bold hover:bg-indigo-700 transition"
                 >
-                  出力準備
+                  Word出力
+                </button>
+                <button
+                  onClick={printPdf}
+                  className="px-5 py-3 rounded-xl border border-gray-200 text-sm text-gray-700 font-bold hover:bg-gray-50 transition"
+                >
+                  PDF印刷
                 </button>
               </div>
             </div>
