@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import { saveNavigatorRecord } from "@/lib/goalNavigatorActions";
 
 const sampleAnswers: Record<string, string> = {
@@ -72,6 +73,7 @@ const flow: { key: Step; title: string; kind: "text" | "select" | "textarea"; pr
 ];
 
 export default function QualitativeGoalNavigatorPage() {
+  const reportRef = useRef<HTMLDivElement>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -223,40 +225,17 @@ export default function QualitativeGoalNavigatorPage() {
     URL.revokeObjectURL(url);
   };
 
-  const printPdf = () => {
-    const pdf = new jsPDF({ unit: "mm", format: "a4" });
-    let y = 15;
-    const lines = [
-      "定性目標設定レポート",
-      "",
-      "表紙情報",
-      `名前：${answers.name || ""}`,
-      `部署：${answers.department || ""}`,
-      `作成日：${new Date().toLocaleDateString("ja-JP")}`,
-      "",
-      "1. 目標",
-      `期限：${answers.deadline || ""}`,
-      `目標文：${answers.goal || ""}`,
-      "",
-      "2. 選択した定性目標",
-      `ステージ：${answers.stage || ""}`,
-      `グレード：${answers.grade || ""}`,
-      `定性目標カテゴリ：${answers.category || ""}`,
-      `選択コンピテンシー：${answers.competency || ""}`,
-      "",
-      "3. 行動計画",
-      `・${answers.action1 || ""}`,
-      `・${answers.action2 || ""}`,
-      `・${answers.action3 || ""}`,
-      "",
-      "この目標は、今日決めたこの一歩から始まります。",
-    ];
-    pdf.setFont("helvetica", "normal");
-    lines.forEach((line) => {
-      const wrapped = pdf.splitTextToSize(line, 180);
-      pdf.text(wrapped, 15, y);
-      y += wrapped.length * 7;
+  const printPdf = async () => {
+    if (!reportRef.current) return;
+    const canvas = await html2canvas(reportRef.current, {
+      scale: 2,
+      backgroundColor: "#ffffff",
     });
+    const imageData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ unit: "mm", format: "a4" });
+    const pdfWidth = 210;
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imageData, "PNG", 0, 0, pdfWidth, pdfHeight);
     pdf.save("qualitative-goal-navigator-report.pdf");
   };
 
@@ -390,7 +369,7 @@ export default function QualitativeGoalNavigatorPage() {
                 <p className="text-indigo-600 text-xs mt-1">運用画面向けのサンプル出力です。</p>
               </div>
 
-              <div className="border rounded-2xl overflow-hidden">
+              <div ref={reportRef} className="border rounded-2xl overflow-hidden bg-white">
                 <div className="bg-gray-50 px-5 py-4 border-b">
                   <h2 className="text-lg font-bold text-gray-800">定性目標設定レポート</h2>
                 </div>

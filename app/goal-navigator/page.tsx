@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import { saveNavigatorRecord } from "@/lib/goalNavigatorActions";
 
 const sampleAnswers: Record<string, string> = {
@@ -114,6 +115,7 @@ const steps: { key: StepKey; title: string; prompt: string; placeholder?: string
 ];
 
 export default function GoalNavigatorPage() {
+  const reportRef = useRef<HTMLDivElement>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -254,35 +256,17 @@ export default function GoalNavigatorPage() {
     URL.revokeObjectURL(url);
   };
 
-  const printPdf = () => {
-    const pdf = new jsPDF({ unit: "mm", format: "a4" });
-    let y = 15;
-    const lines = [
-      "目標設定レポート",
-      "",
-      "1. 基本情報",
-      `名前：${answers.name || ""}`,
-      `部署：${answers.department || ""}`,
-      "",
-      "2. 目標",
-      `期限：${answers.deadline || ""}`,
-      `目標：${answers.goal || ""}`,
-      `統合文：${answers.purpose || autoPurpose || ""}`,
-      "",
-      "3. KR",
-      `・${answers.kr1 || ""}`,
-      `・${answers.kr2 || ""}`,
-      `・${answers.kr3 || ""}`,
-      "",
-      "4. 支援設計",
-      answers.support || "",
-    ];
-    pdf.setFont("helvetica", "normal");
-    lines.forEach((line) => {
-      const wrapped = pdf.splitTextToSize(line, 180);
-      pdf.text(wrapped, 15, y);
-      y += wrapped.length * 7;
+  const printPdf = async () => {
+    if (!reportRef.current) return;
+    const canvas = await html2canvas(reportRef.current, {
+      scale: 2,
+      backgroundColor: "#ffffff",
     });
+    const imageData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ unit: "mm", format: "a4" });
+    const pdfWidth = 210;
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imageData, "PNG", 0, 0, pdfWidth, pdfHeight);
     pdf.save("goal-navigator-report.pdf");
   };
 
@@ -416,7 +400,7 @@ export default function GoalNavigatorPage() {
                 <p className="text-emerald-600 text-xs mt-1">運用画面向けのサンプル出力です。</p>
               </div>
 
-              <div className="border rounded-2xl overflow-hidden">
+              <div ref={reportRef} className="border rounded-2xl overflow-hidden bg-white">
                 <div className="bg-gray-50 px-5 py-4 border-b">
                   <h2 className="text-lg font-bold text-gray-800">目標設定レポート</h2>
                 </div>
