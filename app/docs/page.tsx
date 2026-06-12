@@ -90,6 +90,17 @@ const docs = [
     status: "公開中",
   },
   {
+    id: "supabase-setup",
+    href: "/docs/supabase-setup",
+    label: "DB",
+    color: "from-emerald-500 to-blue-500",
+    title: "Supabase導入手順 / 監査ログ設定",
+    desc: "目標設定ナビゲーターの保存・履歴・承認・監査ログをSupabaseへ接続するための導入手順と設定案内。",
+    tags: ["Supabase", "監査ログ", "DB接続"],
+    date: "2025.06",
+    status: "公開中",
+  },
+  {
     id: "dev-log-01",
     href: null,
     label: "LOG",

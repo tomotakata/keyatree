@@ -19,7 +19,7 @@ export async function saveNavigatorRecord(input: {
   const employeeId = session.employeeId || input.answers.employeeId || "external";
   const employeeName = input.answers.name || session.name;
 
-  const record = upsertNavigatorRecord({
+  const record = await upsertNavigatorRecord({
     id: input.id,
     kind: input.kind,
     employeeId,
@@ -28,6 +28,10 @@ export async function saveNavigatorRecord(input: {
     title: input.title,
     status: input.status,
     answers: input.answers,
+    actor: {
+      actorId: session.id || session.employeeId,
+      actorName: session.name,
+    },
   });
 
   revalidatePath("/goal-navigator");
@@ -45,7 +49,11 @@ export async function approveNavigatorRecordAction(recordId: string) {
     return { ok: false as const, message: "承認権限がありません" };
   }
 
-  const record = approveNavigatorRecord(recordId, session?.name || "承認者");
+  const record = await approveNavigatorRecord(
+    recordId,
+    session?.name || "承認者",
+    session?.id || session?.employeeId
+  );
   if (!record) {
     return { ok: false as const, message: "対象レコードが見つかりません" };
   }
@@ -60,11 +68,12 @@ export async function approveNavigatorRecordAction(recordId: string) {
 export async function getMyNavigatorRecords(kind?: NavigatorKind): Promise<NavigatorRecord[]> {
   const session = await getServerSession();
   if (!session?.employeeId) return [];
-  return listNavigatorRecords({ kind, employeeId: session.employeeId });
+  return await listNavigatorRecords({ kind, employeeId: session.employeeId });
 }
 
 export async function getApprovalNavigatorRecords(kind?: NavigatorKind): Promise<NavigatorRecord[]> {
   const session = await getServerSession();
   if (!canApprove(session)) return [];
-  return listNavigatorRecords({ kind, includeAll: true }).filter((record) => record.status !== "approved");
+  const records = await listNavigatorRecords({ kind, includeAll: true });
+  return records.filter((record) => record.status !== "approved");
 }
