@@ -6,6 +6,21 @@ import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import { saveNavigatorRecord } from "@/lib/goalNavigatorActions";
 
+const sampleAnswers: Record<string, string> = {
+  name: "田中 花子",
+  department: "管理部 > 総務課",
+  stage: "Stage 2 自律推進",
+  grade: "Grade D",
+  category: "チームワーク",
+  competency: "No.37 周囲と適切に連携しながら、目標達成に向けて協働している。",
+  deadline: "2026年9月末",
+  goal: "部門をまたいだ情報連携の精度を高め、総務対応のスピードを上げる。",
+  action1: "毎週月曜に各部門の依頼状況を一覧化して共有する。",
+  action2: "問い合わせ対応後、当日中に対応履歴を記録する。",
+  action3: "月2回、営業部と連携課題の確認ミーティングを実施する。",
+  confirm: "総務課として、他部署との連携品質を高める行動に集中する。",
+};
+
 const stageOptions = ["Stage 1 基礎遂行", "Stage 2 自律推進", "Stage 3 周囲牽引"];
 const departmentOptions = [
   "営業部 > 第一営業課",
@@ -245,6 +260,14 @@ export default function QualitativeGoalNavigatorPage() {
     pdf.save("qualitative-goal-navigator-report.pdf");
   };
 
+  const fillSample = () => {
+    setAnswers(sampleAnswers);
+    setStepIndex(0);
+    setSubmitted(true);
+    setNotice("サンプル回答を反映しました");
+    window.setTimeout(() => setNotice(""), 2500);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
@@ -264,6 +287,14 @@ export default function QualitativeGoalNavigatorPage() {
             <p className="text-blue-100 text-xs font-semibold tracking-wide uppercase">Qualitative Goal Navigator</p>
             <h1 className="text-white text-2xl font-black mt-1">定性目標設定ナビゲーター</h1>
             <p className="text-blue-100 text-sm mt-2">選択式で定性目標と3つの行動計画を整理できます。</p>
+            <div className="mt-4">
+              <button
+                onClick={fillSample}
+                className="rounded-xl bg-white/15 px-4 py-2 text-sm font-bold text-white backdrop-blur transition hover:bg-white/25"
+              >
+                サンプル回答を入れる
+              </button>
+            </div>
           </div>
 
           {!submitted ? (

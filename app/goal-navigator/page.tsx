@@ -6,6 +6,37 @@ import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import { saveNavigatorRecord } from "@/lib/goalNavigatorActions";
 
+const sampleAnswers: Record<string, string> = {
+  name: "鈴木 一郎",
+  department: "営業部 > 第一営業課",
+  deadline: "2026年9月末",
+  goal: "売上3,000万円達成と顧客満足度向上を両立する",
+  why1: "個人目標達成だけでなく、チーム全体の成果向上につなげたいからです。",
+  why2: "売上と満足度を両立できれば、紹介案件が増え、継続的に成果が出せます。",
+  why3: "現状は売上重視になりやすく、フォロー品質にばらつきが出る場面があるためです。",
+  why4: "成果だけでなく、信頼される営業として評価されることに大きな意味があります。",
+  purpose: "2026年9月末までに「売上3,000万円達成と顧客満足度向上を両立する」を実現する。背景には売上と信頼の両立があり、その実現を通じて継続的な紹介獲得と営業品質向上を前進させる。",
+  kr1: "月間売上 3,000万円達成",
+  kr2: "紹介案件比率 25%以上",
+  kr3: "顧客満足度アンケート 4.7以上",
+  state1: "現在の月間売上は平均2,150万円です。",
+  issue1: "月初の商談数が不足し、月末に数字を追う傾向があります。",
+  state2: "現在の紹介案件比率は18%です。",
+  issue2: "成約後の紹介依頼が仕組み化されていません。",
+  state3: "現在の顧客満足度平均は4.3です。",
+  issue3: "初回ヒアリング内容の記録にばらつきがあります。",
+  action11: "毎週月曜9時に見込み顧客20件へ連絡する。",
+  action12: "毎日17時に商談進捗を記録し、週次で売上見込みを更新する。",
+  action13: "毎週金曜に上長へ案件進捗レビューを依頼する。",
+  action21: "成約後3日以内に紹介依頼メッセージを送る。",
+  action22: "毎週2件、既存顧客へフォロー連絡を行う。",
+  action23: "紹介成功事例を毎週朝礼で共有する。",
+  action31: "初回面談後30分以内にヒアリングメモを入力する。",
+  action32: "週1回、顧客対応の振り返りを上長と実施する。",
+  action33: "アンケート低評価案件を当日中に確認し改善策を記録する。",
+  support: "上長に週1回の進捗レビューと、顧客対応フィードバックを依頼する。",
+};
+
 const whyPrompts = [
   "その目標を達成したい理由を教えてください。",
   "それが実現すると、あなたやチームにどんな良い変化がありますか？",
@@ -255,6 +286,14 @@ export default function GoalNavigatorPage() {
     pdf.save("goal-navigator-report.pdf");
   };
 
+  const fillSample = () => {
+    setAnswers(sampleAnswers);
+    setStepIndex(0);
+    setSubmitted(true);
+    setNotice("サンプル回答を反映しました");
+    window.setTimeout(() => setNotice(""), 2500);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
@@ -274,6 +313,14 @@ export default function GoalNavigatorPage() {
             <p className="text-emerald-100 text-xs font-semibold tracking-wide uppercase">Goal Navigator</p>
             <h1 className="text-white text-2xl font-black mt-1">目標設定ナビゲーター</h1>
             <p className="text-emerald-100 text-sm mt-2">1問ずつ進みながら、目標から具体行動まで整理できます。</p>
+            <div className="mt-4">
+              <button
+                onClick={fillSample}
+                className="rounded-xl bg-white/15 px-4 py-2 text-sm font-bold text-white backdrop-blur transition hover:bg-white/25"
+              >
+                サンプル回答を入れる
+              </button>
+            </div>
           </div>
 
           {!submitted ? (
