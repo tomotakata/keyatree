@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import LocalApprovalButton from "@/components/goal-navigator/LocalApprovalButton";
 
 type PendingItem = {
   id: string;
@@ -11,6 +12,7 @@ type PendingItem = {
   savedAt?: string;
   kind: "quantitative" | "qualitative";
   href: string;
+  storageKey: string;
 };
 
 function formatDate(iso?: string) {
@@ -57,6 +59,7 @@ export default function ClientPendingApprovals() {
           savedAt: parsed.savedAt,
           kind: source.kind,
           href: source.href,
+          storageKey: source.key,
         });
       } catch {}
     }
@@ -91,9 +94,15 @@ export default function ClientPendingApprovals() {
               <p className="text-sm text-gray-500">{item.department}</p>
               <p className="text-xs text-gray-400">ブラウザ送信 {formatDate(item.savedAt)}</p>
             </div>
-            <Link href={item.href} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50">
-              入力内容を開く
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href={item.href} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50">
+                入力内容を開く
+              </Link>
+              <LocalApprovalButton
+                storageKey={item.storageKey}
+                onApproved={() => setItems((prev) => prev.filter((entry) => entry.id !== item.id))}
+              />
+            </div>
           </div>
         </div>
       ))}
