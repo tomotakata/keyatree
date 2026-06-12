@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type DraftItem = {
   id: string;
+  name: string;
   title: string;
   department: string;
   savedAt?: string;
@@ -43,6 +44,7 @@ export default function ClientDraftHistory({
       setDrafts([
         {
           id: parsed.recordId || "local-draft",
+          name: parsed.answers.name || "名前未設定",
           title: parsed.answers.goal || emptyLabel,
           department: parsed.answers.department || "部署未設定",
           savedAt: parsed.savedAt,
@@ -75,6 +77,7 @@ export default function ClientDraftHistory({
                   下書き
                 </span>
               </div>
+              <p className="text-sm font-medium text-gray-700">{draft.name}</p>
               <p className="text-sm text-gray-500">{draft.department}</p>
               <p className="text-xs text-gray-400">ブラウザ保存 {formatDate(draft.savedAt)}</p>
             </div>
