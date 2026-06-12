@@ -1,6 +1,7 @@
 import HeaderNav from "@/components/HeaderNav";
 import ApprovalButton from "@/components/goal-navigator/ApprovalButton";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
+import ClientPendingApprovals from "./_components/ClientPendingApprovals";
 import { getApprovalNavigatorRecords } from "@/lib/goalNavigatorActions";
 
 function formatDate(iso?: string) {
@@ -22,6 +23,7 @@ export default async function GoalNavigatorApprovalPage() {
         </div>
 
         <div className="space-y-4">
+          <ClientPendingApprovals />
           {records.length === 0 ? (
             <div className="rounded-2xl border bg-white p-10 text-center text-sm text-gray-400 shadow-sm">
               承認待ちのレコードはありません

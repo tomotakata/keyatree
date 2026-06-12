@@ -141,6 +141,7 @@ export default function QualitativeGoalNavigatorPage() {
         submitted,
         recordId: nextRecordId ?? recordId,
         savedAt: new Date().toISOString(),
+        status: submitted ? "submitted" : "draft",
       })
     );
   };
@@ -181,6 +182,7 @@ export default function QualitativeGoalNavigatorPage() {
         return;
       }
       setRecordId(result.record.id);
+      setSubmitted(true);
       persistLocal(result.record.id);
       setNotice("承認依頼を送信しました");
       window.setTimeout(() => setNotice(""), 2500);
