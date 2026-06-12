@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import LocalRecordActions from "@/components/goal-navigator/LocalRecordActions";
 
 type ApprovedItem = {
   id: string;
@@ -9,6 +10,7 @@ type ApprovedItem = {
   department: string;
   approvedAt?: string;
   kind: "quantitative" | "qualitative";
+  answers: Record<string, string>;
 };
 
 function formatDate(iso?: string) {
@@ -46,6 +48,7 @@ export default function ClientApprovedList() {
           department: parsed.answers.department || "部署未設定",
           approvedAt: parsed.approvedAt,
           kind: source.kind,
+          answers: parsed.answers,
         });
       } catch {}
     }
@@ -80,6 +83,15 @@ export default function ClientApprovedList() {
               <p className="text-sm text-gray-500">{item.department}</p>
               <p className="text-xs text-gray-400">ブラウザ承認 {formatDate(item.approvedAt)}</p>
             </div>
+            <LocalRecordActions
+              record={{
+                title: item.title,
+                name: item.name,
+                department: item.department,
+                kind: item.kind,
+                answers: item.answers,
+              }}
+            />
           </div>
         </div>
       ))}

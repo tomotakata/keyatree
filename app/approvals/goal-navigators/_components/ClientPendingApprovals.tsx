@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import LocalApprovalButton from "@/components/goal-navigator/LocalApprovalButton";
+import LocalRecordActions from "@/components/goal-navigator/LocalRecordActions";
 
 type PendingItem = {
   id: string;
@@ -94,13 +95,33 @@ export default function ClientPendingApprovals() {
               <p className="text-sm text-gray-500">{item.department}</p>
               <p className="text-xs text-gray-400">ブラウザ送信 {formatDate(item.savedAt)}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Link href={item.href} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50">
-                入力内容を開く
-              </Link>
-              <LocalApprovalButton
-                storageKey={item.storageKey}
-                onApproved={() => setItems((prev) => prev.filter((entry) => entry.id !== item.id))}
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                <Link href={item.href} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50">
+                  入力内容を開く
+                </Link>
+                <LocalApprovalButton
+                  storageKey={item.storageKey}
+                  onApproved={() => setItems((prev) => prev.filter((entry) => entry.id !== item.id))}
+                />
+              </div>
+              <LocalRecordActions
+                record={{
+                  title: item.title,
+                  name: item.name,
+                  department: item.department,
+                  kind: item.kind,
+                  answers: (() => {
+                    const raw = window.localStorage.getItem(item.storageKey);
+                    if (!raw) return {};
+                    try {
+                      const parsed = JSON.parse(raw) as { answers?: Record<string, string> };
+                      return parsed.answers || {};
+                    } catch {
+                      return {};
+                    }
+                  })(),
+                }}
               />
             </div>
           </div>

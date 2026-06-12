@@ -1,5 +1,6 @@
 import HeaderNav from "@/components/HeaderNav";
 import ClientApprovedList from "@/components/goal-navigator/ClientApprovedList";
+import RecordActions from "@/components/goal-navigator/RecordActions";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
 import { getApprovedNavigatorRecords } from "@/lib/goalNavigatorActions";
 
@@ -42,9 +43,12 @@ export default async function ApprovedGoalNavigatorPage() {
                     <p className="text-sm text-gray-600">{record.employeeName} / {record.department}</p>
                     <p className="text-xs text-gray-400">承認日 {formatDate(record.approvedAt || record.updatedAt)}</p>
                   </div>
-                  <div className="text-right text-xs text-gray-400">
-                    <p>承認者</p>
-                    <p className="mt-1 text-sm font-medium text-gray-600">{record.approvedBy || "-"}</p>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="text-right text-xs text-gray-400">
+                      <p>承認者</p>
+                      <p className="mt-1 text-sm font-medium text-gray-600">{record.approvedBy || "-"}</p>
+                    </div>
+                    <RecordActions record={record} />
                   </div>
                 </div>
               </div>
