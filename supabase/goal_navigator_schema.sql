@@ -2,6 +2,7 @@ create extension if not exists "pgcrypto";
 
 create table if not exists public.goal_navigator_records (
   id uuid primary key default gen_random_uuid(),
+  owner_id text not null,
   kind text not null check (kind in ('quantitative', 'qualitative')),
   employee_id text not null,
   employee_name text not null,
@@ -18,6 +19,9 @@ create table if not exists public.goal_navigator_records (
 
 create index if not exists idx_goal_navigator_records_employee_id
   on public.goal_navigator_records(employee_id);
+
+create index if not exists idx_goal_navigator_records_owner_id
+  on public.goal_navigator_records(owner_id);
 
 create index if not exists idx_goal_navigator_records_kind
   on public.goal_navigator_records(kind);

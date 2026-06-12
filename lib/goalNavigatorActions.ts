@@ -17,10 +17,12 @@ export async function saveNavigatorRecord(input: {
   }
 
   const employeeId = session.employeeId || input.answers.employeeId || "external";
+  const ownerId = session.employeeId || session.id || input.answers.employeeId || input.answers.email || session.email;
   const employeeName = input.answers.name || session.name;
 
   const record = await upsertNavigatorRecord({
     id: input.id,
+    ownerId,
     kind: input.kind,
     employeeId,
     employeeName,
@@ -67,8 +69,9 @@ export async function approveNavigatorRecordAction(recordId: string) {
 
 export async function getMyNavigatorRecords(kind?: NavigatorKind): Promise<NavigatorRecord[]> {
   const session = await getServerSession();
-  if (!session?.employeeId) return [];
-  return await listNavigatorRecords({ kind, employeeId: session.employeeId });
+  const ownerId = session?.employeeId || session?.id || session?.email;
+  if (!ownerId) return [];
+  return await listNavigatorRecords({ kind, ownerId, employeeId: session.employeeId });
 }
 
 export async function getApprovalNavigatorRecords(kind?: NavigatorKind): Promise<NavigatorRecord[]> {

@@ -15,6 +15,7 @@ export type NavigatorSession = {
 
 export type NavigatorRecord = {
   id: string;
+  ownerId: string;
   kind: NavigatorKind;
   employeeId: string;
   employeeName: string;
@@ -62,6 +63,7 @@ export function canApprove(session: NavigatorSession | null) {
 
 function normalizeRecord(record: {
   id: string;
+  owner_id?: string | null;
   kind: NavigatorKind;
   employee_id: string;
   employee_name: string;
@@ -77,6 +79,7 @@ function normalizeRecord(record: {
 }): NavigatorRecord {
   return {
     id: record.id,
+    ownerId: record.owner_id ?? record.employee_id,
     kind: record.kind,
     employeeId: record.employee_id,
     employeeName: record.employee_name,
@@ -115,6 +118,7 @@ async function writeAuditLog(input: {
 
 export async function listNavigatorRecords(params: {
   kind?: NavigatorKind;
+  ownerId?: string;
   employeeId?: string;
   includeAll?: boolean;
 }) {
@@ -128,8 +132,8 @@ export async function listNavigatorRecords(params: {
     if (params.kind) {
       query = query.eq("kind", params.kind);
     }
-    if (!params.includeAll && params.employeeId) {
-      query = query.eq("employee_id", params.employeeId);
+    if (!params.includeAll && params.ownerId) {
+      query = query.eq("owner_id", params.ownerId);
     }
 
     const { data, error } = await query;
@@ -142,7 +146,7 @@ export async function listNavigatorRecords(params: {
   const records = getStore();
   const filtered = records.filter((record) => {
     if (params.kind && record.kind !== params.kind) return false;
-    if (!params.includeAll && params.employeeId && record.employeeId !== params.employeeId) return false;
+    if (!params.includeAll && params.ownerId && record.ownerId !== params.ownerId) return false;
     return true;
   });
   return filtered.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -150,6 +154,7 @@ export async function listNavigatorRecords(params: {
 
 export async function upsertNavigatorRecord(input: {
   id?: string;
+  ownerId: string;
   kind: NavigatorKind;
   employeeId: string;
   employeeName: string;
@@ -173,6 +178,7 @@ export async function upsertNavigatorRecord(input: {
       const before = beforeRows?.[0] ? normalizeRecord(beforeRows[0]) : null;
 
       const payload = {
+        owner_id: input.ownerId,
         kind: input.kind,
         employee_id: input.employeeId,
         employee_name: input.employeeName,
@@ -202,6 +208,7 @@ export async function upsertNavigatorRecord(input: {
     }
 
     const payload = {
+      owner_id: input.ownerId,
       kind: input.kind,
       employee_id: input.employeeId,
       employee_name: input.employeeName,
@@ -236,6 +243,7 @@ export async function upsertNavigatorRecord(input: {
     const current = records[existingIndex];
     const next: NavigatorRecord = {
       ...current,
+      ownerId: input.ownerId,
       kind: input.kind,
       employeeId: input.employeeId,
       employeeName: input.employeeName,
@@ -252,6 +260,7 @@ export async function upsertNavigatorRecord(input: {
 
   const created: NavigatorRecord = {
     id: crypto.randomUUID(),
+    ownerId: input.ownerId,
     kind: input.kind,
     employeeId: input.employeeId,
     employeeName: input.employeeName,
