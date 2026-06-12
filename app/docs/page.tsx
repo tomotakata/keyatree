@@ -79,6 +79,17 @@ const docs = [
     status: "公開中",
   },
   {
+    id: "floorplan-demo",
+    href: "/demo/floorplan",
+    label: "DEMO",
+    color: "from-sky-500 to-teal-500",
+    title: "間取り作成機能 デモ画面",
+    desc: "部屋パーツを配置・移動・リサイズして間取り図を作成できるインタラクティブデモ。SVG保存対応。",
+    tags: ["デモ", "物件管理", "間取り作成"],
+    date: "2025.06",
+    status: "公開中",
+  },
+  {
     id: "dev-log-01",
     href: null,
     label: "LOG",
