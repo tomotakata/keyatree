@@ -14,9 +14,13 @@ export type TaskMessage = {
   id: string;
   senderId: string;
   senderName: string;
+  subject: string;           // 件名
+  toIds: string[];           // 宛先ID配列 (["all"] or ["001","002"])
+  toNames: string[];         // 宛先表示名配列
   text: string;
   sentAt: string;
-  reactions?: Record<string, string[]>; // emoji -> [userId, ...]
+  reactions?: Record<string, string[]>;
+  replyToId?: string;        // 返信先メッセージID
 };
 
 export type FullTask = {
@@ -63,27 +67,15 @@ const SEED_TASKS: FullTask[] = [
     ownerId: "001",
     ownerName: "鈴木 一郎",
     members: [
-      { id: "001", name: "鈴木 一郎", role: "owner", joinedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
-      { id: "002", name: "田中 花子", role: "watcher", joinedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+      { id: "001", name: "鈴木 一郎", role: "owner",   joinedAt: new Date(Date.now() - 3 * 86400000).toISOString() },
+      { id: "002", name: "田中 花子", role: "watcher",  joinedAt: new Date(Date.now() - 2 * 86400000).toISOString() },
     ],
     messages: [
-      {
-        id: "m1",
-        senderId: "001",
-        senderName: "鈴木 一郎",
-        text: "山田様案件を開始しました。資料の方向性について確認させてください。",
-        sentAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "m2",
-        senderId: "002",
-        senderName: "田中 花子",
-        text: "了解しました。先方は3LDK以上を希望されているので、その条件に絞って作成してください。",
-        sentAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      },
+      { id: "m1", senderId: "001", senderName: "鈴木 一郎", subject: "資料方向性の確認", toIds: ["all"], toNames: ["全員"], text: "山田様案件を開始しました。資料の方向性について確認させてください。", sentAt: new Date(Date.now() - 2 * 86400000).toISOString() },
+      { id: "m2", senderId: "002", senderName: "田中 花子", subject: "Re: 資料方向性の確認", toIds: ["001"], toNames: ["鈴木 一郎"], text: "了解しました。先方は3LDK以上を希望されているので、その条件に絞って作成してください。", sentAt: new Date(Date.now() - 1 * 86400000).toISOString(), replyToId: "m1" },
     ],
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
   },
   {
     id: "seed-t2",
@@ -97,20 +89,14 @@ const SEED_TASKS: FullTask[] = [
     ownerId: "001",
     ownerName: "鈴木 一郎",
     members: [
-      { id: "001", name: "鈴木 一郎", role: "owner", joinedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() },
-      { id: "002", name: "田中 花子", role: "assignee", joinedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() },
+      { id: "001", name: "鈴木 一郎", role: "owner",    joinedAt: new Date(Date.now() - 7 * 86400000).toISOString() },
+      { id: "002", name: "田中 花子", role: "assignee",  joinedAt: new Date(Date.now() - 7 * 86400000).toISOString() },
     ],
     messages: [
-      {
-        id: "m3",
-        senderId: "002",
-        senderName: "田中 花子",
-        text: "Q2報告書の提出期限が近づいています。対応状況を教えてください。",
-        sentAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      },
+      { id: "m3", senderId: "002", senderName: "田中 花子", subject: "Q2報告書の対応状況確認", toIds: ["001"], toNames: ["鈴木 一郎"], text: "Q2報告書の提出期限が近づいています。対応状況を教えてください。", sentAt: new Date(Date.now() - 1 * 86400000).toISOString() },
     ],
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 7 * 86400000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
   },
   {
     id: "seed-t3",
@@ -124,35 +110,17 @@ const SEED_TASKS: FullTask[] = [
     ownerId: "002",
     ownerName: "田中 花子",
     members: [
-      { id: "002", name: "田中 花子", role: "owner", joinedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
-      { id: "001", name: "鈴木 一郎", role: "assignee", joinedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
-      { id: "003", name: "佐藤 次郎", role: "assignee", joinedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString() },
+      { id: "002", name: "田中 花子", role: "owner",    joinedAt: new Date(Date.now() - 5 * 86400000).toISOString() },
+      { id: "001", name: "鈴木 一郎", role: "assignee", joinedAt: new Date(Date.now() - 5 * 86400000).toISOString() },
+      { id: "003", name: "佐藤 次郎", role: "assignee", joinedAt: new Date(Date.now() - 4 * 86400000).toISOString() },
     ],
     messages: [
-      {
-        id: "m4",
-        senderId: "002",
-        senderName: "田中 花子",
-        text: "各部門の予算案を6月22日までに提出してください。フォーマットは昨年度と同様です。",
-        sentAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "m5",
-        senderId: "001",
-        senderName: "鈴木 一郎",
-        text: "営業部分は作成中です。明日中に送ります。",
-        sentAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "m6",
-        senderId: "003",
-        senderName: "佐藤 次郎",
-        text: "確認しました。こちらも並行して進めます。",
-        sentAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      },
+      { id: "m4", senderId: "002", senderName: "田中 花子", subject: "下半期予算案の提出依頼", toIds: ["all"], toNames: ["全員"], text: "各部門の予算案を6月22日までに提出してください。フォーマットは昨年度と同様です。", sentAt: new Date(Date.now() - 4 * 86400000).toISOString() },
+      { id: "m5", senderId: "001", senderName: "鈴木 一郎", subject: "Re: 下半期予算案の提出依頼", toIds: ["002"], toNames: ["田中 花子"], text: "営業部分は作成中です。明日中に送ります。", sentAt: new Date(Date.now() - 3 * 86400000).toISOString(), replyToId: "m4" },
+      { id: "m6", senderId: "003", senderName: "佐藤 次郎", subject: "Re: 下半期予算案の提出依頼", toIds: ["002"], toNames: ["田中 花子"], text: "確認しました。こちらも並行して進めます。", sentAt: new Date(Date.now() - 2 * 86400000).toISOString(), replyToId: "m4" },
     ],
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
   },
   {
     id: "seed-t4",
@@ -166,12 +134,12 @@ const SEED_TASKS: FullTask[] = [
     ownerId: "003",
     ownerName: "佐藤 次郎",
     members: [
-      { id: "003", name: "佐藤 次郎", role: "owner", joinedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-      { id: "004", name: "山本 三郎", role: "watcher", joinedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
+      { id: "003", name: "佐藤 次郎", role: "owner",   joinedAt: new Date(Date.now() - 2 * 86400000).toISOString() },
+      { id: "004", name: "山本 三郎", role: "watcher",  joinedAt: new Date(Date.now() - 1 * 86400000).toISOString() },
     ],
     messages: [],
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
   },
 ];
 
