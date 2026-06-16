@@ -16,6 +16,7 @@ export type TaskMessage = {
   senderName: string;
   text: string;
   sentAt: string;
+  reactions?: Record<string, string[]>; // emoji -> [userId, ...]
 };
 
 export type FullTask = {
@@ -275,6 +276,28 @@ export function removeMember(taskId: string, memberId: string): FullTask | null 
   const idx = all.findIndex((t) => t.id === taskId);
   if (idx < 0) return null;
   all[idx].members = all[idx].members.filter((m) => m.id !== memberId || m.role === "owner");
+  all[idx].updatedAt = new Date().toISOString();
+  writeAll(all);
+  return all[idx];
+}
+
+export function toggleReaction(taskId: string, msgId: string, emoji: string, userId: string): FullTask | null {
+  const all = readAll();
+  const idx = all.findIndex((t) => t.id === taskId);
+  if (idx < 0) return null;
+  const msgIdx = all[idx].messages.findIndex((m) => m.id === msgId);
+  if (msgIdx < 0) return null;
+  const msg = all[idx].messages[msgIdx];
+  const reactions = { ...(msg.reactions || {}) };
+  const users = reactions[emoji] || [];
+  if (users.includes(userId)) {
+    const next = users.filter((u) => u !== userId);
+    if (next.length === 0) delete reactions[emoji];
+    else reactions[emoji] = next;
+  } else {
+    reactions[emoji] = [...users, userId];
+  }
+  all[idx].messages[msgIdx] = { ...msg, reactions };
   all[idx].updatedAt = new Date().toISOString();
   writeAll(all);
   return all[idx];
