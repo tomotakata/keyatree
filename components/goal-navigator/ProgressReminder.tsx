@@ -256,6 +256,7 @@ export default function ProgressReminder() {
   const [records, setRecords] = useState<ReminderRecord[]>([]);
 
   function load() {
+
     const sources = [
       { key: "keyatree_goal_navigator_draft", kind: "quantitative" as const },
       { key: "keyatree_qualitative_goal_navigator_draft", kind: "qualitative" as const },
@@ -302,7 +303,13 @@ export default function ProgressReminder() {
     setRecords(next);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // SeedGoalData からのシード完了イベントを受け取って再ロード
+    const handler = () => load();
+    window.addEventListener("keyatree_seed_done", handler);
+    return () => window.removeEventListener("keyatree_seed_done", handler);
+  }, []);
 
   if (records.length === 0) return null;
 
