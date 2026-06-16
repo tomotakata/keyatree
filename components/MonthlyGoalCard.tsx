@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MonthlyGoal, GoalProgress } from "@/lib/mockData";
+import ProgressReminder from "@/components/goal-navigator/ProgressReminder";
 
 function ProgressBar({ value }: { value: number }) {
   const color = value >= 100 ? "bg-emerald-500" : value >= 60 ? "bg-blue-400" : "bg-amber-400";
@@ -48,8 +49,8 @@ export default function MonthlyGoalCard({
         {/* ヘッダー */}
         <div className="bg-gradient-to-r from-emerald-400 to-teal-500 px-5 py-4 flex items-center justify-between">
           <div>
-            <p className="text-xs text-emerald-100 font-medium">{monthlyGoal.month}の目標宣言</p>
-            <h3 className="text-white font-bold text-base mt-0.5">今月の個人目標</h3>
+            <p className="text-xs text-emerald-100 font-medium">今期の目標宣言</p>
+            <h3 className="text-white font-bold text-base mt-0.5">今期の目標管理</h3>
           </div>
           <button
             onClick={() => setShowModal(true)}
@@ -59,7 +60,7 @@ export default function MonthlyGoalCard({
           </button>
         </div>
 
-        <div className="p-5">
+        <div className="p-5 space-y-5">
           {/* 宣言文 */}
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-xl p-4">
             <p className="text-gray-800 font-bold text-sm leading-relaxed text-center">
@@ -67,6 +68,9 @@ export default function MonthlyGoalCard({
             </p>
             <p className="text-right text-xs text-gray-400 mt-2">— {employeeName}</p>
           </div>
+
+          {/* 承認済み目標 進捗リマインド */}
+          <ProgressReminder />
         </div>
       </div>
 

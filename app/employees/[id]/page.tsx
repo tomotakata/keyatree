@@ -11,7 +11,6 @@ import NewsTicker from "@/components/NewsTicker";
 import TaskAlertPanel from "@/components/TaskAlertPanel";
 import MonthlyGoalCard from "@/components/MonthlyGoalCard";
 import BravoButton from "@/components/BravoButton";
-import ProgressReminder from "@/components/goal-navigator/ProgressReminder";
 import SeedGoalData from "@/components/goal-navigator/SeedGoalData";
 
 const rankColors: Record<string, { bg: string; text: string; border: string }> = {
@@ -123,9 +122,8 @@ export default async function EmployeePage({
                </div>
              </div>
 
-            {/* 承認済み目標 進捗リマインド */}
+            {/* 承認済み目標 進捗リマインド（MonthlyGoalCard内に統合） */}
             <SeedGoalData employeeId={id} />
-            <ProgressReminder />
 
             {/* スキルマップ */}
             <div className="bg-white rounded-2xl shadow-sm border p-5">
