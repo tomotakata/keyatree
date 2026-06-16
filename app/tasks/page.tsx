@@ -96,7 +96,10 @@ export default function TasksPage() {
           <Link href="/employees/001" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">KeyaTree</Link>
           <span className="text-gray-300 mx-1">›</span>
           <span className="text-gray-700 text-sm font-medium">タスク管理</span>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <Link href="/tasks/threads" className="text-xs text-gray-500 hover:text-emerald-600 border border-gray-200 px-3 py-1.5 rounded-xl transition hover:border-emerald-300">
+              スレッド一覧
+            </Link>
             <Link href="/tasks/new" className="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition">
               + 新規タスク
             </Link>

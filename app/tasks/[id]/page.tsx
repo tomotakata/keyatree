@@ -4,9 +4,9 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  getTask, addMessage, updateTaskStatus, addMember, removeMember, toggleReaction,
-  MOCK_EMPLOYEES, STATUS_CONFIG, PRIORITY_CONFIG,
-  type FullTask, type TaskStatus, type TaskMember, type TaskMessage,
+  getTask, addMessage, updateTask, updateTaskStatus, addMember, removeMember, toggleReaction,
+  MOCK_EMPLOYEES, STATUS_CONFIG, PRIORITY_CONFIG, CATEGORIES,
+  type FullTask, type TaskStatus, type TaskMember, type TaskMessage, type TaskPriority, type TaskType,
 } from "@/lib/taskStore";
 
 /* ── ユーティリティ ── */
@@ -256,6 +256,89 @@ function ThreadCard({
   );
 }
 
+/* ── タスク編集モーダル ── */
+function TaskEditModal({
+  task, onSave, onClose,
+}: {
+  task: FullTask;
+  onSave: (t: FullTask) => void;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description);
+  const [deadline, setDeadline] = useState(task.deadline);
+  const [category, setCategory] = useState(task.category);
+  const [priority, setPriority] = useState<TaskPriority>(task.priority);
+  const [type, setType] = useState<TaskType>(task.type);
+
+  const handleSave = () => {
+    if (!title.trim()) return;
+    const updated = updateTask(task.id, { title: title.trim(), description: description.trim(), deadline, category, priority, type });
+    if (updated) onSave(updated);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-4 flex items-center justify-between">
+          <h2 className="text-white font-bold text-base">タスクを編集</h2>
+          <button onClick={onClose} className="text-white/70 hover:text-white text-lg leading-none">×</button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1">タイトル <span className="text-rose-500">*</span></label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1">詳細・説明</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-1">期日</label>
+              <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-1">カテゴリ</label>
+              <select value={category} onChange={e => setCategory(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-1">優先度</label>
+              <select value={priority} onChange={e => setPriority(e.target.value as TaskPriority)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                <option value="high">高</option>
+                <option value="medium">中</option>
+                <option value="low">低</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-1">種別</label>
+              <select value={type} onChange={e => setType(e.target.value as TaskType)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                <option value="personal">個人</option>
+                <option value="org">組織</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div className="px-5 pb-5 flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition">キャンセル</button>
+          <button onClick={handleSave} disabled={!title.trim()}
+            className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 text-white text-sm font-bold transition">
+            保存する
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── メッセージ作成フォーム ── */
 function ComposePanel({
   members, replyTo, onSend, onCancelReply,
@@ -401,6 +484,7 @@ export default function TaskWorkspacePage() {
   const [task, setTask] = useState<FullTask | null>(null);
   const [replyTo, setReplyTo] = useState<TaskMessage | null>(null);
   const [showInvite, setShowInvite] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -482,6 +566,12 @@ export default function TaskWorkspacePage() {
     if (updated) { setTask(updated); showToast(`${memberName} をメンバーから除外しました`); }
   };
 
+  const handleTaskSave = (updated: FullTask) => {
+    setTask(updated);
+    setShowEdit(false);
+    showToast("タスクを更新しました");
+  };
+
   if (!task) return null;
 
   const cfg = STATUS_CONFIG[task.status];
@@ -520,7 +610,15 @@ export default function TaskWorkspacePage() {
                   {task.type === "personal" ? "個人" : "組織"}
                 </span>
               </div>
-              <span className="text-gray-400 text-xs ml-2 flex-shrink-0">{detailOpen ? "▲ 閉じる" : "▼ 詳細"}</span>
+              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                <button
+                  onClick={e => { e.stopPropagation(); setShowEdit(true); }}
+                  className="text-xs text-gray-400 hover:text-emerald-600 transition px-2 py-1 rounded-lg hover:bg-emerald-50 border border-transparent hover:border-emerald-200"
+                >
+                  編集
+                </button>
+                <span className="text-gray-400 text-xs">{detailOpen ? "▲ 閉じる" : "▼ 詳細"}</span>
+              </div>
             </button>
             {detailOpen && (
               <div className="px-4 pb-4 border-t pt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -687,6 +785,9 @@ export default function TaskWorkspacePage() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white text-sm px-5 py-3 rounded-full shadow-lg">
           {toast}
         </div>
+      )}
+      {showEdit && task && (
+        <TaskEditModal task={task} onSave={handleTaskSave} onClose={() => setShowEdit(false)} />
       )}
     </div>
   );

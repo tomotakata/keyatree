@@ -217,6 +217,24 @@ export function addMessage(taskId: string, msg: Omit<TaskMessage, "id" | "sentAt
   return all[idx];
 }
 
+export type TaskEditInput = {
+  title?: string;
+  description?: string;
+  deadline?: string;
+  category?: string;
+  priority?: TaskPriority;
+  type?: TaskType;
+};
+
+export function updateTask(taskId: string, input: TaskEditInput): FullTask | null {
+  const all = readAll();
+  const idx = all.findIndex((t) => t.id === taskId);
+  if (idx < 0) return null;
+  all[idx] = { ...all[idx], ...input, updatedAt: new Date().toISOString() };
+  writeAll(all);
+  return all[idx];
+}
+
 export function updateTaskStatus(taskId: string, status: TaskStatus): FullTask | null {
   const all = readAll();
   const idx = all.findIndex((t) => t.id === taskId);
