@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export type TaskStatus = "overdue" | "today" | "soon" | "normal" | "done";
 
@@ -350,9 +351,14 @@ export default function TaskAlertPanel() {
                 本日締め切りタスクが{todayCount}件あります
               </span>
             </div>
-            <button onClick={() => setShowMyTasks(!showMyTasks)} className="text-xs text-emerald-600 font-semibold hover:underline">
-              {showMyTasks ? "閉じる" : "詳細表示"}
-            </button>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setShowMyTasks(!showMyTasks)} className="text-xs text-emerald-600 font-semibold hover:underline">
+                {showMyTasks ? "閉じる" : "詳細表示"}
+              </button>
+              <Link href="/tasks" className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg transition">
+                タスク管理へ
+              </Link>
+            </div>
           </div>
           {showMyTasks && (
             <div className="p-3 space-y-2">
@@ -379,9 +385,14 @@ export default function TaskAlertPanel() {
               {todayTeam  > 0 && <span className="text-xs font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full">本日締切 {todayTeam}件</span>}
               {soonTeam   > 0 && <span className="text-xs font-bold bg-blue-400 text-white px-2 py-0.5 rounded-full">期日間近 {soonTeam}件</span>}
             </div>
-            <button onClick={() => setShowTeamTasks(!showTeamTasks)} className="text-xs text-emerald-600 font-semibold hover:underline">
-              {showTeamTasks ? "閉じる" : "詳細表示"}
-            </button>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setShowTeamTasks(!showTeamTasks)} className="text-xs text-emerald-600 font-semibold hover:underline">
+                {showTeamTasks ? "閉じる" : "詳細表示"}
+              </button>
+              <Link href="/tasks?tab=org" className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg transition">
+                組織タスク管理
+              </Link>
+            </div>
           </div>
           {showTeamTasks && (
             <div className="p-3 space-y-2">
