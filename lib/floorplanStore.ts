@@ -35,6 +35,14 @@ export type FloorplanSymbol = {
   rotation?: number;
 };
 
+export type FloorplanText = {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+};
+
 export type FloorplanTemplate = {
   id: string;
   name: string;
@@ -58,6 +66,7 @@ export type FloorplanRecord = {
   rooms: FloorplanRoom[];
   symbols: FloorplanSymbol[];
   dimensions: FloorplanDimension[];
+  texts: FloorplanText[];
   updatedAt: string;
   createdAt: string;
   thumbnail?: string;
@@ -153,6 +162,9 @@ export function seedFloorplanData() {
         { id: "dim_1", x1: 40, y1: 108, x2: 340, y2: 108, label: "4.5m" },
         { id: "dim_2", x1: 592, y1: 120, x2: 592, y2: 300, label: "2.7m" },
       ],
+      texts: [
+        { id: "text_1", text: "南向き", x: 662, y: 88, fontSize: 14 },
+      ],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -174,7 +186,7 @@ export function getProperty(id: string) {
 export function getFloorplan(propertyId: string) {
   const record = readJson<FloorplanRecord[]>(FLOORPLANS_KEY, []).find((item) => item.propertyId === propertyId) ?? null;
   if (!record) return null;
-  return { ...record, symbols: record.symbols ?? [], dimensions: record.dimensions ?? [] };
+  return { ...record, symbols: record.symbols ?? [], dimensions: record.dimensions ?? [], texts: record.texts ?? [] };
 }
 
 export function getAllFloorplans() {
@@ -182,6 +194,7 @@ export function getAllFloorplans() {
     ...record,
     symbols: record.symbols ?? [],
     dimensions: record.dimensions ?? [],
+    texts: record.texts ?? [],
   }));
 }
 
@@ -201,6 +214,7 @@ export function saveFloorplan(input: Omit<FloorplanRecord, "id" | "createdAt" | 
     rooms: input.rooms,
     symbols: input.symbols,
     dimensions: input.dimensions,
+    texts: input.texts,
     thumbnail: input.thumbnail,
     createdAt: now,
     updatedAt: now,

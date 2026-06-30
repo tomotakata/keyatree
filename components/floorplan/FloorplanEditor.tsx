@@ -13,6 +13,7 @@ import {
   type FloorplanSymbol,
   type FloorplanSymbolType,
   type FloorplanDimension,
+  type FloorplanText,
   getAllFloorplans,
 } from "@/lib/floorplanStore";
 
@@ -42,6 +43,18 @@ const SYMBOL_TYPES: { id: FloorplanSymbolType; label: string }[] = [
 function toMeters(value: number) {
   return `${(value / 40).toFixed(1)}m`;
 }
+
+type EditorSnapshot = {
+  rooms: FloorplanRoom[];
+  symbols: FloorplanSymbol[];
+  dimensions: FloorplanDimension[];
+  texts: FloorplanText[];
+};
+
+type ClipboardPayload =
+  | { kind: "room"; room: FloorplanRoom }
+  | { kind: "symbol"; symbol: FloorplanSymbol }
+  | { kind: "text"; text: FloorplanText };
 
 type DragState =
   | { kind: "none" }
@@ -99,12 +112,18 @@ export default function FloorplanEditor({
   const [rooms, setRooms] = useState<FloorplanRoom[]>([]);
   const [symbols, setSymbols] = useState<FloorplanSymbol[]>([]);
   const [dimensions, setDimensions] = useState<FloorplanDimension[]>([]);
+  const [texts, setTexts] = useState<FloorplanText[]>([]);
   const [showSavedList, setShowSavedList] = useState(false);
   const [savedPlans, setSavedPlans] = useState(getAllFloorplans());
   const [drag, setDrag] = useState<DragState>({ kind: "none" });
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+  const [selectedText, setSelectedText] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState<{ id: string; value: string } | null>(null);
+  const [editText, setEditText] = useState<{ id: string; value: string } | null>(null);
+  const [history, setHistory] = useState<EditorSnapshot[]>([]);
+  const [future, setFuture] = useState<EditorSnapshot[]>([]);
+  const [clipboard, setClipboard] = useState<ClipboardPayload | null>(null);
   const [templates, setTemplates] = useState(getFloorplanTemplates());
   const [toast, setToast] = useState<string | null>(null);
 
@@ -113,11 +132,40 @@ export default function FloorplanEditor({
     setRooms(saved?.rooms ?? []);
     setSymbols(saved?.symbols ?? []);
     setDimensions(saved?.dimensions ?? []);
+    setTexts(saved?.texts ?? []);
     setTemplates(getFloorplanTemplates());
     setSavedPlans(getAllFloorplans());
+    setHistory([]);
+    setFuture([]);
   }, [propertyId]);
 
   const selectedRoom = rooms.find((room) => room.id === selected) ?? null;
+  const selectedTextItem = texts.find((item) => item.id === selectedText) ?? null;
+
+  const snapshot = useCallback(
+    (): EditorSnapshot => ({
+      rooms: structuredClone(rooms),
+      symbols: structuredClone(symbols),
+      dimensions: structuredClone(dimensions),
+      texts: structuredClone(texts),
+    }),
+    [dimensions, rooms, symbols, texts]
+  );
+
+  const restoreSnapshot = useCallback((next: EditorSnapshot) => {
+    setRooms(next.rooms);
+    setSymbols(next.symbols);
+    setDimensions(next.dimensions);
+    setTexts(next.texts);
+    setSelected(null);
+    setSelectedSymbol(null);
+    setSelectedText(null);
+  }, []);
+
+  const pushHistory = useCallback(() => {
+    setHistory((prev) => [...prev.slice(-39), snapshot()]);
+    setFuture([]);
+  }, [snapshot]);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -150,19 +198,23 @@ export default function FloorplanEditor({
     if (drag.kind === "placing") {
       const { x, y } = svgPoint(e);
       if (ROOM_TYPES.some((room) => room.id === drag.typeId)) {
+        pushHistory();
         const room = createRoom(drag.typeId, x, y);
         setRooms((prev) => [...prev, room]);
         setSelected(room.id);
         setSelectedSymbol(null);
+        setSelectedText(null);
       } else {
+        pushHistory();
         const symbol = createSymbol(drag.typeId as FloorplanSymbolType, x, y);
         setSymbols((prev) => [...prev, symbol]);
         setSelectedSymbol(symbol.id);
         setSelected(null);
+        setSelectedText(null);
       }
     }
     setDrag({ kind: "none" });
-  }, [drag, svgPoint]);
+  }, [drag, pushHistory, svgPoint]);
 
   const exportSvgSource = useCallback(() => {
     const svg = svgRef.current;
@@ -181,9 +233,29 @@ export default function FloorplanEditor({
       const canvas = await html2canvas(exportRef.current, { scale: 0.6, backgroundColor: "#ffffff" });
       return canvas.toDataURL("image/png");
     })();
-    saveFloorplan({ propertyId, propertyName, rooms, symbols, dimensions, thumbnail });
+    saveFloorplan({ propertyId, propertyName, rooms, symbols, dimensions, texts, thumbnail });
     setSavedPlans(getAllFloorplans());
     showToast("間取り図を下書き保存しました");
+  };
+
+  const undo = () => {
+    setHistory((prev) => {
+      if (prev.length === 0) return prev;
+      const latest = prev[prev.length - 1];
+      setFuture((futurePrev) => [snapshot(), ...futurePrev].slice(0, 40));
+      restoreSnapshot(latest);
+      return prev.slice(0, -1);
+    });
+  };
+
+  const redo = () => {
+    setFuture((prev) => {
+      if (prev.length === 0) return prev;
+      const latest = prev[0];
+      setHistory((historyPrev) => [...historyPrev.slice(-39), snapshot()]);
+      restoreSnapshot(latest);
+      return prev.slice(1);
+    });
   };
 
   const duplicateCurrent = () => {
@@ -197,6 +269,7 @@ export default function FloorplanEditor({
       rooms: rooms.map((room) => ({ ...room, id: crypto.randomUUID() })),
       symbols: symbols.map((symbol) => ({ ...symbol, id: crypto.randomUUID() })),
       dimensions: dimensions.map((dimension) => ({ ...dimension, id: crypto.randomUUID() })),
+      texts: texts.map((text) => ({ ...text, id: crypto.randomUUID() })),
       thumbnail: undefined,
     });
     setSavedPlans(getAllFloorplans());
@@ -207,6 +280,7 @@ export default function FloorplanEditor({
     if (!selected) return;
     const room = rooms.find((item) => item.id === selected);
     if (!room) return;
+    pushHistory();
     setDimensions((prev) => [
       ...prev,
       {
@@ -227,6 +301,86 @@ export default function FloorplanEditor({
       },
     ]);
     showToast("寸法線を追加しました");
+  };
+
+  const addFreeText = () => {
+    const raw = window.prompt("表示する文字を入力してください", "洋室6帖");
+    if (!raw?.trim()) return;
+    pushHistory();
+    const textItem: FloorplanText = {
+      id: crypto.randomUUID(),
+      text: raw.trim(),
+      x: 80,
+      y: 80,
+      fontSize: 14,
+    };
+    setTexts((prev) => [...prev, textItem]);
+    setSelectedText(textItem.id);
+    setSelected(null);
+    setSelectedSymbol(null);
+    showToast("文字を追加しました");
+  };
+
+  const copySelected = () => {
+    if (selectedRoom) {
+      setClipboard({ kind: "room", room: structuredClone(selectedRoom) });
+      showToast("部屋をコピーしました");
+      return;
+    }
+    const symbol = symbols.find((item) => item.id === selectedSymbol);
+    if (symbol) {
+      setClipboard({ kind: "symbol", symbol: structuredClone(symbol) });
+      showToast("記号をコピーしました");
+      return;
+    }
+    if (selectedTextItem) {
+      setClipboard({ kind: "text", text: structuredClone(selectedTextItem) });
+      showToast("文字をコピーしました");
+    }
+  };
+
+  const pasteClipboard = () => {
+    if (!clipboard) return;
+    pushHistory();
+    if (clipboard.kind === "room") {
+      const pasted = {
+        ...clipboard.room,
+        id: crypto.randomUUID(),
+        x: clipboard.room.x + 20,
+        y: clipboard.room.y + 20,
+      };
+      setRooms((prev) => [...prev, pasted]);
+      setSelected(pasted.id);
+      setSelectedSymbol(null);
+      setSelectedText(null);
+      showToast("部屋を貼り付けました");
+      return;
+    }
+    if (clipboard.kind === "symbol") {
+      const pasted = {
+        ...clipboard.symbol,
+        id: crypto.randomUUID(),
+        x: clipboard.symbol.x + 20,
+        y: clipboard.symbol.y + 20,
+      };
+      setSymbols((prev) => [...prev, pasted]);
+      setSelected(null);
+      setSelectedSymbol(pasted.id);
+      setSelectedText(null);
+      showToast("記号を貼り付けました");
+      return;
+    }
+    const pasted = {
+      ...clipboard.text,
+      id: crypto.randomUUID(),
+      x: clipboard.text.x + 20,
+      y: clipboard.text.y + 20,
+    };
+    setTexts((prev) => [...prev, pasted]);
+    setSelected(null);
+    setSelectedSymbol(null);
+    setSelectedText(pasted.id);
+    showToast("文字を貼り付けました");
   };
 
   const saveAsTemplate = () => {
@@ -283,6 +437,11 @@ export default function FloorplanEditor({
             <button onClick={saveCurrent} className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold">下書き保存</button>
             <button onClick={saveAsTemplate} className="text-xs bg-teal-500 hover:bg-teal-600 text-white px-3 py-1.5 rounded-lg font-bold">テンプレート保存</button>
             <button onClick={duplicateCurrent} className="text-xs bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg font-bold">複製</button>
+            <button onClick={undo} disabled={history.length === 0} className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-bold disabled:opacity-40">元に戻す</button>
+            <button onClick={redo} disabled={future.length === 0} className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-bold disabled:opacity-40">やり直し</button>
+            <button onClick={copySelected} className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-bold">コピー</button>
+            <button onClick={pasteClipboard} disabled={!clipboard} className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-bold disabled:opacity-40">貼り付け</button>
+            <button onClick={addFreeText} className="text-xs bg-fuchsia-500 hover:bg-fuchsia-600 text-white px-3 py-1.5 rounded-lg font-bold">文字入力</button>
             <button onClick={() => setShowSavedList((prev) => !prev)} className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-bold">保存済み一覧</button>
             <button onClick={downloadSvg} className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-bold">SVG</button>
             <button onClick={downloadPng} className="text-xs bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg font-bold">PNG</button>
@@ -367,6 +526,7 @@ export default function FloorplanEditor({
                 </button>
                 <button
                   onClick={() => {
+                    pushHistory();
                     setRooms((prev) => prev.filter((room) => room.id !== selectedRoom.id));
                     setSelected(null);
                   }}
@@ -376,11 +536,37 @@ export default function FloorplanEditor({
                 </button>
               </div>
             )}
+            {selectedTextItem && (
+              <div className="pt-2 border-t">
+                <p className="text-xs font-bold text-gray-500 mb-1">選択中の文字</p>
+                <input
+                  value={editText?.id === selectedTextItem.id ? editText.value : selectedTextItem.text}
+                  onChange={(e) => setEditText({ id: selectedTextItem.id, value: e.target.value })}
+                  onBlur={() => {
+                    if (!editText || editText.id !== selectedTextItem.id) return;
+                    pushHistory();
+                    setTexts((prev) => prev.map((item) => item.id === selectedTextItem.id ? { ...item, text: editText.value } : item));
+                  }}
+                  className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5"
+                />
+                <button
+                  onClick={() => {
+                    pushHistory();
+                    setTexts((prev) => prev.filter((item) => item.id !== selectedTextItem.id));
+                    setSelectedText(null);
+                  }}
+                  className="mt-2 w-full text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg py-1.5 font-bold"
+                >
+                  この文字を削除
+                </button>
+              </div>
+            )}
             {selectedSymbol && (
               <div className="pt-2 border-t">
                 <p className="text-xs font-bold text-gray-500 mb-1">選択中の記号</p>
                 <button
                   onClick={() => {
+                    pushHistory();
                     setSymbols((prev) => prev.filter((symbol) => symbol.id !== selectedSymbol));
                     setSelectedSymbol(null);
                   }}
@@ -414,16 +600,24 @@ export default function FloorplanEditor({
                   if (drag.kind === "none") {
                     setSelected(null);
                     setSelectedSymbol(null);
+                    setSelectedText(null);
                   }
                 }}
                 onKeyDown={(e) => {
                   if ((e.key === "Delete" || e.key === "Backspace") && selected) {
+                    pushHistory();
                     setRooms((prev) => prev.filter((room) => room.id !== selected));
                     setSelected(null);
                   }
                   if ((e.key === "Delete" || e.key === "Backspace") && selectedSymbol) {
+                    pushHistory();
                     setSymbols((prev) => prev.filter((symbol) => symbol.id !== selectedSymbol));
                     setSelectedSymbol(null);
+                  }
+                  if ((e.key === "Delete" || e.key === "Backspace") && selectedText) {
+                    pushHistory();
+                    setTexts((prev) => prev.filter((text) => text.id !== selectedText));
+                    setSelectedText(null);
                   }
                 }}
                 className="block outline-none"
@@ -522,6 +716,54 @@ export default function FloorplanEditor({
                     </g>
                   );
                 })}
+                {texts.map((textItem) => (
+                  <g
+                    key={textItem.id}
+                    transform={`translate(${textItem.x} ${textItem.y})`}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      pushHistory();
+                      const { x, y } = svgPoint(e);
+                      setTexts((prev) => prev.map((item) => item.id === textItem.id ? { ...item, x: snap(x), y: snap(y) } : item));
+                      setSelected(null);
+                      setSelectedSymbol(null);
+                      setSelectedText(textItem.id);
+                    }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedText(textItem.id);
+                      setEditText({ id: textItem.id, value: textItem.text });
+                    }}
+                    style={{ cursor: "grab" }}
+                  >
+                    {editText?.id === textItem.id ? (
+                      <foreignObject x={0} y={-16} width={180} height={28}>
+                        <input
+                          autoFocus
+                          value={editText.value}
+                          onChange={(e) => setEditText({ id: textItem.id, value: e.target.value })}
+                          onBlur={() => {
+                            pushHistory();
+                            setTexts((prev) => prev.map((item) => item.id === textItem.id ? { ...item, text: editText.value } : item));
+                            setEditText(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              pushHistory();
+                              setTexts((prev) => prev.map((item) => item.id === textItem.id ? { ...item, text: editText.value } : item));
+                              setEditText(null);
+                            }
+                          }}
+                          className="w-full rounded border border-fuchsia-300 px-2 py-1 text-xs font-bold focus:outline-none"
+                        />
+                      </foreignObject>
+                    ) : (
+                      <text x={0} y={0} fontSize={textItem.fontSize} fontWeight="bold" fill={selectedText === textItem.id ? "#c026d3" : "#374151"}>
+                        {textItem.text}
+                      </text>
+                    )}
+                  </g>
+                ))}
                 {symbols.map((symbol) => (
                   <g
                     key={symbol.id}
