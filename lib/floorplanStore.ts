@@ -23,6 +23,18 @@ export type FloorplanRoom = {
   border: string;
 };
 
+export type FloorplanSymbolType = "door" | "window" | "sliding" | "north";
+
+export type FloorplanSymbol = {
+  id: string;
+  type: FloorplanSymbolType;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rotation?: number;
+};
+
 export type FloorplanTemplate = {
   id: string;
   name: string;
@@ -35,6 +47,7 @@ export type FloorplanRecord = {
   propertyId: string;
   propertyName: string;
   rooms: FloorplanRoom[];
+  symbols: FloorplanSymbol[];
   updatedAt: string;
   createdAt: string;
   thumbnail?: string;
@@ -93,6 +106,13 @@ const seedRooms: FloorplanRoom[] = [
   { id: "room_5", typeId: "toilet", label: "トイレ", x: 500, y: 340, w: 80, h: 100, color: "#fce7f3", border: "#db2777" },
 ];
 
+const seedSymbols: FloorplanSymbol[] = [
+  { id: "symbol_1", type: "north", x: 730, y: 36, w: 34, h: 34 },
+  { id: "symbol_2", type: "door", x: 156, y: 438, w: 42, h: 42, rotation: 0 },
+  { id: "symbol_3", type: "window", x: 420, y: 104, w: 80, h: 16, rotation: 0 },
+  { id: "symbol_4", type: "sliding", x: 338, y: 220, w: 90, h: 20, rotation: 90 },
+];
+
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
@@ -118,6 +138,7 @@ export function seedFloorplanData() {
       propertyId: "prop-001",
       propertyName: "サンプル物件 A",
       rooms: seedRooms,
+      symbols: seedSymbols,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -137,7 +158,16 @@ export function getProperty(id: string) {
 }
 
 export function getFloorplan(propertyId: string) {
-  return readJson<FloorplanRecord[]>(FLOORPLANS_KEY, []).find((record) => record.propertyId === propertyId) ?? null;
+  const record = readJson<FloorplanRecord[]>(FLOORPLANS_KEY, []).find((item) => item.propertyId === propertyId) ?? null;
+  if (!record) return null;
+  return { ...record, symbols: record.symbols ?? [] };
+}
+
+export function getAllFloorplans() {
+  return readJson<FloorplanRecord[]>(FLOORPLANS_KEY, []).map((record) => ({
+    ...record,
+    symbols: record.symbols ?? [],
+  }));
 }
 
 export function saveFloorplan(input: Omit<FloorplanRecord, "id" | "createdAt" | "updatedAt"> & { id?: string }) {
@@ -154,6 +184,7 @@ export function saveFloorplan(input: Omit<FloorplanRecord, "id" | "createdAt" | 
     propertyId: input.propertyId,
     propertyName: input.propertyName,
     rooms: input.rooms,
+    symbols: input.symbols,
     thumbnail: input.thumbnail,
     createdAt: now,
     updatedAt: now,

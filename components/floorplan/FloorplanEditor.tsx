@@ -10,6 +10,8 @@ import {
   saveFloorplan,
   saveFloorplanTemplate,
   type FloorplanRoom,
+  type FloorplanSymbol,
+  type FloorplanSymbolType,
 } from "@/lib/floorplanStore";
 
 const GRID = 20;
@@ -28,10 +30,18 @@ const ROOM_TYPES = [
   { id: "balcony", label: "バルコニー", color: "#e0f2fe", border: "#0284c7" },
 ] as const;
 
+const SYMBOL_TYPES: { id: FloorplanSymbolType; label: string }[] = [
+  { id: "door", label: "ドア" },
+  { id: "window", label: "窓" },
+  { id: "sliding", label: "引違戸" },
+  { id: "north", label: "方位" },
+];
+
 type DragState =
   | { kind: "none" }
   | { kind: "placing"; typeId: string }
   | { kind: "moving"; roomId: string; offX: number; offY: number }
+  | { kind: "moving-symbol"; symbolId: string; offX: number; offY: number }
   | { kind: "resizing"; roomId: string; startX: number; startY: number; origW: number; origH: number };
 
 function snap(v: number) {
@@ -51,6 +61,13 @@ function createRoom(typeId: string, x: number, y: number): FloorplanRoom {
     color: roomType.color,
     border: roomType.border,
   };
+}
+
+function createSymbol(type: FloorplanSymbolType, x: number, y: number): FloorplanSymbol {
+  if (type === "north") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 34, h: 34 };
+  if (type === "window") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 80, h: 16, rotation: 0 };
+  if (type === "sliding") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 90, h: 20, rotation: 0 };
+  return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 42, h: 42, rotation: 0 };
 }
 
 function downloadBlob(name: string, blob: Blob) {
@@ -74,8 +91,10 @@ export default function FloorplanEditor({
   const svgRef = useRef<SVGSVGElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
   const [rooms, setRooms] = useState<FloorplanRoom[]>([]);
+  const [symbols, setSymbols] = useState<FloorplanSymbol[]>([]);
   const [drag, setDrag] = useState<DragState>({ kind: "none" });
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState<{ id: string; value: string } | null>(null);
   const [templates, setTemplates] = useState(getFloorplanTemplates());
   const [toast, setToast] = useState<string | null>(null);
@@ -83,6 +102,7 @@ export default function FloorplanEditor({
   useEffect(() => {
     const saved = getFloorplan(propertyId);
     setRooms(saved?.rooms ?? []);
+    setSymbols(saved?.symbols ?? []);
     setTemplates(getFloorplanTemplates());
   }, [propertyId]);
 
@@ -105,6 +125,9 @@ export default function FloorplanEditor({
     if (drag.kind === "moving") {
       setRooms((prev) => prev.map((room) => room.id === drag.roomId ? { ...room, x: snap(x - drag.offX), y: snap(y - drag.offY) } : room));
     }
+    if (drag.kind === "moving-symbol") {
+      setSymbols((prev) => prev.map((symbol) => symbol.id === drag.symbolId ? { ...symbol, x: snap(x - drag.offX), y: snap(y - drag.offY) } : symbol));
+    }
     if (drag.kind === "resizing") {
       const nextW = snap(x - drag.startX + drag.origW);
       const nextH = snap(y - drag.startY + drag.origH);
@@ -115,9 +138,17 @@ export default function FloorplanEditor({
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (drag.kind === "placing") {
       const { x, y } = svgPoint(e);
-      const room = createRoom(drag.typeId, x, y);
-      setRooms((prev) => [...prev, room]);
-      setSelected(room.id);
+      if (ROOM_TYPES.some((room) => room.id === drag.typeId)) {
+        const room = createRoom(drag.typeId, x, y);
+        setRooms((prev) => [...prev, room]);
+        setSelected(room.id);
+        setSelectedSymbol(null);
+      } else {
+        const symbol = createSymbol(drag.typeId as FloorplanSymbolType, x, y);
+        setSymbols((prev) => [...prev, symbol]);
+        setSelectedSymbol(symbol.id);
+        setSelected(null);
+      }
     }
     setDrag({ kind: "none" });
   }, [drag, svgPoint]);
@@ -139,7 +170,7 @@ export default function FloorplanEditor({
       const canvas = await html2canvas(exportRef.current, { scale: 0.6, backgroundColor: "#ffffff" });
       return canvas.toDataURL("image/png");
     })();
-    saveFloorplan({ propertyId, propertyName, rooms, thumbnail });
+    saveFloorplan({ propertyId, propertyName, rooms, symbols, thumbnail });
     showToast("間取り図を下書き保存しました");
   };
 
@@ -224,6 +255,22 @@ export default function FloorplanEditor({
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-4">
+            <p className="text-xs font-bold text-gray-500 mb-2">建具・記号</p>
+            <div className="space-y-1.5">
+              {SYMBOL_TYPES.map((symbol) => (
+                <button
+                  key={symbol.id}
+                  onClick={() => setDrag({ kind: "placing", typeId: symbol.id })}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  <span>{symbol.label}</span>
+                  <span className="text-gray-400">配置</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-xs font-bold text-gray-500 mb-2">テンプレート</p>
             <div className="space-y-2">
               {templates.map((template) => (
@@ -269,6 +316,20 @@ export default function FloorplanEditor({
                 </button>
               </div>
             )}
+            {selectedSymbol && (
+              <div className="pt-2 border-t">
+                <p className="text-xs font-bold text-gray-500 mb-1">選択中の記号</p>
+                <button
+                  onClick={() => {
+                    setSymbols((prev) => prev.filter((symbol) => symbol.id !== selectedSymbol));
+                    setSelectedSymbol(null);
+                  }}
+                  className="w-full text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg py-1.5 font-bold"
+                >
+                  この記号を削除
+                </button>
+              </div>
+            )}
           </div>
         </aside>
 
@@ -289,11 +350,20 @@ export default function FloorplanEditor({
                 tabIndex={0}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
-                onClick={() => drag.kind === "none" && setSelected(null)}
+                onClick={() => {
+                  if (drag.kind === "none") {
+                    setSelected(null);
+                    setSelectedSymbol(null);
+                  }
+                }}
                 onKeyDown={(e) => {
                   if ((e.key === "Delete" || e.key === "Backspace") && selected) {
                     setRooms((prev) => prev.filter((room) => room.id !== selected));
                     setSelected(null);
+                  }
+                  if ((e.key === "Delete" || e.key === "Backspace") && selectedSymbol) {
+                    setSymbols((prev) => prev.filter((symbol) => symbol.id !== selectedSymbol));
+                    setSelectedSymbol(null);
                   }
                 }}
                 className="block outline-none"
@@ -383,6 +453,49 @@ export default function FloorplanEditor({
                     </g>
                   );
                 })}
+                {symbols.map((symbol) => (
+                  <g
+                    key={symbol.id}
+                    transform={`translate(${symbol.x} ${symbol.y}) rotate(${symbol.rotation ?? 0} ${symbol.w / 2} ${symbol.h / 2})`}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      const { x, y } = svgPoint(e);
+                      setSelected(null);
+                      setSelectedSymbol(symbol.id);
+                      setDrag({ kind: "moving-symbol", symbolId: symbol.id, offX: x - symbol.x, offY: y - symbol.y });
+                    }}
+                    style={{ cursor: "grab" }}
+                  >
+                    {symbol.type === "north" && (
+                      <>
+                        <circle cx={symbol.w / 2} cy={symbol.h / 2} r={16} fill="white" stroke={selectedSymbol === symbol.id ? "#059669" : "#d1d5db"} strokeWidth="1.5" />
+                        <text x={symbol.w / 2} y={12} textAnchor="middle" fontSize="8" fontWeight="bold" fill="#ef4444">N</text>
+                        <line x1={symbol.w / 2} y1={5} x2={symbol.w / 2} y2={18} stroke="#ef4444" strokeWidth="2" />
+                        <polygon points="17,5 20,12 23,5" fill="#ef4444" />
+                      </>
+                    )}
+                    {symbol.type === "door" && (
+                      <>
+                        <line x1="4" y1={symbol.h - 4} x2="4" y2="4" stroke="#374151" strokeWidth="2" />
+                        <path d={`M 4 ${symbol.h - 4} A ${symbol.w - 8} ${symbol.h - 8} 0 0 1 ${symbol.w - 4} 4`} fill="none" stroke="#9ca3af" strokeDasharray="4 2" />
+                        <line x1="4" y1={symbol.h - 4} x2={symbol.w - 4} y2="4" stroke="#374151" strokeWidth="2" />
+                      </>
+                    )}
+                    {symbol.type === "window" && (
+                      <>
+                        <rect x="4" y="4" width={symbol.w - 8} height={symbol.h - 8} rx="3" fill="#e0f2fe" stroke={selectedSymbol === symbol.id ? "#059669" : "#0284c7"} strokeWidth="2" />
+                        <line x1={symbol.w / 2} y1="4" x2={symbol.w / 2} y2={symbol.h - 4} stroke="#0284c7" strokeWidth="1.5" />
+                      </>
+                    )}
+                    {symbol.type === "sliding" && (
+                      <>
+                        <rect x="4" y="3" width={symbol.w - 8} height={symbol.h - 6} rx="3" fill="white" stroke={selectedSymbol === symbol.id ? "#059669" : "#6366f1"} strokeWidth="2" />
+                        <line x1={symbol.w / 2} y1="5" x2={symbol.w / 2} y2={symbol.h - 5} stroke="#6366f1" strokeWidth="1.5" />
+                        <line x1="8" y1={symbol.h / 2} x2={symbol.w - 8} y2={symbol.h / 2} stroke="#6366f1" strokeWidth="1" strokeDasharray="3 2" />
+                      </>
+                    )}
+                  </g>
+                ))}
               </svg>
             </div>
           </div>

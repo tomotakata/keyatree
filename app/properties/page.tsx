@@ -39,13 +39,17 @@ export default function PropertiesPage() {
                     </div>
                     <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold">{property.status}</span>
                   </div>
+                  {floorplan?.thumbnail && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={floorplan.thumbnail} alt={`${property.name} 間取りサムネイル`} className="mt-4 h-36 w-full rounded-xl border object-cover bg-gray-50" />
+                  )}
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{property.type}</span>
                     <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{property.rent}</span>
                     <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{property.station}</span>
                   </div>
                   <div className="mt-4 pt-4 border-t flex items-center justify-between">
-                    <span className="text-xs text-gray-400">{floorplan ? "間取り保存済み" : "未作成"}</span>
+                    <span className="text-xs text-gray-400">{floorplan ? `間取り保存済み / ${new Date(floorplan.updatedAt).toLocaleDateString("ja-JP")}` : "未作成"}</span>
                     <span className="text-xs text-emerald-600 font-bold">詳細を見る</span>
                   </div>
                 </div>
