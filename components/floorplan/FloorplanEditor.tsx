@@ -12,6 +12,8 @@ import {
   type FloorplanRoom,
   type FloorplanSymbol,
   type FloorplanSymbolType,
+  type FloorplanDimension,
+  getAllFloorplans,
 } from "@/lib/floorplanStore";
 
 const GRID = 20;
@@ -36,6 +38,10 @@ const SYMBOL_TYPES: { id: FloorplanSymbolType; label: string }[] = [
   { id: "sliding", label: "引違戸" },
   { id: "north", label: "方位" },
 ];
+
+function toMeters(value: number) {
+  return `${(value / 40).toFixed(1)}m`;
+}
 
 type DragState =
   | { kind: "none" }
@@ -92,6 +98,9 @@ export default function FloorplanEditor({
   const exportRef = useRef<HTMLDivElement>(null);
   const [rooms, setRooms] = useState<FloorplanRoom[]>([]);
   const [symbols, setSymbols] = useState<FloorplanSymbol[]>([]);
+  const [dimensions, setDimensions] = useState<FloorplanDimension[]>([]);
+  const [showSavedList, setShowSavedList] = useState(false);
+  const [savedPlans, setSavedPlans] = useState(getAllFloorplans());
   const [drag, setDrag] = useState<DragState>({ kind: "none" });
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
@@ -103,7 +112,9 @@ export default function FloorplanEditor({
     const saved = getFloorplan(propertyId);
     setRooms(saved?.rooms ?? []);
     setSymbols(saved?.symbols ?? []);
+    setDimensions(saved?.dimensions ?? []);
     setTemplates(getFloorplanTemplates());
+    setSavedPlans(getAllFloorplans());
   }, [propertyId]);
 
   const selectedRoom = rooms.find((room) => room.id === selected) ?? null;
@@ -170,8 +181,52 @@ export default function FloorplanEditor({
       const canvas = await html2canvas(exportRef.current, { scale: 0.6, backgroundColor: "#ffffff" });
       return canvas.toDataURL("image/png");
     })();
-    saveFloorplan({ propertyId, propertyName, rooms, symbols, thumbnail });
+    saveFloorplan({ propertyId, propertyName, rooms, symbols, dimensions, thumbnail });
+    setSavedPlans(getAllFloorplans());
     showToast("間取り図を下書き保存しました");
+  };
+
+  const duplicateCurrent = () => {
+    const duplicatedName = window.prompt("複製名を入力してください", `${propertyName} 複製`);
+    if (!duplicatedName?.trim()) return;
+    const duplicatedId = `${propertyId}-copy-${Date.now()}`;
+    saveFloorplan({
+      id: crypto.randomUUID(),
+      propertyId: duplicatedId,
+      propertyName: duplicatedName.trim(),
+      rooms: rooms.map((room) => ({ ...room, id: crypto.randomUUID() })),
+      symbols: symbols.map((symbol) => ({ ...symbol, id: crypto.randomUUID() })),
+      dimensions: dimensions.map((dimension) => ({ ...dimension, id: crypto.randomUUID() })),
+      thumbnail: undefined,
+    });
+    setSavedPlans(getAllFloorplans());
+    showToast("複製を保存しました");
+  };
+
+  const addRoomDimension = () => {
+    if (!selected) return;
+    const room = rooms.find((item) => item.id === selected);
+    if (!room) return;
+    setDimensions((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        x1: room.x,
+        y1: room.y - 12,
+        x2: room.x + room.w,
+        y2: room.y - 12,
+        label: toMeters(room.w),
+      },
+      {
+        id: crypto.randomUUID(),
+        x1: room.x + room.w + 12,
+        y1: room.y,
+        x2: room.x + room.w + 12,
+        y2: room.y + room.h,
+        label: toMeters(room.h),
+      },
+    ]);
+    showToast("寸法線を追加しました");
   };
 
   const saveAsTemplate = () => {
@@ -227,6 +282,8 @@ export default function FloorplanEditor({
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <button onClick={saveCurrent} className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold">下書き保存</button>
             <button onClick={saveAsTemplate} className="text-xs bg-teal-500 hover:bg-teal-600 text-white px-3 py-1.5 rounded-lg font-bold">テンプレート保存</button>
+            <button onClick={duplicateCurrent} className="text-xs bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg font-bold">複製</button>
+            <button onClick={() => setShowSavedList((prev) => !prev)} className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-bold">保存済み一覧</button>
             <button onClick={downloadSvg} className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-bold">SVG</button>
             <button onClick={downloadPng} className="text-xs bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg font-bold">PNG</button>
             <button onClick={downloadPdf} className="text-xs bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold">PDF出力</button>
@@ -305,6 +362,9 @@ export default function FloorplanEditor({
                   }}
                   className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5"
                 />
+                <button onClick={addRoomDimension} className="mt-2 w-full text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg py-1.5 font-bold">
+                  この部屋の寸法線を追加
+                </button>
                 <button
                   onClick={() => {
                     setRooms((prev) => prev.filter((room) => room.id !== selectedRoom.id));
@@ -369,6 +429,9 @@ export default function FloorplanEditor({
                 className="block outline-none"
               >
                 <defs>
+                  <marker id="dimArrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                    <path d="M 0 3 L 6 0 L 6 6 z" fill="#6b7280" />
+                  </marker>
                   <pattern id="grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse">
                     <path d={`M ${GRID} 0 L 0 0 0 ${GRID}`} fill="none" stroke="#e5e7eb" strokeWidth="0.5" />
                   </pattern>
@@ -379,6 +442,12 @@ export default function FloorplanEditor({
                 </defs>
                 <rect width={CANVAS_W} height={CANVAS_H} fill="url(#gridLarge)" />
                 <rect x={20} y={20} width={CANVAS_W - 40} height={CANVAS_H - 40} fill="none" stroke="#374151" strokeWidth="3" strokeDasharray="8 4" rx="2" />
+                {dimensions.map((dimension) => (
+                  <g key={dimension.id}>
+                    <line x1={dimension.x1} y1={dimension.y1} x2={dimension.x2} y2={dimension.y2} stroke="#6b7280" strokeWidth="1.2" markerStart="url(#dimArrow)" markerEnd="url(#dimArrow)" />
+                    <text x={(dimension.x1 + dimension.x2) / 2} y={(dimension.y1 + dimension.y2) / 2 - 4} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#4b5563">{dimension.label}</text>
+                  </g>
+                ))}
                 {rooms.map((room) => {
                   const isSelected = room.id === selected;
                   return (
@@ -501,6 +570,36 @@ export default function FloorplanEditor({
           </div>
         </main>
       </div>
+
+      {showSavedList && (
+        <div className="fixed inset-0 z-40 bg-black/30 flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <h2 className="text-base font-bold text-gray-800">保存済み間取り一覧</h2>
+              <button onClick={() => setShowSavedList(false)} className="text-sm text-gray-400 hover:text-gray-700">閉じる</button>
+            </div>
+            <div className="max-h-[70vh] overflow-y-auto p-5 space-y-3">
+              {savedPlans.length === 0 ? (
+                <p className="text-sm text-gray-400">保存済み間取りはまだありません。</p>
+              ) : savedPlans.map((plan) => (
+                <div key={plan.id} className="rounded-xl border border-gray-200 p-4 flex flex-col md:flex-row gap-4">
+                  {plan.thumbnail ? <img src={plan.thumbnail} alt={plan.propertyName} className="h-28 w-full md:w-44 rounded-lg border object-cover bg-gray-50" /> : <div className="h-28 w-full md:w-44 rounded-lg border bg-gray-50" />}
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-800">{plan.propertyName}</p>
+                    <p className="text-xs text-gray-400 mt-1">{plan.propertyId}</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      <span className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">部屋 {plan.rooms.length}室</span>
+                      <span className="rounded-full bg-indigo-50 px-2 py-1 text-indigo-700">記号 {plan.symbols.length}件</span>
+                      <span className="rounded-full bg-gray-100 px-2 py-1 text-gray-600">寸法 {plan.dimensions?.length ?? 0}件</span>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">更新: {new Date(plan.updatedAt).toLocaleString("ja-JP")}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white text-sm px-5 py-3 rounded-full shadow-lg">
