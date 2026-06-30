@@ -48,6 +48,19 @@ const ADVANCED_SYMBOL_TYPES = [
   { id: "pocketDoor", label: "引込戸" },
 ] as const;
 
+const PRESET_TEXTS = [
+  "洋室6帖",
+  "洋室4.5帖",
+  "和室6帖",
+  "LDK16帖",
+  "DK8帖",
+  "玄関",
+  "廊下",
+  "クローゼット",
+  "押入",
+  "ベランダ",
+] as const;
+
 function toMeters(value: number) {
   return `${(value / 40).toFixed(1)}m`;
 }
@@ -72,6 +85,7 @@ type DragState =
   | { kind: "moving"; roomId: string; offX: number; offY: number }
   | { kind: "moving-symbol"; symbolId: string; offX: number; offY: number }
   | { kind: "moving-wall"; wallId: string; offX: number; offY: number }
+  | { kind: "moving-wall-endpoint"; wallId: string; endpoint: 1 | 2 }
   | { kind: "resizing"; roomId: string; startX: number; startY: number; origW: number; origH: number };
 
 function snap(v: number) {
@@ -226,6 +240,13 @@ export default function FloorplanEditor({
         y2: snap(y - drag.offY + (wall.y2 - wall.y1)),
       } : wall));
     }
+    if (drag.kind === "moving-wall-endpoint") {
+      setWalls((prev) => prev.map((wall) => wall.id === drag.wallId
+        ? (drag.endpoint === 1
+            ? { ...wall, x1: snap(x), y1: snap(y) }
+            : { ...wall, x2: snap(x), y2: snap(y) })
+        : wall));
+    }
     if (drag.kind === "resizing") {
       const nextW = snap(x - drag.startX + drag.origW);
       const nextH = snap(y - drag.startY + drag.origH);
@@ -377,6 +398,31 @@ export default function FloorplanEditor({
     setSelected(null);
     setSelectedSymbol(null);
     showToast("文字を追加しました");
+  };
+
+  const addPresetText = (label: string) => {
+    pushHistory();
+    const textItem: FloorplanText = {
+      id: crypto.randomUUID(),
+      text: label,
+      x: 80,
+      y: 80,
+      fontSize: 14,
+    };
+    setTexts((prev) => [...prev, textItem]);
+    setSelectedText(textItem.id);
+    setSelected(null);
+    setSelectedSymbol(null);
+    setSelectedWall(null);
+    showToast(`「${label}」を追加しました`);
+  };
+
+  const rotateSelectedSymbol = () => {
+    if (!selectedSymbol) return;
+    pushHistory();
+    setSymbols((prev) => prev.map((symbol) => symbol.id === selectedSymbol
+      ? { ...symbol, rotation: ((symbol.rotation ?? 0) + 90) % 360 }
+      : symbol));
   };
 
   const copySelected = () => {
@@ -594,6 +640,21 @@ export default function FloorplanEditor({
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-4">
+            <p className="text-xs font-bold text-gray-500 mb-2">定型文字</p>
+            <div className="flex flex-wrap gap-1.5">
+              {PRESET_TEXTS.map((label) => (
+                <button
+                  key={label}
+                  onClick={() => addPresetText(label)}
+                  className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-xs font-bold text-gray-500 mb-2">テンプレート</p>
             <div className="space-y-2">
               {templates.map((template) => (
@@ -707,12 +768,18 @@ export default function FloorplanEditor({
               <div className="pt-2 border-t">
                 <p className="text-xs font-bold text-gray-500 mb-1">選択中の記号</p>
                 <button
+                  onClick={rotateSelectedSymbol}
+                  className="w-full text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                >
+                  90°回転
+                </button>
+                <button
                   onClick={() => {
                     pushHistory();
                     setSymbols((prev) => prev.filter((symbol) => symbol.id !== selectedSymbol));
                     setSelectedSymbol(null);
                   }}
-                  className="w-full text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg py-1.5 font-bold"
+                  className="mt-2 w-full text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg py-1.5 font-bold"
                 >
                   この記号を削除
                 </button>
@@ -806,6 +873,38 @@ export default function FloorplanEditor({
                     style={{ cursor: "grab" }}
                   />
                 ))}
+                {selectedWallItem && (
+                  <>
+                    <circle
+                      cx={selectedWallItem.x1}
+                      cy={selectedWallItem.y1}
+                      r={6}
+                      fill="#ffffff"
+                      stroke="#059669"
+                      strokeWidth="2"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        pushHistory();
+                        setDrag({ kind: "moving-wall-endpoint", wallId: selectedWallItem.id, endpoint: 1 });
+                      }}
+                      style={{ cursor: "crosshair" }}
+                    />
+                    <circle
+                      cx={selectedWallItem.x2}
+                      cy={selectedWallItem.y2}
+                      r={6}
+                      fill="#ffffff"
+                      stroke="#059669"
+                      strokeWidth="2"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        pushHistory();
+                        setDrag({ kind: "moving-wall-endpoint", wallId: selectedWallItem.id, endpoint: 2 });
+                      }}
+                      style={{ cursor: "crosshair" }}
+                    />
+                  </>
+                )}
                 {dimensions.map((dimension) => (
                   <g key={dimension.id}>
                     <line x1={dimension.x1} y1={dimension.y1} x2={dimension.x2} y2={dimension.y2} stroke="#6b7280" strokeWidth="1.2" markerStart="url(#dimArrow)" markerEnd="url(#dimArrow)" />
