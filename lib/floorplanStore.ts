@@ -43,6 +43,16 @@ export type FloorplanText = {
   fontSize: number;
 };
 
+export type FloorplanWall = {
+  id: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  thickness: number;
+  wallType: "straight" | "partition";
+};
+
 export type FloorplanTemplate = {
   id: string;
   name: string;
@@ -67,6 +77,7 @@ export type FloorplanRecord = {
   symbols: FloorplanSymbol[];
   dimensions: FloorplanDimension[];
   texts: FloorplanText[];
+  walls: FloorplanWall[];
   updatedAt: string;
   createdAt: string;
   thumbnail?: string;
@@ -132,6 +143,12 @@ const seedSymbols: FloorplanSymbol[] = [
   { id: "symbol_4", type: "sliding", x: 338, y: 220, w: 90, h: 20, rotation: 90 },
 ];
 
+const seedWalls: FloorplanWall[] = [
+  { id: "wall_1", x1: 40, y1: 120, x2: 580, y2: 120, thickness: 8, wallType: "straight" },
+  { id: "wall_2", x1: 380, y1: 120, x2: 380, y2: 440, thickness: 8, wallType: "straight" },
+  { id: "wall_3", x1: 40, y1: 440, x2: 580, y2: 440, thickness: 8, wallType: "straight" },
+];
+
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
@@ -165,6 +182,7 @@ export function seedFloorplanData() {
       texts: [
         { id: "text_1", text: "南向き", x: 662, y: 88, fontSize: 14 },
       ],
+      walls: seedWalls,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -186,7 +204,13 @@ export function getProperty(id: string) {
 export function getFloorplan(propertyId: string) {
   const record = readJson<FloorplanRecord[]>(FLOORPLANS_KEY, []).find((item) => item.propertyId === propertyId) ?? null;
   if (!record) return null;
-  return { ...record, symbols: record.symbols ?? [], dimensions: record.dimensions ?? [], texts: record.texts ?? [] };
+  return {
+    ...record,
+    symbols: record.symbols ?? [],
+    dimensions: record.dimensions ?? [],
+    texts: record.texts ?? [],
+    walls: record.walls ?? [],
+  };
 }
 
 export function getAllFloorplans() {
@@ -195,6 +219,7 @@ export function getAllFloorplans() {
     symbols: record.symbols ?? [],
     dimensions: record.dimensions ?? [],
     texts: record.texts ?? [],
+    walls: record.walls ?? [],
   }));
 }
 
@@ -215,6 +240,7 @@ export function saveFloorplan(input: Omit<FloorplanRecord, "id" | "createdAt" | 
     symbols: input.symbols,
     dimensions: input.dimensions,
     texts: input.texts,
+    walls: input.walls,
     thumbnail: input.thumbnail,
     createdAt: now,
     updatedAt: now,

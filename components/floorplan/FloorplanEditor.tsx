@@ -14,6 +14,7 @@ import {
   type FloorplanSymbolType,
   type FloorplanDimension,
   type FloorplanText,
+  type FloorplanWall,
   getAllFloorplans,
 } from "@/lib/floorplanStore";
 
@@ -40,6 +41,13 @@ const SYMBOL_TYPES: { id: FloorplanSymbolType; label: string }[] = [
   { id: "north", label: "方位" },
 ];
 
+const ADVANCED_SYMBOL_TYPES = [
+  { id: "doubleDoor", label: "両開戸" },
+  { id: "foldingDoor", label: "折戸" },
+  { id: "fixWindow", label: "FIX窓" },
+  { id: "pocketDoor", label: "引込戸" },
+] as const;
+
 function toMeters(value: number) {
   return `${(value / 40).toFixed(1)}m`;
 }
@@ -49,18 +57,21 @@ type EditorSnapshot = {
   symbols: FloorplanSymbol[];
   dimensions: FloorplanDimension[];
   texts: FloorplanText[];
+  walls: FloorplanWall[];
 };
 
 type ClipboardPayload =
   | { kind: "room"; room: FloorplanRoom }
   | { kind: "symbol"; symbol: FloorplanSymbol }
-  | { kind: "text"; text: FloorplanText };
+  | { kind: "text"; text: FloorplanText }
+  | { kind: "wall"; wall: FloorplanWall };
 
 type DragState =
   | { kind: "none" }
   | { kind: "placing"; typeId: string }
   | { kind: "moving"; roomId: string; offX: number; offY: number }
   | { kind: "moving-symbol"; symbolId: string; offX: number; offY: number }
+  | { kind: "moving-wall"; wallId: string; offX: number; offY: number }
   | { kind: "resizing"; roomId: string; startX: number; startY: number; origW: number; origH: number };
 
 function snap(v: number) {
@@ -89,6 +100,18 @@ function createSymbol(type: FloorplanSymbolType, x: number, y: number): Floorpla
   return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 42, h: 42, rotation: 0 };
 }
 
+function createWall(x: number, y: number): FloorplanWall {
+  return {
+    id: crypto.randomUUID(),
+    x1: snap(x),
+    y1: snap(y),
+    x2: snap(x + 160),
+    y2: snap(y),
+    thickness: 8,
+    wallType: "straight",
+  };
+}
+
 function downloadBlob(name: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -113,12 +136,14 @@ export default function FloorplanEditor({
   const [symbols, setSymbols] = useState<FloorplanSymbol[]>([]);
   const [dimensions, setDimensions] = useState<FloorplanDimension[]>([]);
   const [texts, setTexts] = useState<FloorplanText[]>([]);
+  const [walls, setWalls] = useState<FloorplanWall[]>([]);
   const [showSavedList, setShowSavedList] = useState(false);
   const [savedPlans, setSavedPlans] = useState(getAllFloorplans());
   const [drag, setDrag] = useState<DragState>({ kind: "none" });
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [selectedText, setSelectedText] = useState<string | null>(null);
+  const [selectedWall, setSelectedWall] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState<{ id: string; value: string } | null>(null);
   const [editText, setEditText] = useState<{ id: string; value: string } | null>(null);
   const [history, setHistory] = useState<EditorSnapshot[]>([]);
@@ -133,6 +158,7 @@ export default function FloorplanEditor({
     setSymbols(saved?.symbols ?? []);
     setDimensions(saved?.dimensions ?? []);
     setTexts(saved?.texts ?? []);
+    setWalls(saved?.walls ?? []);
     setTemplates(getFloorplanTemplates());
     setSavedPlans(getAllFloorplans());
     setHistory([]);
@@ -141,6 +167,7 @@ export default function FloorplanEditor({
 
   const selectedRoom = rooms.find((room) => room.id === selected) ?? null;
   const selectedTextItem = texts.find((item) => item.id === selectedText) ?? null;
+  const selectedWallItem = walls.find((item) => item.id === selectedWall) ?? null;
 
   const snapshot = useCallback(
     (): EditorSnapshot => ({
@@ -148,8 +175,9 @@ export default function FloorplanEditor({
       symbols: structuredClone(symbols),
       dimensions: structuredClone(dimensions),
       texts: structuredClone(texts),
+      walls: structuredClone(walls),
     }),
-    [dimensions, rooms, symbols, texts]
+    [dimensions, rooms, symbols, texts, walls]
   );
 
   const restoreSnapshot = useCallback((next: EditorSnapshot) => {
@@ -157,9 +185,11 @@ export default function FloorplanEditor({
     setSymbols(next.symbols);
     setDimensions(next.dimensions);
     setTexts(next.texts);
+    setWalls(next.walls);
     setSelected(null);
     setSelectedSymbol(null);
     setSelectedText(null);
+    setSelectedWall(null);
   }, []);
 
   const pushHistory = useCallback(() => {
@@ -187,6 +217,15 @@ export default function FloorplanEditor({
     if (drag.kind === "moving-symbol") {
       setSymbols((prev) => prev.map((symbol) => symbol.id === drag.symbolId ? { ...symbol, x: snap(x - drag.offX), y: snap(y - drag.offY) } : symbol));
     }
+    if (drag.kind === "moving-wall") {
+      setWalls((prev) => prev.map((wall) => wall.id === drag.wallId ? {
+        ...wall,
+        x1: snap(x - drag.offX),
+        y1: snap(y - drag.offY),
+        x2: snap(x - drag.offX + (wall.x2 - wall.x1)),
+        y2: snap(y - drag.offY + (wall.y2 - wall.y1)),
+      } : wall));
+    }
     if (drag.kind === "resizing") {
       const nextW = snap(x - drag.startX + drag.origW);
       const nextH = snap(y - drag.startY + drag.origH);
@@ -197,20 +236,38 @@ export default function FloorplanEditor({
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (drag.kind === "placing") {
       const { x, y } = svgPoint(e);
-      if (ROOM_TYPES.some((room) => room.id === drag.typeId)) {
+      if (drag.typeId === "wall") {
+        pushHistory();
+        const wall = createWall(x, y);
+        setWalls((prev) => [...prev, wall]);
+        setSelectedWall(wall.id);
+        setSelected(null);
+        setSelectedSymbol(null);
+        setSelectedText(null);
+      } else if (ROOM_TYPES.some((room) => room.id === drag.typeId)) {
         pushHistory();
         const room = createRoom(drag.typeId, x, y);
         setRooms((prev) => [...prev, room]);
         setSelected(room.id);
         setSelectedSymbol(null);
         setSelectedText(null);
+        setSelectedWall(null);
       } else {
         pushHistory();
-        const symbol = createSymbol(drag.typeId as FloorplanSymbolType, x, y);
+        const symbol = createSymbol(
+          (drag.typeId === "doubleDoor" ? "door" :
+            drag.typeId === "foldingDoor" ? "door" :
+            drag.typeId === "fixWindow" ? "window" :
+            drag.typeId === "pocketDoor" ? "sliding" :
+            drag.typeId) as FloorplanSymbolType,
+          x,
+          y
+        );
         setSymbols((prev) => [...prev, symbol]);
         setSelectedSymbol(symbol.id);
         setSelected(null);
         setSelectedText(null);
+        setSelectedWall(null);
       }
     }
     setDrag({ kind: "none" });
@@ -233,7 +290,7 @@ export default function FloorplanEditor({
       const canvas = await html2canvas(exportRef.current, { scale: 0.6, backgroundColor: "#ffffff" });
       return canvas.toDataURL("image/png");
     })();
-    saveFloorplan({ propertyId, propertyName, rooms, symbols, dimensions, texts, thumbnail });
+    saveFloorplan({ propertyId, propertyName, rooms, symbols, dimensions, texts, walls, thumbnail });
     setSavedPlans(getAllFloorplans());
     showToast("間取り図を下書き保存しました");
   };
@@ -270,6 +327,7 @@ export default function FloorplanEditor({
       symbols: symbols.map((symbol) => ({ ...symbol, id: crypto.randomUUID() })),
       dimensions: dimensions.map((dimension) => ({ ...dimension, id: crypto.randomUUID() })),
       texts: texts.map((text) => ({ ...text, id: crypto.randomUUID() })),
+      walls: walls.map((wall) => ({ ...wall, id: crypto.randomUUID() })),
       thumbnail: undefined,
     });
     setSavedPlans(getAllFloorplans());
@@ -327,6 +385,11 @@ export default function FloorplanEditor({
       showToast("部屋をコピーしました");
       return;
     }
+    if (selectedWallItem) {
+      setClipboard({ kind: "wall", wall: structuredClone(selectedWallItem) });
+      showToast("壁をコピーしました");
+      return;
+    }
     const symbol = symbols.find((item) => item.id === selectedSymbol);
     if (symbol) {
       setClipboard({ kind: "symbol", symbol: structuredClone(symbol) });
@@ -368,6 +431,23 @@ export default function FloorplanEditor({
       setSelectedSymbol(pasted.id);
       setSelectedText(null);
       showToast("記号を貼り付けました");
+      return;
+    }
+    if (clipboard.kind === "wall") {
+      const pasted = {
+        ...clipboard.wall,
+        id: crypto.randomUUID(),
+        x1: clipboard.wall.x1 + 20,
+        y1: clipboard.wall.y1 + 20,
+        x2: clipboard.wall.x2 + 20,
+        y2: clipboard.wall.y2 + 20,
+      };
+      setWalls((prev) => [...prev, pasted]);
+      setSelected(null);
+      setSelectedSymbol(null);
+      setSelectedText(null);
+      setSelectedWall(pasted.id);
+      showToast("壁を貼り付けました");
       return;
     }
     const pasted = {
@@ -487,6 +567,33 @@ export default function FloorplanEditor({
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-4">
+            <p className="text-xs font-bold text-gray-500 mb-2">追加建具</p>
+            <div className="space-y-1.5">
+              {ADVANCED_SYMBOL_TYPES.map((symbol) => (
+                <button
+                  key={symbol.id}
+                  onClick={() => setDrag({ kind: "placing", typeId: symbol.id })}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  <span>{symbol.label}</span>
+                  <span className="text-gray-400">配置</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <p className="text-xs font-bold text-gray-500 mb-2">壁機能</p>
+            <button
+              onClick={() => setDrag({ kind: "placing", typeId: "wall" })}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              <span>直線壁</span>
+              <span className="text-gray-400">配置</span>
+            </button>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-xs font-bold text-gray-500 mb-2">テンプレート</p>
             <div className="space-y-2">
               {templates.map((template) => (
@@ -561,6 +668,41 @@ export default function FloorplanEditor({
                 </button>
               </div>
             )}
+            {selectedWallItem && (
+              <div className="pt-2 border-t">
+                <p className="text-xs font-bold text-gray-500 mb-1">選択中の壁</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      pushHistory();
+                      setWalls((prev) => prev.map((wall) => wall.id === selectedWallItem.id ? { ...wall, thickness: Math.min(20, wall.thickness + 2) } : wall));
+                    }}
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  >
+                    太くする
+                  </button>
+                  <button
+                    onClick={() => {
+                      pushHistory();
+                      setWalls((prev) => prev.map((wall) => wall.id === selectedWallItem.id ? { ...wall, thickness: Math.max(4, wall.thickness - 2) } : wall));
+                    }}
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  >
+                    細くする
+                  </button>
+                </div>
+                <button
+                  onClick={() => {
+                    pushHistory();
+                    setWalls((prev) => prev.filter((wall) => wall.id !== selectedWallItem.id));
+                    setSelectedWall(null);
+                  }}
+                  className="mt-2 w-full text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg py-1.5 font-bold"
+                >
+                  この壁を削除
+                </button>
+              </div>
+            )}
             {selectedSymbol && (
               <div className="pt-2 border-t">
                 <p className="text-xs font-bold text-gray-500 mb-1">選択中の記号</p>
@@ -601,6 +743,7 @@ export default function FloorplanEditor({
                     setSelected(null);
                     setSelectedSymbol(null);
                     setSelectedText(null);
+                    setSelectedWall(null);
                   }
                 }}
                 onKeyDown={(e) => {
@@ -619,6 +762,11 @@ export default function FloorplanEditor({
                     setTexts((prev) => prev.filter((text) => text.id !== selectedText));
                     setSelectedText(null);
                   }
+                  if ((e.key === "Delete" || e.key === "Backspace") && selectedWall) {
+                    pushHistory();
+                    setWalls((prev) => prev.filter((wall) => wall.id !== selectedWall));
+                    setSelectedWall(null);
+                  }
                 }}
                 className="block outline-none"
               >
@@ -636,6 +784,28 @@ export default function FloorplanEditor({
                 </defs>
                 <rect width={CANVAS_W} height={CANVAS_H} fill="url(#gridLarge)" />
                 <rect x={20} y={20} width={CANVAS_W - 40} height={CANVAS_H - 40} fill="none" stroke="#374151" strokeWidth="3" strokeDasharray="8 4" rx="2" />
+                {walls.map((wall) => (
+                  <line
+                    key={wall.id}
+                    x1={wall.x1}
+                    y1={wall.y1}
+                    x2={wall.x2}
+                    y2={wall.y2}
+                    stroke={selectedWall === wall.id ? "#059669" : "#374151"}
+                    strokeWidth={wall.thickness}
+                    strokeLinecap="round"
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      const { x, y } = svgPoint(e);
+                      setSelected(null);
+                      setSelectedSymbol(null);
+                      setSelectedText(null);
+                      setSelectedWall(wall.id);
+                      setDrag({ kind: "moving-wall", wallId: wall.id, offX: x - wall.x1, offY: y - wall.y1 });
+                    }}
+                    style={{ cursor: "grab" }}
+                  />
+                ))}
                 {dimensions.map((dimension) => (
                   <g key={dimension.id}>
                     <line x1={dimension.x1} y1={dimension.y1} x2={dimension.x2} y2={dimension.y2} stroke="#6b7280" strokeWidth="1.2" markerStart="url(#dimArrow)" markerEnd="url(#dimArrow)" />
@@ -772,6 +942,7 @@ export default function FloorplanEditor({
                       e.stopPropagation();
                       const { x, y } = svgPoint(e);
                       setSelected(null);
+                      setSelectedWall(null);
                       setSelectedSymbol(symbol.id);
                       setDrag({ kind: "moving-symbol", symbolId: symbol.id, offX: x - symbol.x, offY: y - symbol.y });
                     }}
