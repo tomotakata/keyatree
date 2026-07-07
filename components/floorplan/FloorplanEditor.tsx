@@ -200,6 +200,15 @@ export default function FloorplanEditor({
   const [toast, setToast] = useState<string | null>(null);
   const [name, setName] = useState(propertyName);
   const [editingName, setEditingName] = useState(false);
+  const [managementNo, setManagementNo] = useState("");
+  const [buildingName, setBuildingName] = useState("");
+  const [roomNo, setRoomNo] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [address, setAddress] = useState("");
+  const [templateName, setTemplateName] = useState("");
+  const [showInfo, setShowInfo] = useState(true);
+  const [zipLoading, setZipLoading] = useState(false);
+  const [zipMessage, setZipMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -212,6 +221,11 @@ export default function FloorplanEditor({
       setTexts(saved?.texts ?? []);
       setWalls(saved?.walls ?? []);
       setName(saved?.propertyName || propertyName);
+      setManagementNo(saved?.managementNo ?? "");
+      setBuildingName(saved?.buildingName ?? "");
+      setRoomNo(saved?.roomNo ?? "");
+      setPostalCode(saved?.postalCode ?? "");
+      setAddress(saved?.address ?? "");
       setHistory([]);
       setFuture([]);
       const [tpls, plans] = await Promise.all([fetchTemplates(), fetchAllFloorplans()]);
@@ -368,7 +382,7 @@ export default function FloorplanEditor({
       const canvas = await html2canvas(exportRef.current, { scale: 0.6, backgroundColor: "#ffffff" });
       return canvas.toDataURL("image/png");
     })();
-    const saved = await saveFloorplanRemote({ propertyId, propertyName: name, rooms, symbols, dimensions, texts, walls, thumbnail });
+    const saved = await saveFloorplanRemote({ propertyId, propertyName: name, managementNo, buildingName, roomNo, postalCode, address, rooms, symbols, dimensions, texts, walls, thumbnail });
     if (!saved) {
       showToast("保存に失敗しました。時間をおいて再度お試しください。");
       return;
@@ -405,6 +419,11 @@ export default function FloorplanEditor({
       id: crypto.randomUUID(),
       propertyId: duplicatedId,
       propertyName: duplicatedName.trim(),
+      managementNo,
+      buildingName,
+      roomNo,
+      postalCode,
+      address,
       rooms: rooms.map((room) => ({ ...room, id: crypto.randomUUID() })),
       symbols: symbols.map((symbol) => ({ ...symbol, id: crypto.randomUUID() })),
       dimensions: dimensions.map((dimension) => ({ ...dimension, id: crypto.randomUUID() })),
@@ -625,11 +644,39 @@ export default function FloorplanEditor({
   };
 
   const saveAsTemplate = async () => {
-    const name2 = window.prompt("テンプレート名を入力してください", `${name} テンプレート`);
+    const fallback = `${name} テンプレート`;
+    const name2 = window.prompt("テンプレート名を入力してください", templateName.trim() || fallback);
     if (!name2?.trim()) return;
     await saveTemplateRemote(name2.trim(), rooms);
+    setTemplateName(name2.trim());
     setTemplates(await fetchTemplates());
     showToast("テンプレートとして保存しました");
+  };
+
+  const lookupPostalCode = async () => {
+    const zip = postalCode.replace(/[^0-9]/g, "");
+    if (zip.length !== 7) {
+      setZipMessage("郵便番号は7桁で入力してください");
+      return;
+    }
+    setZipLoading(true);
+    setZipMessage(null);
+    try {
+      const res = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`);
+      const json = await res.json();
+      const result = json?.results?.[0];
+      if (!result) {
+        setZipMessage("該当する住所が見つかりませんでした");
+        return;
+      }
+      const composed = `${result.address1}${result.address2}${result.address3}`;
+      setAddress(composed);
+      setZipMessage(null);
+    } catch {
+      setZipMessage("住所の取得に失敗しました");
+    } finally {
+      setZipLoading(false);
+    }
   };
 
   const downloadSvg = () => {
@@ -1027,6 +1074,88 @@ export default function FloorplanEditor({
 
       <div className="max-w-7xl mx-auto w-full px-4 py-4 flex flex-1 gap-4 overflow-hidden">
         <aside className="w-64 flex-shrink-0 space-y-3">
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <button
+              type="button"
+              onClick={() => setShowInfo((prev) => !prev)}
+              className="w-full flex items-center justify-between text-xs font-bold text-gray-500 mb-2"
+            >
+              <span>物件情報</span>
+              <span className="text-gray-400">{showInfo ? "−" : "+"}</span>
+            </button>
+            {showInfo && (
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">物件管理番号</label>
+                  <input
+                    value={managementNo}
+                    onChange={(e) => setManagementNo(e.target.value)}
+                    placeholder="例: KT-0001"
+                    className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">建物名</label>
+                  <input
+                    value={buildingName}
+                    onChange={(e) => setBuildingName(e.target.value)}
+                    placeholder="例: けやきハイツ"
+                    className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">部屋の号室</label>
+                  <input
+                    value={roomNo}
+                    onChange={(e) => setRoomNo(e.target.value)}
+                    placeholder="例: 101"
+                    className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">テンプレート名</label>
+                  <input
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    placeholder="例: 2LDK 標準"
+                    className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">郵便番号</label>
+                  <div className="flex gap-1.5">
+                    <input
+                      value={postalCode}
+                      onChange={(e) => setPostalCode(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); lookupPostalCode(); } }}
+                      placeholder="1000001"
+                      inputMode="numeric"
+                      className="flex-1 min-w-0 text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={lookupPostalCode}
+                      disabled={zipLoading}
+                      className="text-[11px] whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white px-2 py-1.5 rounded-lg font-bold"
+                    >
+                      {zipLoading ? "検索中" : "住所検索"}
+                    </button>
+                  </div>
+                  {zipMessage && <p className="mt-1 text-[11px] text-red-500">{zipMessage}</p>}
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">物件所在住所</label>
+                  <textarea
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    rows={2}
+                    placeholder="郵便番号から自動入力できます"
+                    className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-xs font-bold text-gray-500 mb-2">部屋パーツ</p>
             <div className="space-y-1.5">

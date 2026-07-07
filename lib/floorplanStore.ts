@@ -88,6 +88,11 @@ export type FloorplanRecord = {
   id: string;
   propertyId: string;
   propertyName: string;
+  managementNo?: string;
+  buildingName?: string;
+  roomNo?: string;
+  postalCode?: string;
+  address?: string;
   rooms: FloorplanRoom[];
   symbols: FloorplanSymbol[];
   dimensions: FloorplanDimension[];
@@ -223,6 +228,11 @@ export function saveFloorplan(input: Omit<FloorplanRecord, "id" | "createdAt" | 
     id: input.id ?? crypto.randomUUID(),
     propertyId: input.propertyId,
     propertyName: input.propertyName,
+    managementNo: input.managementNo,
+    buildingName: input.buildingName,
+    roomNo: input.roomNo,
+    postalCode: input.postalCode,
+    address: input.address,
     rooms: input.rooms,
     symbols: input.symbols,
     dimensions: input.dimensions,
