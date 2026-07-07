@@ -1000,10 +1000,12 @@ export default function FloorplanEditor({
                 title="クリックで物件名を編集"
                 className="text-gray-700 text-sm font-medium hover:text-emerald-600 transition flex items-center gap-1 whitespace-nowrap"
               >
-                <span>{name} 間取り作成</span>
+                <span>{name}</span>
                 <span className="text-[10px] text-emerald-600 border border-emerald-200 rounded px-1">編集</span>
               </button>
             )}
+            <span className="text-gray-300">›</span>
+            <span className="text-sm font-semibold text-gray-500 whitespace-nowrap">間取り作成</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
             <button onClick={saveCurrent} className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold">下書き保存</button>
