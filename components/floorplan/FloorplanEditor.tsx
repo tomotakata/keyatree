@@ -979,31 +979,33 @@ export default function FloorplanEditor({
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <header className="bg-white border-b shadow-sm sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-3">
-          <Link href={backHref} className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">戻る</Link>
-          <span className="text-gray-300">›</span>
-          {editingName ? (
-            <input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={() => setEditingName(false)}
-              onKeyDown={(e) => { if (e.key === "Enter") setEditingName(false); }}
-              placeholder="物件名"
-              className="text-sm font-medium text-gray-700 border border-emerald-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setEditingName(true)}
-              title="クリックで物件名を編集"
-              className="text-gray-700 text-sm font-medium hover:text-emerald-600 transition flex items-center gap-1"
-            >
-              <span>{name} 間取り作成</span>
-              <span className="text-[10px] text-emerald-600 border border-emerald-200 rounded px-1">編集</span>
-            </button>
-          )}
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col gap-2">
+          <div className="flex items-center gap-3 min-h-9">
+            <Link href={backHref} className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition whitespace-nowrap">戻る</Link>
+            <span className="text-gray-300">›</span>
+            {editingName ? (
+              <input
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={() => setEditingName(false)}
+                onKeyDown={(e) => { if (e.key === "Enter") setEditingName(false); }}
+                placeholder="物件名"
+                className="text-sm font-medium text-gray-700 border border-emerald-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEditingName(true)}
+                title="クリックで物件名を編集"
+                className="text-gray-700 text-sm font-medium hover:text-emerald-600 transition flex items-center gap-1 whitespace-nowrap"
+              >
+                <span>{name} 間取り作成</span>
+                <span className="text-[10px] text-emerald-600 border border-emerald-200 rounded px-1">編集</span>
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
             <button onClick={saveCurrent} className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold">下書き保存</button>
             <button onClick={saveAsTemplate} className="text-xs bg-teal-500 hover:bg-teal-600 text-white px-3 py-1.5 rounded-lg font-bold">テンプレート保存</button>
             <button onClick={duplicateCurrent} className="text-xs bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg font-bold">複製</button>
