@@ -198,6 +198,8 @@ export default function FloorplanEditor({
   const [clipboard, setClipboard] = useState<ClipboardPayload | null>(null);
   const [templates, setTemplates] = useState<FloorplanTemplate[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [name, setName] = useState(propertyName);
   const [editingName, setEditingName] = useState(false);
   const [managementNo, setManagementNo] = useState("");
@@ -377,22 +379,29 @@ export default function FloorplanEditor({
   );
 
   const saveCurrent = async () => {
-    let thumbnail: string | undefined;
+    if (saving) return;
+    setSaving(true);
     try {
-      if (exportRef.current) {
-        const canvas = await html2canvas(exportRef.current, { scale: 0.6, backgroundColor: "#ffffff" });
-        thumbnail = canvas.toDataURL("image/png");
+      let thumbnail: string | undefined;
+      try {
+        if (exportRef.current) {
+          const canvas = await html2canvas(exportRef.current, { scale: 0.6, backgroundColor: "#ffffff" });
+          thumbnail = canvas.toDataURL("image/png");
+        }
+      } catch {
+        thumbnail = undefined;
       }
-    } catch {
-      thumbnail = undefined;
+      const saved = await saveFloorplanRemote({ propertyId, propertyName: name, managementNo, buildingName, roomNo, postalCode, address, rooms, symbols, dimensions, texts, walls, thumbnail });
+      if (!saved) {
+        showToast("保存に失敗しました。時間をおいて再度お試しください。");
+        return;
+      }
+      setSavedPlans(await fetchAllFloorplans());
+      setSavedAt(new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }));
+      showToast("間取り図を下書き保存しました");
+    } finally {
+      setSaving(false);
     }
-    const saved = await saveFloorplanRemote({ propertyId, propertyName: name, managementNo, buildingName, roomNo, postalCode, address, rooms, symbols, dimensions, texts, walls, thumbnail });
-    if (!saved) {
-      showToast("保存に失敗しました。時間をおいて再度お試しください。");
-      return;
-    }
-    setSavedPlans(await fetchAllFloorplans());
-    showToast("間取り図を下書き保存しました");
   };
 
   const undo = () => {
@@ -1057,9 +1066,18 @@ export default function FloorplanEditor({
             )}
             <span className="text-gray-300">›</span>
             <span className="text-sm font-semibold text-gray-500 whitespace-nowrap">間取り作成</span>
+            {savedAt && !saving && (
+              <span className="ml-auto text-[11px] text-emerald-600 font-semibold whitespace-nowrap flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                {savedAt} に保存済み
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-            <button onClick={saveCurrent} className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold">下書き保存</button>
+            <button onClick={saveCurrent} disabled={saving} className="text-xs bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg font-bold flex items-center justify-center gap-1">
+              {saving && <span className="inline-block w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+              {saving ? "保存中..." : "下書き保存"}
+            </button>
             <button onClick={saveAsTemplate} className="text-xs bg-teal-500 hover:bg-teal-600 text-white px-3 py-1.5 rounded-lg font-bold">テンプレート保存</button>
             <button onClick={duplicateCurrent} className="text-xs bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg font-bold">複製</button>
             <button onClick={undo} disabled={history.length === 0} className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-bold disabled:opacity-40">元に戻す</button>
@@ -1669,6 +1687,16 @@ export default function FloorplanEditor({
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {saving && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl px-8 py-6 flex flex-col items-center gap-3">
+            <span className="inline-block w-10 h-10 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
+            <p className="text-sm font-bold text-gray-700">保存中...</p>
+            <p className="text-xs text-gray-400">間取り図を保存しています</p>
           </div>
         </div>
       )}
