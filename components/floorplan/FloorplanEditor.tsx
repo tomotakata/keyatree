@@ -377,11 +377,15 @@ export default function FloorplanEditor({
   );
 
   const saveCurrent = async () => {
-    const thumbnail = await (async () => {
-      if (!exportRef.current) return undefined;
-      const canvas = await html2canvas(exportRef.current, { scale: 0.6, backgroundColor: "#ffffff" });
-      return canvas.toDataURL("image/png");
-    })();
+    let thumbnail: string | undefined;
+    try {
+      if (exportRef.current) {
+        const canvas = await html2canvas(exportRef.current, { scale: 0.6, backgroundColor: "#ffffff" });
+        thumbnail = canvas.toDataURL("image/png");
+      }
+    } catch {
+      thumbnail = undefined;
+    }
     const saved = await saveFloorplanRemote({ propertyId, propertyName: name, managementNo, buildingName, roomNo, postalCode, address, rooms, symbols, dimensions, texts, walls, thumbnail });
     if (!saved) {
       showToast("保存に失敗しました。時間をおいて再度お試しください。");
