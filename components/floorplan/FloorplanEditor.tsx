@@ -5,18 +5,22 @@ import Link from "next/link";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import {
-  getFloorplan,
-  getFloorplanTemplates,
-  saveFloorplan,
-  saveFloorplanTemplate,
+  type FloorplanRecord,
   type FloorplanRoom,
   type FloorplanSymbol,
   type FloorplanSymbolType,
   type FloorplanDimension,
   type FloorplanText,
+  type FloorplanTemplate,
   type FloorplanWall,
-  getAllFloorplans,
 } from "@/lib/floorplanStore";
+import {
+  fetchFloorplan,
+  fetchAllFloorplans,
+  saveFloorplanRemote,
+  fetchTemplates,
+  saveTemplateRemote,
+} from "@/lib/floorplanApi";
 
 const GRID = 20;
 const CANVAS_W = 800;
@@ -181,7 +185,7 @@ export default function FloorplanEditor({
   const [texts, setTexts] = useState<FloorplanText[]>([]);
   const [walls, setWalls] = useState<FloorplanWall[]>([]);
   const [showSavedList, setShowSavedList] = useState(false);
-  const [savedPlans, setSavedPlans] = useState(getAllFloorplans());
+  const [savedPlans, setSavedPlans] = useState<FloorplanRecord[]>([]);
   const [drag, setDrag] = useState<DragState>({ kind: "none" });
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
@@ -192,20 +196,29 @@ export default function FloorplanEditor({
   const [history, setHistory] = useState<EditorSnapshot[]>([]);
   const [future, setFuture] = useState<EditorSnapshot[]>([]);
   const [clipboard, setClipboard] = useState<ClipboardPayload | null>(null);
-  const [templates, setTemplates] = useState(getFloorplanTemplates());
+  const [templates, setTemplates] = useState<FloorplanTemplate[]>([]);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = getFloorplan(propertyId);
-    setRooms(saved?.rooms ?? []);
-    setSymbols(saved?.symbols ?? []);
-    setDimensions(saved?.dimensions ?? []);
-    setTexts(saved?.texts ?? []);
-    setWalls(saved?.walls ?? []);
-    setTemplates(getFloorplanTemplates());
-    setSavedPlans(getAllFloorplans());
-    setHistory([]);
-    setFuture([]);
+    let active = true;
+    (async () => {
+      const saved = await fetchFloorplan(propertyId);
+      if (!active) return;
+      setRooms(saved?.rooms ?? []);
+      setSymbols(saved?.symbols ?? []);
+      setDimensions(saved?.dimensions ?? []);
+      setTexts(saved?.texts ?? []);
+      setWalls(saved?.walls ?? []);
+      setHistory([]);
+      setFuture([]);
+      const [tpls, plans] = await Promise.all([fetchTemplates(), fetchAllFloorplans()]);
+      if (!active) return;
+      setTemplates(tpls);
+      setSavedPlans(plans);
+    })();
+    return () => {
+      active = false;
+    };
   }, [propertyId]);
 
   const selectedRoom = rooms.find((room) => room.id === selected) ?? null;
@@ -352,8 +365,8 @@ export default function FloorplanEditor({
       const canvas = await html2canvas(exportRef.current, { scale: 0.6, backgroundColor: "#ffffff" });
       return canvas.toDataURL("image/png");
     })();
-    saveFloorplan({ propertyId, propertyName, rooms, symbols, dimensions, texts, walls, thumbnail });
-    setSavedPlans(getAllFloorplans());
+    await saveFloorplanRemote({ propertyId, propertyName, rooms, symbols, dimensions, texts, walls, thumbnail });
+    setSavedPlans(await fetchAllFloorplans());
     showToast("間取り図を下書き保存しました");
   };
 
@@ -377,11 +390,11 @@ export default function FloorplanEditor({
     });
   };
 
-  const duplicateCurrent = () => {
+  const duplicateCurrent = async () => {
     const duplicatedName = window.prompt("複製名を入力してください", `${propertyName} 複製`);
     if (!duplicatedName?.trim()) return;
     const duplicatedId = `${propertyId}-copy-${Date.now()}`;
-    saveFloorplan({
+    await saveFloorplanRemote({
       id: crypto.randomUUID(),
       propertyId: duplicatedId,
       propertyName: duplicatedName.trim(),
@@ -392,7 +405,7 @@ export default function FloorplanEditor({
       walls: walls.map((wall) => ({ ...wall, id: crypto.randomUUID() })),
       thumbnail: undefined,
     });
-    setSavedPlans(getAllFloorplans());
+    setSavedPlans(await fetchAllFloorplans());
     showToast("複製を保存しました");
   };
 
@@ -604,11 +617,11 @@ export default function FloorplanEditor({
     showToast("文字を貼り付けました");
   };
 
-  const saveAsTemplate = () => {
+  const saveAsTemplate = async () => {
     const name = window.prompt("テンプレート名を入力してください", `${propertyName} テンプレート`);
     if (!name?.trim()) return;
-    saveFloorplanTemplate(name.trim(), rooms);
-    setTemplates(getFloorplanTemplates());
+    await saveTemplateRemote(name.trim(), rooms);
+    setTemplates(await fetchTemplates());
     showToast("テンプレートとして保存しました");
   };
 
