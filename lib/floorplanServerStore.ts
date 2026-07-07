@@ -99,7 +99,7 @@ async function listJson<T>(
   const results = await Promise.all(
     files.map((item) => getJson<T>(supabase, `${prefix}/${item.name}`))
   );
-  return results.filter((r): r is T => r !== null);
+  return results.filter((r): r is Awaited<T> => r !== null) as T[];
 }
 
 // ---- Public API ----
