@@ -48,6 +48,16 @@ const ADVANCED_SYMBOL_TYPES = [
   { id: "pocketDoor", label: "引込戸" },
 ] as const;
 
+const EQUIPMENT_TYPES: { id: FloorplanSymbolType; label: string }[] = [
+  { id: "sink", label: "流し台" },
+  { id: "stove", label: "コンロ" },
+  { id: "bath", label: "浴槽" },
+  { id: "washstand", label: "洗面台" },
+  { id: "toiletBowl", label: "便器" },
+  { id: "fridge", label: "冷蔵庫" },
+  { id: "washer", label: "洗濯機" },
+];
+
 const PRESET_TEXTS = [
   "洋室6帖",
   "洋室4.5帖",
@@ -84,12 +94,16 @@ type DragState =
   | { kind: "placing"; typeId: string }
   | { kind: "moving"; roomId: string; offX: number; offY: number }
   | { kind: "moving-symbol"; symbolId: string; offX: number; offY: number }
+  | { kind: "rotating-symbol"; symbolId: string; cx: number; cy: number }
+  | { kind: "rotating-room"; roomId: string; cx: number; cy: number }
   | { kind: "moving-wall"; wallId: string; offX: number; offY: number }
   | { kind: "moving-wall-endpoint"; wallId: string; endpoint: 1 | 2 }
   | { kind: "resizing"; roomId: string; startX: number; startY: number; origW: number; origH: number };
 
+const SNAP = GRID / 2;
+
 function snap(v: number) {
-  return Math.round(v / GRID) * GRID;
+  return Math.round(v / SNAP) * SNAP;
 }
 
 function createRoom(typeId: string, x: number, y: number): FloorplanRoom {
@@ -104,6 +118,7 @@ function createRoom(typeId: string, x: number, y: number): FloorplanRoom {
     h: 80,
     color: roomType.color,
     border: roomType.border,
+    rotation: 0,
   };
 }
 
@@ -111,6 +126,13 @@ function createSymbol(type: FloorplanSymbolType, x: number, y: number): Floorpla
   if (type === "north") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 34, h: 34 };
   if (type === "window") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 80, h: 16, rotation: 0 };
   if (type === "sliding") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 90, h: 20, rotation: 0 };
+  if (type === "sink") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 60, h: 40, rotation: 0 };
+  if (type === "stove") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 60, h: 40, rotation: 0 };
+  if (type === "bath") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 80, h: 60, rotation: 0 };
+  if (type === "washstand") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 50, h: 40, rotation: 0 };
+  if (type === "toiletBowl") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 40, h: 56, rotation: 0 };
+  if (type === "fridge") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 40, h: 40, rotation: 0 };
+  if (type === "washer") return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 40, h: 40, rotation: 0 };
   return { id: crypto.randomUUID(), type, x: snap(x), y: snap(y), w: 42, h: 42, rotation: 0 };
 }
 
@@ -125,6 +147,13 @@ function createWall(x: number, y: number): FloorplanWall {
     wallType: "straight",
   };
 }
+
+const WALL_Z_BASE = 0;
+const ROOM_Z_BASE = 1000;
+const SYMBOL_Z_BASE = 2000;
+const zOfWall = (w: FloorplanWall) => w.zIndex ?? WALL_Z_BASE;
+const zOfRoom = (r: FloorplanRoom) => r.zIndex ?? ROOM_Z_BASE;
+const zOfSymbol = (s: FloorplanSymbol) => s.zIndex ?? SYMBOL_Z_BASE;
 
 function downloadBlob(name: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
@@ -230,6 +259,18 @@ export default function FloorplanEditor({
     }
     if (drag.kind === "moving-symbol") {
       setSymbols((prev) => prev.map((symbol) => symbol.id === drag.symbolId ? { ...symbol, x: snap(x - drag.offX), y: snap(y - drag.offY) } : symbol));
+    }
+    if (drag.kind === "rotating-symbol") {
+      const raw = Math.atan2(y - drag.cy, x - drag.cx) * 180 / Math.PI + 90;
+      const stepped = Math.round(raw / 15) * 15;
+      const deg = ((stepped % 360) + 360) % 360;
+      setSymbols((prev) => prev.map((symbol) => symbol.id === drag.symbolId ? { ...symbol, rotation: deg } : symbol));
+    }
+    if (drag.kind === "rotating-room") {
+      const raw = Math.atan2(y - drag.cy, x - drag.cx) * 180 / Math.PI + 90;
+      const stepped = Math.round(raw / 15) * 15;
+      const deg = ((stepped % 360) + 360) % 360;
+      setRooms((prev) => prev.map((room) => room.id === drag.roomId ? { ...room, rotation: deg } : room));
     }
     if (drag.kind === "moving-wall") {
       setWalls((prev) => prev.map((wall) => wall.id === drag.wallId ? {
@@ -417,12 +458,66 @@ export default function FloorplanEditor({
     showToast(`「${label}」を追加しました`);
   };
 
-  const rotateSelectedSymbol = () => {
+  const rotateSelectedSymbol = (delta = 90) => {
     if (!selectedSymbol) return;
     pushHistory();
     setSymbols((prev) => prev.map((symbol) => symbol.id === selectedSymbol
-      ? { ...symbol, rotation: ((symbol.rotation ?? 0) + 90) % 360 }
+      ? { ...symbol, rotation: ((((symbol.rotation ?? 0) + delta) % 360) + 360) % 360 }
       : symbol));
+  };
+
+  const resetSymbolRotation = () => {
+    if (!selectedSymbol) return;
+    pushHistory();
+    setSymbols((prev) => prev.map((symbol) => symbol.id === selectedSymbol
+      ? { ...symbol, rotation: 0 }
+      : symbol));
+  };
+
+  const rotateSelectedRoom = (delta = 90) => {
+    if (!selected) return;
+    pushHistory();
+    setRooms((prev) => prev.map((room) => room.id === selected
+      ? { ...room, rotation: ((((room.rotation ?? 0) + delta) % 360) + 360) % 360 }
+      : room));
+  };
+
+  const resetRoomRotation = () => {
+    if (!selected) return;
+    pushHistory();
+    setRooms((prev) => prev.map((room) => room.id === selected
+      ? { ...room, rotation: 0 }
+      : room));
+  };
+
+  const bringSelectedToFront = () => {
+    const allZ = [...walls.map(zOfWall), ...rooms.map(zOfRoom), ...symbols.map(zOfSymbol)];
+    const next = (allZ.length ? Math.max(...allZ) : 0) + 1;
+    if (selected) {
+      pushHistory();
+      setRooms((prev) => prev.map((room) => room.id === selected ? { ...room, zIndex: next } : room));
+    } else if (selectedWall) {
+      pushHistory();
+      setWalls((prev) => prev.map((wall) => wall.id === selectedWall ? { ...wall, zIndex: next } : wall));
+    } else if (selectedSymbol) {
+      pushHistory();
+      setSymbols((prev) => prev.map((symbol) => symbol.id === selectedSymbol ? { ...symbol, zIndex: next } : symbol));
+    }
+  };
+
+  const sendSelectedToBack = () => {
+    const allZ = [...walls.map(zOfWall), ...rooms.map(zOfRoom), ...symbols.map(zOfSymbol)];
+    const next = (allZ.length ? Math.min(...allZ) : 0) - 1;
+    if (selected) {
+      pushHistory();
+      setRooms((prev) => prev.map((room) => room.id === selected ? { ...room, zIndex: next } : room));
+    } else if (selectedWall) {
+      pushHistory();
+      setWalls((prev) => prev.map((wall) => wall.id === selectedWall ? { ...wall, zIndex: next } : wall));
+    } else if (selectedSymbol) {
+      pushHistory();
+      setSymbols((prev) => prev.map((symbol) => symbol.id === selectedSymbol ? { ...symbol, zIndex: next } : symbol));
+    }
   };
 
   const copySelected = () => {
@@ -552,6 +647,315 @@ export default function FloorplanEditor({
     pdf.save(`${propertyName}_間取り.pdf`);
   };
 
+  const renderWallNode = (wall: FloorplanWall) => (
+    <line
+      key={wall.id}
+      x1={wall.x1}
+      y1={wall.y1}
+      x2={wall.x2}
+      y2={wall.y2}
+      stroke={selectedWall === wall.id ? "#059669" : "#374151"}
+      strokeWidth={wall.thickness}
+      strokeLinecap="round"
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        const { x, y } = svgPoint(e);
+        setSelected(null);
+        setSelectedSymbol(null);
+        setSelectedText(null);
+        setSelectedWall(wall.id);
+        setDrag({ kind: "moving-wall", wallId: wall.id, offX: x - wall.x1, offY: y - wall.y1 });
+      }}
+      style={{ cursor: "grab" }}
+    />
+  );
+
+  const renderRoomNode = (room: FloorplanRoom) => {
+    const isSelected = room.id === selected;
+    return (
+      <g
+        key={room.id}
+        transform={`rotate(${room.rotation ?? 0} ${room.x + room.w / 2} ${room.y + room.h / 2})`}
+      >
+        <rect
+          x={room.x}
+          y={room.y}
+          width={room.w}
+          height={room.h}
+          fill={room.color}
+          stroke={isSelected ? "#059669" : room.border}
+          strokeWidth={isSelected ? 2.5 : 1.5}
+          rx={2}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            const { x, y } = svgPoint(e);
+            setSelected(room.id);
+            setDrag({ kind: "moving", roomId: room.id, offX: x - room.x, offY: y - room.y });
+          }}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            setEditLabel({ id: room.id, value: room.label });
+            setSelected(room.id);
+          }}
+          style={{ cursor: "grab" }}
+        />
+        {editLabel?.id === room.id ? (
+          <foreignObject x={room.x + 4} y={room.y + room.h / 2 - 12} width={room.w - 8} height={24}>
+            <input
+              autoFocus
+              value={editLabel.value}
+              onChange={(e) => setEditLabel({ id: room.id, value: e.target.value })}
+              onBlur={() => {
+                setRooms((prev) => prev.map((item) => item.id === room.id ? { ...item, label: editLabel.value } : item));
+                setEditLabel(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  setRooms((prev) => prev.map((item) => item.id === room.id ? { ...item, label: editLabel.value } : item));
+                  setEditLabel(null);
+                }
+              }}
+              className="w-full text-center text-xs font-bold bg-transparent border-b border-emerald-400 focus:outline-none"
+            />
+          </foreignObject>
+        ) : (
+          <>
+            <text x={room.x + room.w / 2} y={room.y + room.h / 2 - 4} textAnchor="middle" fontSize={Math.min(14, room.w / 5, room.h / 3)} fontWeight="bold" fill={room.border}>
+              {room.label}
+            </text>
+            <text x={room.x + room.w / 2} y={room.y + room.h / 2 + 12} textAnchor="middle" fontSize="8" fill={room.border} fillOpacity="0.7">
+              {((room.w * room.h) / (GRID * GRID)).toFixed(1)}u
+            </text>
+          </>
+        )}
+        {isSelected && (
+          <>
+            <rect
+              x={room.x - 3}
+              y={room.y - 3}
+              width={room.w + 6}
+              height={room.h + 6}
+              fill="none"
+              stroke="#059669"
+              strokeWidth={1}
+              strokeDasharray="4 3"
+              pointerEvents="none"
+            />
+            <rect
+              x={room.x + room.w - 8}
+              y={room.y + room.h - 8}
+              width={8}
+              height={8}
+              fill="#059669"
+              rx={2}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                const { x, y } = svgPoint(e);
+                setDrag({ kind: "resizing", roomId: room.id, startX: x, startY: y, origW: room.w, origH: room.h });
+              }}
+              style={{ cursor: "se-resize" }}
+            />
+            <line
+              x1={room.x + room.w / 2}
+              y1={room.y - 3}
+              x2={room.x + room.w / 2}
+              y2={room.y - 24}
+              stroke="#059669"
+              strokeWidth={1.5}
+              pointerEvents="none"
+            />
+            <circle
+              cx={room.x + room.w / 2}
+              cy={room.y - 28}
+              r={8}
+              fill="#059669"
+              stroke="white"
+              strokeWidth={2}
+              style={{ cursor: "grab" }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                pushHistory();
+                setSelected(room.id);
+                setDrag({
+                  kind: "rotating-room",
+                  roomId: room.id,
+                  cx: room.x + room.w / 2,
+                  cy: room.y + room.h / 2,
+                });
+              }}
+            />
+            <path
+              d="M -4 -30 A 4.5 4.5 0 1 1 -4 -26"
+              transform={`translate(${room.x + room.w / 2} 0)`}
+              fill="none"
+              stroke="white"
+              strokeWidth={1.4}
+              pointerEvents="none"
+            />
+          </>
+        )}
+      </g>
+    );
+  };
+
+  const renderSymbolNode = (symbol: FloorplanSymbol) => (
+    <g
+      key={symbol.id}
+      transform={`translate(${symbol.x} ${symbol.y}) rotate(${symbol.rotation ?? 0} ${symbol.w / 2} ${symbol.h / 2})`}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        const { x, y } = svgPoint(e);
+        setSelected(null);
+        setSelectedWall(null);
+        setSelectedSymbol(symbol.id);
+        setDrag({ kind: "moving-symbol", symbolId: symbol.id, offX: x - symbol.x, offY: y - symbol.y });
+      }}
+      style={{ cursor: "grab" }}
+    >
+      <rect x={0} y={0} width={symbol.w} height={symbol.h} fill="transparent" />
+      {symbol.type === "north" && (
+        <>
+          <circle cx={symbol.w / 2} cy={symbol.h / 2} r={16} fill="white" stroke={selectedSymbol === symbol.id ? "#059669" : "#d1d5db"} strokeWidth="1.5" />
+          <text x={symbol.w / 2} y={12} textAnchor="middle" fontSize="8" fontWeight="bold" fill="#ef4444">N</text>
+          <line x1={symbol.w / 2} y1={5} x2={symbol.w / 2} y2={18} stroke="#ef4444" strokeWidth="2" />
+          <polygon points="17,5 20,12 23,5" fill="#ef4444" />
+        </>
+      )}
+      {symbol.type === "door" && (
+        <>
+          <line x1="4" y1={symbol.h - 4} x2="4" y2="4" stroke="#374151" strokeWidth="2" />
+          <path d={`M 4 ${symbol.h - 4} A ${symbol.w - 8} ${symbol.h - 8} 0 0 1 ${symbol.w - 4} 4`} fill="none" stroke="#9ca3af" strokeDasharray="4 2" />
+          <line x1="4" y1={symbol.h - 4} x2={symbol.w - 4} y2="4" stroke="#374151" strokeWidth="2" />
+        </>
+      )}
+      {symbol.type === "window" && (
+        <>
+          <rect x="4" y="4" width={symbol.w - 8} height={symbol.h - 8} rx="3" fill="#e0f2fe" stroke={selectedSymbol === symbol.id ? "#059669" : "#0284c7"} strokeWidth="2" />
+          <line x1={symbol.w / 2} y1="4" x2={symbol.w / 2} y2={symbol.h - 4} stroke="#0284c7" strokeWidth="1.5" />
+        </>
+      )}
+      {symbol.type === "sliding" && (
+        <>
+          <rect x="4" y="3" width={symbol.w - 8} height={symbol.h - 6} rx="3" fill="white" stroke={selectedSymbol === symbol.id ? "#059669" : "#6366f1"} strokeWidth="2" />
+          <line x1={symbol.w / 2} y1="5" x2={symbol.w / 2} y2={symbol.h - 5} stroke="#6366f1" strokeWidth="1.5" />
+          <line x1="8" y1={symbol.h / 2} x2={symbol.w - 8} y2={symbol.h / 2} stroke="#6366f1" strokeWidth="1" strokeDasharray="3 2" />
+        </>
+      )}
+      {symbol.type === "sink" && (
+        <>
+          <rect x="2" y="2" width={symbol.w - 4} height={symbol.h - 4} rx="4" fill="#f1f5f9" stroke={selectedSymbol === symbol.id ? "#059669" : "#64748b"} strokeWidth="2" />
+          <ellipse cx={symbol.w / 2} cy={symbol.h / 2 + 4} rx={symbol.w / 4} ry={symbol.h / 4} fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.5" />
+          <circle cx={symbol.w / 2} cy={8} r={2.5} fill="#94a3b8" />
+          <text x={symbol.w / 2} y={symbol.h - 4} textAnchor="middle" fontSize="7" fill="#64748b">流し</text>
+        </>
+      )}
+      {symbol.type === "stove" && (
+        <>
+          <rect x="2" y="2" width={symbol.w - 4} height={symbol.h - 4} rx="4" fill="#fef2f2" stroke={selectedSymbol === symbol.id ? "#059669" : "#9ca3af"} strokeWidth="2" />
+          <circle cx={symbol.w / 3} cy={symbol.h / 2} r={7} fill="none" stroke="#ef4444" strokeWidth="1.5" />
+          <circle cx={(symbol.w / 3) * 2} cy={symbol.h / 2} r={7} fill="none" stroke="#ef4444" strokeWidth="1.5" />
+          <text x={symbol.w / 2} y={symbol.h - 3} textAnchor="middle" fontSize="7" fill="#9ca3af">コンロ</text>
+        </>
+      )}
+      {symbol.type === "bath" && (
+        <>
+          <rect x="2" y="2" width={symbol.w - 4} height={symbol.h - 4} rx="10" fill="#e0f2fe" stroke={selectedSymbol === symbol.id ? "#059669" : "#0284c7"} strokeWidth="2" />
+          <rect x="8" y="8" width={symbol.w - 16} height={symbol.h - 16} rx="8" fill="#bae6fd" stroke="#0284c7" strokeWidth="1" />
+          <text x={symbol.w / 2} y={symbol.h / 2 + 3} textAnchor="middle" fontSize="8" fill="#0369a1">浴槽</text>
+        </>
+      )}
+      {symbol.type === "washstand" && (
+        <>
+          <rect x="2" y="2" width={symbol.w - 4} height={symbol.h - 4} rx="4" fill="#f0fdfa" stroke={selectedSymbol === symbol.id ? "#059669" : "#14b8a6"} strokeWidth="2" />
+          <ellipse cx={symbol.w / 2} cy={symbol.h / 2 + 2} rx={symbol.w / 4} ry={symbol.h / 5} fill="#ccfbf1" stroke="#14b8a6" strokeWidth="1.5" />
+          <circle cx={symbol.w / 2} cy={8} r={2.5} fill="#14b8a6" />
+          <text x={symbol.w / 2} y={symbol.h - 3} textAnchor="middle" fontSize="6" fill="#0f766e">洗面</text>
+        </>
+      )}
+      {symbol.type === "toiletBowl" && (
+        <>
+          <rect x="6" y="2" width={symbol.w - 12} height={14} rx="3" fill="#f8fafc" stroke={selectedSymbol === symbol.id ? "#059669" : "#94a3b8"} strokeWidth="2" />
+          <ellipse cx={symbol.w / 2} cy={symbol.h / 2 + 8} rx={symbol.w / 3} ry={symbol.h / 3.2} fill="#f1f5f9" stroke={selectedSymbol === symbol.id ? "#059669" : "#94a3b8"} strokeWidth="2" />
+          <text x={symbol.w / 2} y={symbol.h - 3} textAnchor="middle" fontSize="6" fill="#64748b">便器</text>
+        </>
+      )}
+      {symbol.type === "fridge" && (
+        <>
+          <rect x="2" y="2" width={symbol.w - 4} height={symbol.h - 4} rx="4" fill="#eef2ff" stroke={selectedSymbol === symbol.id ? "#059669" : "#6366f1"} strokeWidth="2" />
+          <line x1="4" y1={symbol.h / 2.4} x2={symbol.w - 4} y2={symbol.h / 2.4} stroke="#6366f1" strokeWidth="1.2" />
+          <line x1={symbol.w - 9} y1="8" x2={symbol.w - 9} y2={symbol.h / 2.4 - 3} stroke="#6366f1" strokeWidth="2" />
+          <text x={symbol.w / 2} y={symbol.h - 4} textAnchor="middle" fontSize="6" fill="#4338ca">冷蔵</text>
+        </>
+      )}
+      {symbol.type === "washer" && (
+        <>
+          <rect x="2" y="2" width={symbol.w - 4} height={symbol.h - 4} rx="4" fill="#f0f9ff" stroke={selectedSymbol === symbol.id ? "#059669" : "#0ea5e9"} strokeWidth="2" />
+          <circle cx={symbol.w / 2} cy={symbol.h / 2 + 2} r={symbol.w / 4} fill="none" stroke="#0ea5e9" strokeWidth="1.5" />
+          <circle cx={symbol.w / 2} cy={symbol.h / 2 + 2} r={2.5} fill="#0ea5e9" />
+          <text x={symbol.w / 2} y={symbol.h - 3} textAnchor="middle" fontSize="6" fill="#0369a1">洗濯</text>
+        </>
+      )}
+      {selectedSymbol === symbol.id && drag.kind !== "moving-symbol" && (
+        <g>
+          <rect
+            x={-3}
+            y={-3}
+            width={symbol.w + 6}
+            height={symbol.h + 6}
+            fill="none"
+            stroke="#059669"
+            strokeWidth={1}
+            strokeDasharray="4 3"
+            pointerEvents="none"
+          />
+          <line
+            x1={symbol.w / 2}
+            y1={-3}
+            x2={symbol.w / 2}
+            y2={-22}
+            stroke="#059669"
+            strokeWidth={1.5}
+            pointerEvents="none"
+          />
+          <circle
+            cx={symbol.w / 2}
+            cy={-26}
+            r={7}
+            fill="#059669"
+            stroke="white"
+            strokeWidth={2}
+            style={{ cursor: "grab" }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              pushHistory();
+              setDrag({
+                kind: "rotating-symbol",
+                symbolId: symbol.id,
+                cx: symbol.x + symbol.w / 2,
+                cy: symbol.y + symbol.h / 2,
+              });
+            }}
+          />
+          <path
+            d="M -3.5 -28 A 4 4 0 1 1 -3.5 -24"
+            transform={`translate(${symbol.w / 2} 0)`}
+            fill="none"
+            stroke="white"
+            strokeWidth={1.3}
+            pointerEvents="none"
+          />
+        </g>
+      )}
+    </g>
+  );
+
+  const layeredNodes = [
+    ...walls.map((wall) => ({ z: zOfWall(wall), node: renderWallNode(wall) })),
+    ...rooms.map((room) => ({ z: zOfRoom(room), node: renderRoomNode(room) })),
+    ...symbols.map((symbol) => ({ z: zOfSymbol(symbol), node: renderSymbolNode(symbol) })),
+  ].sort((a, b) => a.z - b.z);
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <header className="bg-white border-b shadow-sm sticky top-0 z-30">
@@ -629,6 +1033,22 @@ export default function FloorplanEditor({
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-4">
+            <p className="text-xs font-bold text-gray-500 mb-2">設備アイコン</p>
+            <div className="space-y-1.5">
+              {EQUIPMENT_TYPES.map((symbol) => (
+                <button
+                  key={symbol.id}
+                  onClick={() => setDrag({ kind: "placing", typeId: symbol.id })}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  <span>{symbol.label}</span>
+                  <span className="text-gray-400">配置</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-xs font-bold text-gray-500 mb-2">壁機能</p>
             <button
               onClick={() => setDrag({ kind: "placing", typeId: "wall" })}
@@ -692,6 +1112,48 @@ export default function FloorplanEditor({
                 <button onClick={addRoomDimension} className="mt-2 w-full text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg py-1.5 font-bold">
                   この部屋の寸法線を追加
                 </button>
+                <div className="mt-2 flex items-center justify-between">
+                  <p className="text-xs font-bold text-gray-500">回転</p>
+                  <span className="text-xs font-mono font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {Math.round(selectedRoom.rotation ?? 0)}°
+                  </span>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-0.5 mb-1.5">部屋の上の丸いハンドルをドラッグでも回転できます</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => rotateSelectedRoom(-90)}
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  >
+                    ⟲ -90°
+                  </button>
+                  <button
+                    onClick={() => rotateSelectedRoom(90)}
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  >
+                    +90° ⟳
+                  </button>
+                </div>
+                <button
+                  onClick={resetRoomRotation}
+                  className="mt-2 w-full text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                >
+                  角度をリセット (0°)
+                </button>
+                <p className="text-[10px] text-gray-400 mt-2 mb-1">重なり順（壁や他の部屋との上下）</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={bringSelectedToFront}
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  >
+                    最前面へ
+                  </button>
+                  <button
+                    onClick={sendSelectedToBack}
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  >
+                    最背面へ
+                  </button>
+                </div>
                 <button
                   onClick={() => {
                     pushHistory();
@@ -752,6 +1214,21 @@ export default function FloorplanEditor({
                     細くする
                   </button>
                 </div>
+                <p className="text-[10px] text-gray-400 mt-2 mb-1">重なり順（部屋やキッチンとの上下）</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={bringSelectedToFront}
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  >
+                    最前面へ
+                  </button>
+                  <button
+                    onClick={sendSelectedToBack}
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  >
+                    最背面へ
+                  </button>
+                </div>
                 <button
                   onClick={() => {
                     pushHistory();
@@ -766,13 +1243,47 @@ export default function FloorplanEditor({
             )}
             {selectedSymbol && (
               <div className="pt-2 border-t">
-                <p className="text-xs font-bold text-gray-500 mb-1">選択中の記号</p>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs font-bold text-gray-500">選択中の記号</p>
+                  <span className="text-xs font-mono font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {Math.round(symbols.find((s) => s.id === selectedSymbol)?.rotation ?? 0)}°
+                  </span>
+                </div>
+                <p className="text-[10px] text-gray-400 mb-1.5">記号上の丸いハンドルをドラッグでも回転できます</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => rotateSelectedSymbol(-90)}
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  >
+                    ⟲ -90°
+                  </button>
+                  <button
+                    onClick={() => rotateSelectedSymbol(90)}
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  >
+                    +90° ⟳
+                  </button>
+                </div>
                 <button
-                  onClick={rotateSelectedSymbol}
-                  className="w-full text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  onClick={resetSymbolRotation}
+                  className="mt-2 w-full text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
                 >
-                  90°回転
+                  角度をリセット (0°)
                 </button>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    onClick={bringSelectedToFront}
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  >
+                    最前面へ
+                  </button>
+                  <button
+                    onClick={sendSelectedToBack}
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg py-1.5 font-bold"
+                  >
+                    最背面へ
+                  </button>
+                </div>
                 <button
                   onClick={() => {
                     pushHistory();
@@ -805,8 +1316,13 @@ export default function FloorplanEditor({
                 tabIndex={0}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
-                onClick={() => {
-                  if (drag.kind === "none") {
+                onClick={(e) => {
+                  const target = e.target as SVGElement;
+                  const fill = target.getAttribute?.("fill") ?? "";
+                  const isBackground =
+                    target.tagName === "svg" ||
+                    (target.tagName === "rect" && fill.startsWith("url(#grid"));
+                  if (drag.kind === "none" && isBackground) {
                     setSelected(null);
                     setSelectedSymbol(null);
                     setSelectedText(null);
@@ -814,6 +1330,10 @@ export default function FloorplanEditor({
                   }
                 }}
                 onKeyDown={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (editLabel || editText || target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+                    return;
+                  }
                   if ((e.key === "Delete" || e.key === "Backspace") && selected) {
                     pushHistory();
                     setRooms((prev) => prev.filter((room) => room.id !== selected));
@@ -851,28 +1371,7 @@ export default function FloorplanEditor({
                 </defs>
                 <rect width={CANVAS_W} height={CANVAS_H} fill="url(#gridLarge)" />
                 <rect x={20} y={20} width={CANVAS_W - 40} height={CANVAS_H - 40} fill="none" stroke="#374151" strokeWidth="3" strokeDasharray="8 4" rx="2" />
-                {walls.map((wall) => (
-                  <line
-                    key={wall.id}
-                    x1={wall.x1}
-                    y1={wall.y1}
-                    x2={wall.x2}
-                    y2={wall.y2}
-                    stroke={selectedWall === wall.id ? "#059669" : "#374151"}
-                    strokeWidth={wall.thickness}
-                    strokeLinecap="round"
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      const { x, y } = svgPoint(e);
-                      setSelected(null);
-                      setSelectedSymbol(null);
-                      setSelectedText(null);
-                      setSelectedWall(wall.id);
-                      setDrag({ kind: "moving-wall", wallId: wall.id, offX: x - wall.x1, offY: y - wall.y1 });
-                    }}
-                    style={{ cursor: "grab" }}
-                  />
-                ))}
+                {layeredNodes.map((entry) => entry.node)}
                 {selectedWallItem && (
                   <>
                     <circle
@@ -911,80 +1410,7 @@ export default function FloorplanEditor({
                     <text x={(dimension.x1 + dimension.x2) / 2} y={(dimension.y1 + dimension.y2) / 2 - 4} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#4b5563">{dimension.label}</text>
                   </g>
                 ))}
-                {rooms.map((room) => {
-                  const isSelected = room.id === selected;
-                  return (
-                    <g key={room.id}>
-                      <rect
-                        x={room.x}
-                        y={room.y}
-                        width={room.w}
-                        height={room.h}
-                        fill={room.color}
-                        stroke={isSelected ? "#059669" : room.border}
-                        strokeWidth={isSelected ? 2.5 : 1.5}
-                        rx={2}
-                        onMouseDown={(e) => {
-                          e.stopPropagation();
-                          const { x, y } = svgPoint(e);
-                          setSelected(room.id);
-                          setDrag({ kind: "moving", roomId: room.id, offX: x - room.x, offY: y - room.y });
-                        }}
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          setEditLabel({ id: room.id, value: room.label });
-                          setSelected(room.id);
-                        }}
-                        style={{ cursor: "grab" }}
-                      />
-                      {editLabel?.id === room.id ? (
-                        <foreignObject x={room.x + 4} y={room.y + room.h / 2 - 12} width={room.w - 8} height={24}>
-                          <input
-                            autoFocus
-                            value={editLabel.value}
-                            onChange={(e) => setEditLabel({ id: room.id, value: e.target.value })}
-                            onBlur={() => {
-                              setRooms((prev) => prev.map((item) => item.id === room.id ? { ...item, label: editLabel.value } : item));
-                              setEditLabel(null);
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                setRooms((prev) => prev.map((item) => item.id === room.id ? { ...item, label: editLabel.value } : item));
-                                setEditLabel(null);
-                              }
-                            }}
-                            className="w-full text-center text-xs font-bold bg-transparent border-b border-emerald-400 focus:outline-none"
-                          />
-                        </foreignObject>
-                      ) : (
-                        <>
-                          <text x={room.x + room.w / 2} y={room.y + room.h / 2 - 4} textAnchor="middle" fontSize={Math.min(14, room.w / 5, room.h / 3)} fontWeight="bold" fill={room.border}>
-                            {room.label}
-                          </text>
-                          <text x={room.x + room.w / 2} y={room.y + room.h / 2 + 12} textAnchor="middle" fontSize="8" fill={room.border} fillOpacity="0.7">
-                            {((room.w * room.h) / (GRID * GRID)).toFixed(1)}u
-                          </text>
-                        </>
-                      )}
-                      {isSelected && (
-                        <rect
-                          x={room.x + room.w - 8}
-                          y={room.y + room.h - 8}
-                          width={8}
-                          height={8}
-                          fill="#059669"
-                          rx={2}
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            const { x, y } = svgPoint(e);
-                            setDrag({ kind: "resizing", roomId: room.id, startX: x, startY: y, origW: room.w, origH: room.h });
-                          }}
-                          style={{ cursor: "se-resize" }}
-                        />
-                      )}
-                    </g>
-                  );
-                })}
+                {/* rooms are rendered via layeredNodes */}
                 {texts.map((textItem) => (
                   <g
                     key={textItem.id}
@@ -1033,50 +1459,7 @@ export default function FloorplanEditor({
                     )}
                   </g>
                 ))}
-                {symbols.map((symbol) => (
-                  <g
-                    key={symbol.id}
-                    transform={`translate(${symbol.x} ${symbol.y}) rotate(${symbol.rotation ?? 0} ${symbol.w / 2} ${symbol.h / 2})`}
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      const { x, y } = svgPoint(e);
-                      setSelected(null);
-                      setSelectedWall(null);
-                      setSelectedSymbol(symbol.id);
-                      setDrag({ kind: "moving-symbol", symbolId: symbol.id, offX: x - symbol.x, offY: y - symbol.y });
-                    }}
-                    style={{ cursor: "grab" }}
-                  >
-                    {symbol.type === "north" && (
-                      <>
-                        <circle cx={symbol.w / 2} cy={symbol.h / 2} r={16} fill="white" stroke={selectedSymbol === symbol.id ? "#059669" : "#d1d5db"} strokeWidth="1.5" />
-                        <text x={symbol.w / 2} y={12} textAnchor="middle" fontSize="8" fontWeight="bold" fill="#ef4444">N</text>
-                        <line x1={symbol.w / 2} y1={5} x2={symbol.w / 2} y2={18} stroke="#ef4444" strokeWidth="2" />
-                        <polygon points="17,5 20,12 23,5" fill="#ef4444" />
-                      </>
-                    )}
-                    {symbol.type === "door" && (
-                      <>
-                        <line x1="4" y1={symbol.h - 4} x2="4" y2="4" stroke="#374151" strokeWidth="2" />
-                        <path d={`M 4 ${symbol.h - 4} A ${symbol.w - 8} ${symbol.h - 8} 0 0 1 ${symbol.w - 4} 4`} fill="none" stroke="#9ca3af" strokeDasharray="4 2" />
-                        <line x1="4" y1={symbol.h - 4} x2={symbol.w - 4} y2="4" stroke="#374151" strokeWidth="2" />
-                      </>
-                    )}
-                    {symbol.type === "window" && (
-                      <>
-                        <rect x="4" y="4" width={symbol.w - 8} height={symbol.h - 8} rx="3" fill="#e0f2fe" stroke={selectedSymbol === symbol.id ? "#059669" : "#0284c7"} strokeWidth="2" />
-                        <line x1={symbol.w / 2} y1="4" x2={symbol.w / 2} y2={symbol.h - 4} stroke="#0284c7" strokeWidth="1.5" />
-                      </>
-                    )}
-                    {symbol.type === "sliding" && (
-                      <>
-                        <rect x="4" y="3" width={symbol.w - 8} height={symbol.h - 6} rx="3" fill="white" stroke={selectedSymbol === symbol.id ? "#059669" : "#6366f1"} strokeWidth="2" />
-                        <line x1={symbol.w / 2} y1="5" x2={symbol.w / 2} y2={symbol.h - 5} stroke="#6366f1" strokeWidth="1.5" />
-                        <line x1="8" y1={symbol.h / 2} x2={symbol.w - 8} y2={symbol.h / 2} stroke="#6366f1" strokeWidth="1" strokeDasharray="3 2" />
-                      </>
-                    )}
-                  </g>
-                ))}
+                {/* symbols are rendered via layeredNodes */}
               </svg>
             </div>
           </div>

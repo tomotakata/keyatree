@@ -21,9 +21,22 @@ export type FloorplanRoom = {
   h: number;
   color: string;
   border: string;
+  rotation?: number;
+  zIndex?: number;
 };
 
-export type FloorplanSymbolType = "door" | "window" | "sliding" | "north";
+export type FloorplanSymbolType =
+  | "door"
+  | "window"
+  | "sliding"
+  | "north"
+  | "sink"
+  | "stove"
+  | "bath"
+  | "washstand"
+  | "toiletBowl"
+  | "fridge"
+  | "washer";
 
 export type FloorplanSymbol = {
   id: string;
@@ -33,6 +46,7 @@ export type FloorplanSymbol = {
   w: number;
   h: number;
   rotation?: number;
+  zIndex?: number;
 };
 
 export type FloorplanText = {
@@ -51,6 +65,7 @@ export type FloorplanWall = {
   y2: number;
   thickness: number;
   wallType: "straight" | "partition";
+  zIndex?: number;
 };
 
 export type FloorplanTemplate = {
