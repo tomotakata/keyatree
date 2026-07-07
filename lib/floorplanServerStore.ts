@@ -5,7 +5,18 @@ import type {
   FloorplanTemplate,
 } from "@/lib/floorplanStore";
 
-// In-memory fallback used only when Supabase env vars are not configured.
+/**
+ * Persistence uses Supabase Storage (object storage) instead of DB tables so
+ * that no manual SQL / DDL is required. Each floorplan and template is stored
+ * as a JSON object inside a private bucket. When Supabase env vars are not
+ * configured we fall back to an in-memory store (dev convenience only).
+ */
+
+const BUCKET = "floorplans";
+const PLAN_PREFIX = "plans";
+const TEMPLATE_PREFIX = "templates";
+
+// ---- In-memory fallback (only when Supabase is not configured) ----
 type GlobalStore = {
   floorplans: Map<string, FloorplanRecord>;
   templates: FloorplanTemplate[];
@@ -18,37 +29,80 @@ function memory(): GlobalStore {
   return g.__keyatreeFloorplanStore;
 }
 
-type Row = {
-  id: string;
-  property_id: string;
-  property_name: string;
-  data: Partial<Pick<FloorplanRecord, "rooms" | "symbols" | "dimensions" | "texts" | "walls">>;
-  thumbnail: string | null;
-  created_at: string;
-  updated_at: string;
-};
+export type SaveFloorplanInput = Omit<
+  FloorplanRecord,
+  "id" | "createdAt" | "updatedAt"
+> & { id?: string };
 
-function rowToRecord(row: Row): FloorplanRecord {
-  const data = row.data ?? {};
-  return {
-    id: row.id,
-    propertyId: row.property_id,
-    propertyName: row.property_name ?? "",
-    rooms: data.rooms ?? [],
-    symbols: data.symbols ?? [],
-    dimensions: data.dimensions ?? [],
-    texts: data.texts ?? [],
-    walls: data.walls ?? [],
-    thumbnail: row.thumbnail ?? undefined,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
+// ---- Storage helpers ----
+let bucketReady = false;
+async function ensureBucket(
+  supabase: ReturnType<typeof getSupabaseAdmin>
+): Promise<void> {
+  if (bucketReady) return;
+  const { data } = await supabase.storage.getBucket(BUCKET);
+  if (!data) {
+    const { error } = await supabase.storage.createBucket(BUCKET, {
+      public: false,
+    });
+    // Ignore "already exists" races.
+    if (error && !/exist/i.test(error.message)) {
+      throw new Error(`bucket作成に失敗: ${error.message}`);
+    }
+  }
+  bucketReady = true;
 }
 
-export type SaveFloorplanInput = Omit<FloorplanRecord, "id" | "createdAt" | "updatedAt"> & {
-  id?: string;
-};
+function planPath(propertyId: string) {
+  return `${PLAN_PREFIX}/${encodeURIComponent(propertyId)}.json`;
+}
+function templatePath(id: string) {
+  return `${TEMPLATE_PREFIX}/${id}.json`;
+}
 
+async function putJson(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  path: string,
+  value: unknown
+): Promise<void> {
+  const body = JSON.stringify(value);
+  const { error } = await supabase.storage.from(BUCKET).upload(path, body, {
+    contentType: "application/json",
+    upsert: true,
+  });
+  if (error) throw new Error(error.message);
+}
+
+async function getJson<T>(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  path: string
+): Promise<T | null> {
+  const { data, error } = await supabase.storage.from(BUCKET).download(path);
+  if (error || !data) return null;
+  try {
+    const text = await data.text();
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function listJson<T>(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  prefix: string
+): Promise<T[]> {
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .list(prefix, { limit: 1000 });
+  if (error || !data) return [];
+  const files = data.filter((item) => item.name.endsWith(".json"));
+  const results = await Promise.all(
+    files.map((item) => getJson<T>(supabase, `${prefix}/${item.name}`))
+  );
+  return results.filter((r): r is T => r !== null);
+}
+
+// ---- Public API ----
 export async function listFloorplans(): Promise<FloorplanRecord[]> {
   if (!isSupabaseEnabled()) {
     return Array.from(memory().floorplans.values()).sort((a, b) =>
@@ -56,12 +110,9 @@ export async function listFloorplans(): Promise<FloorplanRecord[]> {
     );
   }
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("floorplans")
-    .select("*")
-    .order("updated_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  return (data as Row[]).map(rowToRecord);
+  await ensureBucket(supabase);
+  const plans = await listJson<FloorplanRecord>(supabase, PLAN_PREFIX);
+  return plans.sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
 }
 
 export async function getFloorplanByProperty(
@@ -71,17 +122,15 @@ export async function getFloorplanByProperty(
     return memory().floorplans.get(propertyId) ?? null;
   }
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("floorplans")
-    .select("*")
-    .eq("property_id", propertyId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  return data ? rowToRecord(data as Row) : null;
+  await ensureBucket(supabase);
+  return getJson<FloorplanRecord>(supabase, planPath(propertyId));
 }
 
-export async function saveFloorplan(input: SaveFloorplanInput): Promise<FloorplanRecord> {
+export async function saveFloorplan(
+  input: SaveFloorplanInput
+): Promise<FloorplanRecord> {
   const now = new Date().toISOString();
+
   if (!isSupabaseEnabled()) {
     const store = memory();
     const existing = store.floorplans.get(input.propertyId);
@@ -101,41 +150,41 @@ export async function saveFloorplan(input: SaveFloorplanInput): Promise<Floorpla
     store.floorplans.set(input.propertyId, record);
     return record;
   }
+
   const supabase = getSupabaseAdmin();
-  const payload = {
-    property_id: input.propertyId,
-    property_name: input.propertyName,
-    data: {
-      rooms: input.rooms,
-      symbols: input.symbols,
-      dimensions: input.dimensions,
-      texts: input.texts,
-      walls: input.walls,
-    },
-    thumbnail: input.thumbnail ?? null,
-    updated_at: now,
+  await ensureBucket(supabase);
+  const existing = await getJson<FloorplanRecord>(
+    supabase,
+    planPath(input.propertyId)
+  );
+  const record: FloorplanRecord = {
+    id: existing?.id ?? input.id ?? crypto.randomUUID(),
+    propertyId: input.propertyId,
+    propertyName: input.propertyName,
+    rooms: input.rooms,
+    symbols: input.symbols,
+    dimensions: input.dimensions,
+    texts: input.texts,
+    walls: input.walls,
+    thumbnail: input.thumbnail,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
   };
-  const { data, error } = await supabase
-    .from("floorplans")
-    .upsert(payload, { onConflict: "property_id" })
-    .select("*")
-    .single();
-  if (error) throw new Error(error.message);
-  return rowToRecord(data as Row);
+  await putJson(supabase, planPath(input.propertyId), record);
+  return record;
 }
 
 export async function listTemplates(): Promise<FloorplanTemplate[]> {
   if (!isSupabaseEnabled()) {
-    return memory().templates.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return memory()
+      .templates.slice()
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("floorplan_templates")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  return (data as { id: string; name: string; rooms: FloorplanRoom[]; created_at: string }[]).map(
-    (row) => ({ id: row.id, name: row.name, rooms: row.rooms ?? [], createdAt: row.created_at })
+  await ensureBucket(supabase);
+  const templates = await listJson<FloorplanTemplate>(supabase, TEMPLATE_PREFIX);
+  return templates.sort((a, b) =>
+    (b.createdAt ?? "").localeCompare(a.createdAt ?? "")
   );
 }
 
@@ -144,18 +193,26 @@ export async function saveTemplate(
   rooms: FloorplanRoom[]
 ): Promise<FloorplanTemplate> {
   const now = new Date().toISOString();
+
   if (!isSupabaseEnabled()) {
-    const template: FloorplanTemplate = { id: crypto.randomUUID(), name, rooms, createdAt: now };
+    const template: FloorplanTemplate = {
+      id: crypto.randomUUID(),
+      name,
+      rooms,
+      createdAt: now,
+    };
     memory().templates.unshift(template);
     return template;
   }
+
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("floorplan_templates")
-    .insert({ name, rooms })
-    .select("*")
-    .single();
-  if (error) throw new Error(error.message);
-  const row = data as { id: string; name: string; rooms: FloorplanRoom[]; created_at: string };
-  return { id: row.id, name: row.name, rooms: row.rooms ?? [], createdAt: row.created_at };
+  await ensureBucket(supabase);
+  const template: FloorplanTemplate = {
+    id: crypto.randomUUID(),
+    name,
+    rooms,
+    createdAt: now,
+  };
+  await putJson(supabase, templatePath(template.id), template);
+  return template;
 }

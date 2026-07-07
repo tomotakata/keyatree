@@ -198,6 +198,8 @@ export default function FloorplanEditor({
   const [clipboard, setClipboard] = useState<ClipboardPayload | null>(null);
   const [templates, setTemplates] = useState<FloorplanTemplate[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [name, setName] = useState(propertyName);
+  const [editingName, setEditingName] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -209,6 +211,7 @@ export default function FloorplanEditor({
       setDimensions(saved?.dimensions ?? []);
       setTexts(saved?.texts ?? []);
       setWalls(saved?.walls ?? []);
+      setName(saved?.propertyName || propertyName);
       setHistory([]);
       setFuture([]);
       const [tpls, plans] = await Promise.all([fetchTemplates(), fetchAllFloorplans()]);
@@ -365,7 +368,11 @@ export default function FloorplanEditor({
       const canvas = await html2canvas(exportRef.current, { scale: 0.6, backgroundColor: "#ffffff" });
       return canvas.toDataURL("image/png");
     })();
-    await saveFloorplanRemote({ propertyId, propertyName, rooms, symbols, dimensions, texts, walls, thumbnail });
+    const saved = await saveFloorplanRemote({ propertyId, propertyName: name, rooms, symbols, dimensions, texts, walls, thumbnail });
+    if (!saved) {
+      showToast("保存に失敗しました。時間をおいて再度お試しください。");
+      return;
+    }
     setSavedPlans(await fetchAllFloorplans());
     showToast("間取り図を下書き保存しました");
   };
@@ -391,7 +398,7 @@ export default function FloorplanEditor({
   };
 
   const duplicateCurrent = async () => {
-    const duplicatedName = window.prompt("複製名を入力してください", `${propertyName} 複製`);
+    const duplicatedName = window.prompt("複製名を入力してください", `${name} 複製`);
     if (!duplicatedName?.trim()) return;
     const duplicatedId = `${propertyId}-copy-${Date.now()}`;
     await saveFloorplanRemote({
@@ -618,9 +625,9 @@ export default function FloorplanEditor({
   };
 
   const saveAsTemplate = async () => {
-    const name = window.prompt("テンプレート名を入力してください", `${propertyName} テンプレート`);
-    if (!name?.trim()) return;
-    await saveTemplateRemote(name.trim(), rooms);
+    const name2 = window.prompt("テンプレート名を入力してください", `${name} テンプレート`);
+    if (!name2?.trim()) return;
+    await saveTemplateRemote(name2.trim(), rooms);
     setTemplates(await fetchTemplates());
     showToast("テンプレートとして保存しました");
   };
@@ -628,13 +635,13 @@ export default function FloorplanEditor({
   const downloadSvg = () => {
     const source = exportSvgSource();
     if (!source) return;
-    downloadBlob(`${propertyName}_間取り.svg`, new Blob([source], { type: "image/svg+xml;charset=utf-8" }));
+    downloadBlob(`${name}_間取り.svg`, new Blob([source], { type: "image/svg+xml;charset=utf-8" }));
   };
 
   const downloadJson = () => {
     downloadBlob(
-      `${propertyName}_間取り.json`,
-      new Blob([JSON.stringify({ propertyId, propertyName, rooms, exportedAt: new Date().toISOString() }, null, 2)], { type: "application/json" })
+      `${name}_間取り.json`,
+      new Blob([JSON.stringify({ propertyId, propertyName: name, rooms, exportedAt: new Date().toISOString() }, null, 2)], { type: "application/json" })
     );
   };
 
@@ -643,7 +650,7 @@ export default function FloorplanEditor({
     const canvas = await html2canvas(exportRef.current, { scale: 2, backgroundColor: "#ffffff" });
     canvas.toBlob((blob) => {
       if (!blob) return;
-      downloadBlob(`${propertyName}_間取り.png`, blob);
+      downloadBlob(`${name}_間取り.png`, blob);
     });
   };
 
@@ -657,7 +664,7 @@ export default function FloorplanEditor({
     const renderWidth = pageWidth - margin * 2;
     const renderHeight = (canvas.height * renderWidth) / canvas.width;
     pdf.addImage(imageData, "PNG", margin, 10, renderWidth, renderHeight);
-    pdf.save(`${propertyName}_間取り.pdf`);
+    pdf.save(`${name}_間取り.pdf`);
   };
 
   const renderWallNode = (wall: FloorplanWall) => (
@@ -975,7 +982,27 @@ export default function FloorplanEditor({
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href={backHref} className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">戻る</Link>
           <span className="text-gray-300">›</span>
-          <span className="text-gray-700 text-sm font-medium">{propertyName} 間取り作成</span>
+          {editingName ? (
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => setEditingName(false)}
+              onKeyDown={(e) => { if (e.key === "Enter") setEditingName(false); }}
+              placeholder="物件名"
+              className="text-sm font-medium text-gray-700 border border-emerald-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingName(true)}
+              title="クリックで物件名を編集"
+              className="text-gray-700 text-sm font-medium hover:text-emerald-600 transition flex items-center gap-1"
+            >
+              <span>{name} 間取り作成</span>
+              <span className="text-[10px] text-emerald-600 border border-emerald-200 rounded px-1">編集</span>
+            </button>
+          )}
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <button onClick={saveCurrent} className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold">下書き保存</button>
             <button onClick={saveAsTemplate} className="text-xs bg-teal-500 hover:bg-teal-600 text-white px-3 py-1.5 rounded-lg font-bold">テンプレート保存</button>
@@ -1315,7 +1342,7 @@ export default function FloorplanEditor({
         <main className="flex-1 bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col">
           <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-gray-700">{propertyName}</span>
+              <span className="text-sm font-bold text-gray-700">{name}</span>
               <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">編集キャンバス</span>
             </div>
             <span className="text-xs text-gray-400">ダブルクリックで部屋名編集 / ドラッグ移動 / 右下でサイズ変更</span>
