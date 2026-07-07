@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import AiAssist from "@/components/goal-navigator/AiAssist";
 
 const whyPrompts = [
   "その目標を達成したい理由を教えてください。",
@@ -192,6 +193,17 @@ export default function GoalNavigatorDemoPage() {
                   />
                 )}
                 <p className="text-xs text-gray-400 mt-2">質問は一度に1つだけ表示する仕様を想定しています。</p>
+                {current.kind !== "select" ? (
+                  <AiAssist
+                    kind="quantitative"
+                    stepTitle={current.title}
+                    section={current.section}
+                    prompt={current.prompt}
+                    currentValue={value}
+                    answers={answers}
+                    onApply={(text) => setValue(text)}
+                  />
+                ) : null}
               </div>
 
               <div className="flex items-center justify-between gap-3">

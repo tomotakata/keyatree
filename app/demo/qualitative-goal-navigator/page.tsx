@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import AiAssist from "@/components/goal-navigator/AiAssist";
 
 const stageOptions = ["Stage 1 基礎遂行", "Stage 2 自律推進", "Stage 3 周囲牽引"];
 const departmentOptions = [
@@ -172,6 +173,17 @@ export default function QualitativeGoalNavigatorDemoPage() {
                   />
                 )}
                 <p className="text-xs text-gray-400 mt-2">選択項目は要件上、原文のまま保持する想定です。</p>
+                {current.kind !== "select" ? (
+                  <AiAssist
+                    kind="qualitative"
+                    stepTitle={current.title}
+                    section={current.title}
+                    prompt={current.prompt}
+                    currentValue={currentValue}
+                    answers={answers}
+                    onApply={(text) => onChange(text)}
+                  />
+                ) : null}
               </div>
 
               <div className="flex items-center justify-between gap-3">
