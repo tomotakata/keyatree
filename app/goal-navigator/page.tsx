@@ -6,6 +6,7 @@ import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { saveNavigatorRecord } from "@/lib/goalNavigatorActions";
+import AiAssist from "@/components/goal-navigator/AiAssist";
 
 const sampleAnswers: Record<string, string> = {
   name: "鈴木 一郎",
@@ -368,6 +369,17 @@ export default function GoalNavigatorPage() {
                   />
                 )}
                 <p className="text-xs text-gray-400 mt-2">本番画面では質問を一度に1つだけ表示する運用です。</p>
+                {current.kind !== "select" ? (
+                  <AiAssist
+                    kind="quantitative"
+                    stepTitle={current.title}
+                    section={current.section}
+                    prompt={current.prompt}
+                    currentValue={value}
+                    answers={answers}
+                    onApply={(text) => setValue(text)}
+                  />
+                ) : null}
               </div>
 
               <div className="flex items-center justify-between gap-3">

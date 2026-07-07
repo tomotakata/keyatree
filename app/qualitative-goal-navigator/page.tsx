@@ -6,6 +6,7 @@ import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { saveNavigatorRecord } from "@/lib/goalNavigatorActions";
+import AiAssist from "@/components/goal-navigator/AiAssist";
 
 const sampleAnswers: Record<string, string> = {
   name: "田中 花子",
@@ -337,6 +338,17 @@ export default function QualitativeGoalNavigatorPage() {
                   />
                 )}
                 <p className="text-xs text-gray-400 mt-2">選択した名称は原文のまま保持する想定です。</p>
+                {current.kind !== "select" ? (
+                  <AiAssist
+                    kind="qualitative"
+                    stepTitle={current.title}
+                    section={current.title}
+                    prompt={current.prompt}
+                    currentValue={currentValue}
+                    answers={answers}
+                    onApply={(text) => onChange(text)}
+                  />
+                ) : null}
               </div>
 
               <div className="flex items-center justify-between gap-3">
