@@ -85,9 +85,32 @@ export async function POST(request: Request) {
 
     if (!res.ok) {
       const detail = await res.text();
+      let code = "";
+      let apiMessage = "";
+      try {
+        const parsed = JSON.parse(detail);
+        code = parsed?.error?.code ?? parsed?.error?.type ?? "";
+        apiMessage = parsed?.error?.message ?? "";
+      } catch {
+        // detail was not JSON
+      }
+
+      let friendly = `OpenAI APIエラー (${res.status})`;
+      if (res.status === 429) {
+        if (code === "insufficient_quota") {
+          friendly =
+            "OpenAIの利用枠（クレジット残高）が不足しています。OpenAIダッシュボードの Billing で支払い方法の登録／クレジットの追加が必要です。";
+        } else {
+          friendly =
+            "OpenAIのレート制限に達しました。少し時間をおいて再度お試しください。";
+        }
+      } else if (res.status === 401) {
+        friendly = "OpenAI APIキーが無効です。キーを確認してください。";
+      }
+
       return NextResponse.json(
-        { error: `OpenAI APIエラー (${res.status})`, detail: detail.slice(0, 500) },
-        { status: 502 }
+        { error: friendly, code, detail: apiMessage.slice(0, 300) },
+        { status: res.status }
       );
     }
 

@@ -53,7 +53,10 @@ export default function AiAssist({
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json?.error ?? "AI応答の取得に失敗しました。");
+        setError(
+          (json?.error ?? "AI応答の取得に失敗しました。") +
+            (json?.detail ? `\n(${json.detail})` : "")
+        );
         return;
       }
       setResult(json.text ?? "");
@@ -95,7 +98,7 @@ export default function AiAssist({
       </div>
 
       {error ? (
-        <p className="mt-2 text-xs font-medium text-red-600">{error}</p>
+        <p className="mt-2 whitespace-pre-line text-xs font-medium text-red-600">{error}</p>
       ) : null}
 
       {result ? (
