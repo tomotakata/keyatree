@@ -51,6 +51,12 @@ export default function HeaderNav({ currentLabel, extraRight }: { currentLabel?:
 
         {/* 右側 */}
         <div className="ml-auto flex items-center gap-3">
+          <Link
+            href="/features"
+            className="text-xs font-bold text-gray-600 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300 rounded-full px-3 py-1.5 transition"
+          >
+            機能一覧
+          </Link>
           {extraRight}
           {session ? (
             <button
