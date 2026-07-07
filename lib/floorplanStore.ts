@@ -111,37 +111,9 @@ export type PropertyRecord = {
 const PROPERTIES_KEY = "keyatree_properties_v1";
 const FLOORPLANS_KEY = "keyatree_floorplans_v1";
 const TEMPLATES_KEY = "keyatree_floorplan_templates_v1";
-const SEED_KEY = "keyatree_floorplan_seed_v1";
+const SEED_KEY = "keyatree_floorplan_seed_v2";
 
-const seedProperties: PropertyRecord[] = [
-  {
-    id: "prop-001",
-    name: "サンプル物件 A",
-    address: "山梨県甲府市中央1-2-3",
-    type: "2LDK",
-    rent: "95,000円",
-    status: "募集中",
-    station: "甲府駅 徒歩8分",
-  },
-  {
-    id: "prop-002",
-    name: "Keyaki Residence 甲府",
-    address: "山梨県甲府市丸の内2-10-8",
-    type: "1LDK",
-    rent: "82,000円",
-    status: "空室予定",
-    station: "甲府駅 徒歩5分",
-  },
-  {
-    id: "prop-003",
-    name: "グリーンヒル石和 203",
-    address: "山梨県笛吹市石和町広瀬12-4",
-    type: "3DK",
-    rent: "68,000円",
-    status: "管理中",
-    station: "石和温泉駅 車6分",
-  },
-];
+const seedProperties: PropertyRecord[] = [];
 
 const seedRooms: FloorplanRoom[] = [
   { id: "room_1", typeId: "entrance", label: "玄関", x: 40, y: 460, w: 120, h: 80, color: "#f3f4f6", border: "#6b7280" },

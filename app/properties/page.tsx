@@ -27,7 +27,15 @@ export default function PropertiesPage() {
           <p className="text-sm text-gray-500 mt-1">物件詳細から間取り作成・保存・再編集ができます。</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {properties.map((property) => {
+          {properties.length === 0 ? (
+            <div className="md:col-span-2 rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center">
+              <p className="text-sm text-gray-500">登録されている物件はありません。</p>
+              <p className="text-xs text-gray-400 mt-1">間取り作成を試すには、機能一覧のフロアプランをご利用ください。</p>
+              <Link href="/demo/floorplan" className="inline-block mt-4 text-sm text-emerald-600 font-bold hover:underline">
+                フロアプランを開く
+              </Link>
+            </div>
+          ) : properties.map((property) => {
             const floorplan = getFloorplan(property.id);
             return (
               <Link key={property.id} href={`/properties/${property.id}`} className="bg-white rounded-2xl border shadow-sm hover:shadow-md transition overflow-hidden">
