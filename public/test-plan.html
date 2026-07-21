@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KeyaTree｜協力試験 計画表（ドラフト）</title>
+<style>
+  :root{
+    --emerald:#059669;
+    --emerald-light:#d1fae5;
+    --ink:#1f2937;
+    --sub:#6b7280;
+    --line:#e5e7eb;
+    --bg:#f8fafc;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    line-height:1.8;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:40px 24px 80px;}
+  header.doc{
+    background:linear-gradient(135deg,#065f46,#059669);
+    color:#fff;border-radius:20px;padding:36px 32px;margin-bottom:28px;
+    box-shadow:0 10px 30px rgba(5,150,105,.25);
+  }
+  header.doc .badge{
+    display:inline-block;font-size:12px;font-weight:700;letter-spacing:.08em;
+    background:rgba(255,255,255,.18);padding:5px 12px;border-radius:999px;margin-bottom:14px;
+  }
+  header.doc h1{margin:0 0 6px;font-size:26px;letter-spacing:.02em;}
+  header.doc p{margin:0;font-size:14px;opacity:.92;}
+  .meta{
+    display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:18px;font-size:13px;opacity:.95;
+  }
+  .meta span{display:inline-flex;align-items:center;gap:6px;}
+
+  section.note{
+    background:#fff;border:1px solid var(--line);border-left:5px solid var(--emerald);
+    border-radius:14px;padding:22px 24px;margin-bottom:14px;
+  }
+  section.note h2{margin:0 0 12px;font-size:16px;color:var(--emerald);}
+  section.note ul{margin:0;padding-left:20px;}
+  section.note li{margin-bottom:8px;font-size:14px;}
+  .highlight{
+    background:#fffbeb;border:1px solid #fde68a;border-radius:12px;
+    padding:14px 18px;font-size:14px;font-weight:700;color:#92400e;margin-top:6px;
+  }
+
+  h2.section-title{
+    font-size:18px;margin:34px 0 16px;padding-left:12px;border-left:5px solid var(--emerald);
+  }
+
+  .timeline{position:relative;margin-left:8px;padding-left:28px;}
+  .timeline::before{
+    content:"";position:absolute;left:7px;top:8px;bottom:8px;width:2px;background:var(--line);
+  }
+  .item{position:relative;margin-bottom:22px;}
+  .item::before{
+    content:"";position:absolute;left:-28px;top:22px;width:14px;height:14px;border-radius:50%;
+    background:#fff;border:3px solid var(--emerald);transform:translateX(1px);
+  }
+  .card{
+    background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+    box-shadow:0 2px 10px rgba(15,23,42,.04);
+  }
+  .card-head{
+    display:flex;flex-wrap:wrap;align-items:center;gap:12px;
+    padding:16px 20px;background:var(--emerald-light);border-bottom:1px solid var(--line);
+  }
+  .date{font-size:15px;font-weight:800;color:#065f46;white-space:nowrap;}
+  .tag{
+    font-size:12px;font-weight:700;color:#fff;background:var(--emerald);
+    padding:4px 12px;border-radius:999px;
+  }
+  .tag.gray{background:#6b7280;}
+  .card-body{padding:16px 20px;font-size:14px;color:#374151;}
+  .card-body .lead{font-weight:700;color:var(--ink);margin:0 0 8px;}
+  .card-body ul{margin:8px 0 0;padding-left:20px;}
+  .card-body li{margin-bottom:6px;}
+  .card-body .aside{
+    margin-top:10px;font-size:13px;color:var(--sub);background:var(--bg);
+    border-radius:10px;padding:10px 14px;
+  }
+
+  footer.doc{
+    margin-top:40px;padding-top:20px;border-top:1px solid var(--line);
+    font-size:12px;color:var(--sub);text-align:center;
+  }
+  @media print{
+    body{background:#fff;}
+    header.doc{box-shadow:none;}
+    .card{box-shadow:none;}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="doc">
+      <span class="badge">DRAFT ‑ 社外共有用</span>
+      <h1>KeyaTree 協力試験 計画表</h1>
+      <p>お客様にご協力いただく試験（ドライテスト）の進行予定をまとめたドラフトです。</p>
+      <div class="meta">
+        <span>■ 文書区分：計画表（ドラフト）</span>
+        <span>■ 対象：協力試験参加者さま</span>
+        <span>■ 実施曜日：毎週 火曜日</span>
+      </div>
+    </header>
+
+    <section class="note">
+      <h2>前提事項</h2>
+      <ul>
+        <li>本計画表は、これから開発を進める機能について、お客様にもご協力いただきながら試験（ドライテスト）を実施していくためのドラフトです。</li>
+        <li>各回のドライテストは、参加者さまに実際の操作をお試しいただき、使用感やご要望をフィードバックいただく形で進行します。</li>
+      </ul>
+      <div class="highlight">
+        ※ 開発進行において、適時進捗に応じて目安の予定が変更される場合があります。
+      </div>
+    </section>
+
+    <h2 class="section-title">試験スケジュール</h2>
+
+    <div class="timeline">
+
+      <!-- 7/28 -->
+      <div class="item">
+        <div class="card">
+          <div class="card-head">
+            <span class="date">7月28日（火曜日）</span>
+            <span class="tag">アカウント作成・ログインテスト</span>
+          </div>
+          <div class="card-body">
+            <p class="lead">管理画面へのアカウント作成とログイン機能の試験</p>
+            <ul>
+              <li>本番環境の Supabase と連携し、アカウントの作成・ログイン機能を作成します。</li>
+              <li>管理画面の権限のあるアカウントで、パスワードの再発行依頼を行える仕様にします。</li>
+            </ul>
+            <div class="aside">
+              補足：パスワードの再発行機能をユーザー側に持たせるとセキュリティーが弱くなるため、
+              権限のある管理アカウントからの再発行依頼という仕様としています。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8/04 -->
+      <div class="item">
+        <div class="card">
+          <div class="card-head">
+            <span class="date">8月04日（火曜日）</span>
+            <span class="tag">タスク管理スレッド機能：ドライテスト</span>
+          </div>
+          <div class="card-body">
+            <p class="lead">テストユーザーを招待してのタスク管理画面のドライテスト</p>
+            <ul>
+              <li>タスクを新規設立します。</li>
+              <li>タスク関係者を招待します。</li>
+              <li>タスクスレッドでのタスクに関する会話を行います。</li>
+              <li>タスク報告を行います。</li>
+              <li>タスク完了までの一連の流れを試験します。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8/11 -->
+      <div class="item">
+        <div class="card">
+          <div class="card-head">
+            <span class="date">8月11日（火曜日）</span>
+            <span class="tag">評価に関するドライテスト</span>
+          </div>
+          <div class="card-body">
+            <p class="lead">人事評価制度に関するドライテスト</p>
+            <ul>
+              <li>11日までに選定した AI 連携先の進捗に応じ、<strong>AI 導入版</strong> または <strong>AI を連携しない評価制度版</strong> のいずれかでドライテストを実施します。</li>
+              <li>目標承認 → 目標進行 → 目標結果評価 に関する一連の流れを試験します。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8/11〜 -->
+      <div class="item">
+        <div class="card">
+          <div class="card-head">
+            <span class="date">8月11日〜</span>
+            <span class="tag gray">フィードバック修正期間</span>
+          </div>
+          <div class="card-body">
+            <p class="lead">11日からのドライテストに関するフィードバック修正期間</p>
+            <ul>
+              <li>間取り図</li>
+              <li>アカウント管理</li>
+              <li>人事評価機能</li>
+              <li>タスク管理スレッド</li>
+            </ul>
+            <div class="aside">
+              上記の機能を優先して、開発・修正を実施いたします。
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="doc">
+      KeyaTree｜協力試験 計画表（ドラフト）　本書に記載の日程は目安であり、開発進捗に応じて変更される場合があります。
+    </footer>
+  </div>
+</body>
+</html>
