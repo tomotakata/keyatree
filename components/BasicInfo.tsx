@@ -3,8 +3,7 @@ import { Employee } from "@/lib/mockData";
 export default function BasicInfo({ employee }: { employee: Employee }) {
   const rows = [
     { label: "役職", value: employee.position },
-    { label: "等級", value: employee.grade },
-    { label: "職種", value: employee.jobType },
+    { label: "ステージ", value: employee.grade },
     { label: "雇用形態", value: employee.employmentType },
   ];
 

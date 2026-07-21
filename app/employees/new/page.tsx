@@ -102,7 +102,7 @@ export default function NewEmployeePage() {
           <p className="text-xs text-gray-400 mb-6">ログイン情報は登録メールアドレス宛に送信されます。</p>
           <div className="flex flex-col gap-2">
             <Link href="/employees" className="w-full text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl transition text-center">
-              従業員一覧へ戻る
+              スタッフ一覧へ戻る
             </Link>
             <button onClick={() => { setForm(initial); setSubmitted(false); }} className="w-full text-sm border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium py-2.5 rounded-xl transition">
               続けて登録する
@@ -122,7 +122,7 @@ export default function NewEmployeePage() {
           </Link>
           <Link href="/employees" className="font-bold text-gray-800 text-sm">KeyaTree</Link>
           <span className="text-gray-300 mx-1">›</span>
-          <Link href="/employees" className="text-gray-500 text-sm hover:text-emerald-600 transition">従業員一覧</Link>
+          <Link href="/employees" className="text-gray-500 text-sm hover:text-emerald-600 transition">スタッフ一覧</Link>
           <span className="text-gray-300 mx-1">›</span>
           <span className="text-gray-700 text-sm font-medium">新規登録</span>
         </div>
@@ -130,7 +130,7 @@ export default function NewEmployeePage() {
 
       <main className="max-w-3xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-800">従業員 新規登録</h1>
+          <h1 className="text-xl font-bold text-gray-800">スタッフ 新規登録</h1>
           <p className="text-sm text-gray-500 mt-1">基本情報・ログイン情報・権限をまとめて設定します。</p>
         </div>
 
@@ -170,20 +170,15 @@ export default function NewEmployeePage() {
                 {departments.map((d) => <option key={d}>{d}</option>)}
               </select>
             </Field>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="役職">
                 <select value={form.position} onChange={(e) => set("position", e.target.value)} className={inputCls}>
                   {positions.map((p) => <option key={p}>{p}</option>)}
                 </select>
               </Field>
-              <Field label="等級">
+              <Field label="ステージ">
                 <select value={form.grade} onChange={(e) => set("grade", e.target.value)} className={inputCls}>
                   {grades.map((g) => <option key={g}>{g}</option>)}
-                </select>
-              </Field>
-              <Field label="職種">
-                <select value={form.jobType} onChange={(e) => set("jobType", e.target.value)} className={inputCls}>
-                  {jobTypes.map((j) => <option key={j}>{j}</option>)}
                 </select>
               </Field>
             </div>

@@ -44,7 +44,7 @@ function LoginPageContent() {
   const destinationLabel = redirectTo.startsWith("/docs")
     ? "ドキュメント"
     : redirectTo.startsWith("/employees")
-      ? "従業員管理"
+      ? "スタッフ管理"
       : "システム";
 
   return (

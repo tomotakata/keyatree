@@ -162,7 +162,7 @@ export default function AccountsPage() {
                 href="/employees/new"
                 className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg transition"
               >
-                + 従業員を追加
+                + スタッフを追加
               </Link>
             </div>
           </div>

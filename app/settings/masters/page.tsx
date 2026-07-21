@@ -49,14 +49,15 @@ const initialMasters: Masters = {
     { id: "e3", label: "パートタイム", order: 3 },
     { id: "e4", label: "アルバイト", order: 4 },
   ],
+  blank: [],
 };
 
 const tabConfig = [
-  { key: "department",    label: "部署",     desc: "従業員が所属する部署・課の一覧" },
-  { key: "position",      label: "役職",     desc: "従業員の役職区分" },
-  { key: "grade",         label: "等級",     desc: "給与・評価に紐づく等級区分" },
-  { key: "jobType",       label: "職種",     desc: "業務内容に応じた職種区分" },
+  { key: "department",    label: "部署",     desc: "スタッフが所属する部署・課の一覧" },
+  { key: "position",      label: "役職",     desc: "スタッフの役職区分" },
+  { key: "grade",         label: "ステージ", desc: "給与・評価に紐づくステージ区分" },
   { key: "employmentType",label: "雇用形態", desc: "契約の種別区分" },
+  { key: "blank",         label: "ブランク", desc: "自由に使えるカテゴリー" },
 ];
 
 // ---- 1行コンポーネント ----
@@ -201,7 +202,7 @@ export default function MastersPage() {
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-5">
           <div>
             <h1 className="text-xl font-bold text-gray-800">マスター管理</h1>
-            <p className="text-sm text-gray-500 mt-1">従業員登録フォームの選択肢を管理します。</p>
+            <p className="text-sm text-gray-500 mt-1">スタッフ登録フォームの選択肢を管理します。</p>
           </div>
 
           <div className="flex flex-col md:flex-row gap-5">

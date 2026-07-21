@@ -42,7 +42,7 @@ export default async function EmployeePage({
           </div>
           <Link href="/employees" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">KeyaTree</Link>
           <span className="text-gray-300 mx-1">›</span>
-          <Link href="/employees" className="text-gray-500 text-sm hover:text-emerald-600 transition">従業員一覧</Link>
+          <Link href="/employees" className="text-gray-500 text-sm hover:text-emerald-600 transition">スタッフ一覧</Link>
           <span className="text-gray-300 mx-1">›</span>
           <span className="text-gray-700 text-sm font-medium">{employee.name}</span>
         </div>

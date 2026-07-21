@@ -34,7 +34,7 @@ export default function EmployeeListPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <HeaderNav currentLabel="従業員一覧" extraRight={
+      <HeaderNav currentLabel="スタッフ一覧" extraRight={
         <div className="flex items-center gap-2">
           <Link href="/settings/masters" className="text-xs border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium px-3 py-2 rounded-lg transition">マスター管理</Link>
           <Link href="/employees/new" className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg transition">+ 新規登録</Link>
@@ -79,7 +79,7 @@ export default function EmployeeListPage() {
         {filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-3">検索結果なし</p>
-            <p className="text-sm">条件に一致する従業員が見つかりませんでした</p>
+            <p className="text-sm">条件に一致するスタッフが見つかりませんでした</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
