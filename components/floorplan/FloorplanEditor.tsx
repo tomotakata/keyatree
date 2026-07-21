@@ -1288,6 +1288,9 @@ export default function FloorplanEditor({
             </div>
           </div>
 
+        </aside>
+
+        <aside className="w-64 flex-shrink-0 order-last space-y-3">
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-2">
             <p className="text-xs font-bold text-gray-500">図面情報</p>
             <div className="text-xs flex justify-between"><span className="text-gray-500">部屋数</span><span className="font-bold text-gray-700">{rooms.length} 室</span></div>
