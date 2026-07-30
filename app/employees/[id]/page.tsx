@@ -142,6 +142,23 @@ export default function EmployeePage() {
           <Link href="/employees" className="text-gray-500 text-sm hover:text-emerald-600 transition">スタッフ一覧</Link>
           <span className="text-gray-300 mx-1">›</span>
           <span className="text-gray-700 text-sm font-medium">{employee.name}</span>
+
+          <div className="ml-auto flex items-center gap-2">
+            {session?.employeeId && (
+              <Link
+                href={`/employees/${session.employeeId}`}
+                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
+              >
+                マイページ
+              </Link>
+            )}
+            <Link
+              href="/features"
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
+            >
+              機能一覧
+            </Link>
+          </div>
         </div>
       </header>
 
