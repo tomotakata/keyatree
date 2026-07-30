@@ -2,7 +2,10 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { findAccount } from "@/lib/mockAccounts";
+import { findAccountByEmail } from "@/lib/mockAccounts";
+import { findStoredAccountByEmail } from "@/lib/staffStore";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function LoginPageContent() {
   const router = useRouter();
@@ -12,19 +15,60 @@ function LoginPageContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const clearErrors = () => {
+    setEmailError("");
+    setPasswordError("");
+    setFormError("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
+    clearErrors();
 
+    const trimmedEmail = email.trim();
+
+    // 入力チェック（空欄・形式）
+    let hasInputError = false;
+    if (!trimmedEmail) {
+      setEmailError("メールアドレスを入力してください");
+      hasInputError = true;
+    } else if (!EMAIL_RE.test(trimmedEmail)) {
+      setEmailError("メールアドレスの形式が正しくありません");
+      hasInputError = true;
+    }
+    if (!password) {
+      setPasswordError("パスワードを入力してください");
+      hasInputError = true;
+    }
+    if (hasInputError) return;
+
+    setLoading(true);
     await new Promise((r) => setTimeout(r, 600));
 
-    const account = findAccount(email.trim(), password);
+    const account = findAccountByEmail(trimmedEmail) ?? findStoredAccountByEmail(trimmedEmail);
+
+    // メールアドレスが登録されていない
     if (!account) {
-      setError("メールアドレスまたはパスワードが正しくありません");
+      setEmailError("このメールアドレスは登録されていません");
+      setLoading(false);
+      return;
+    }
+
+    // パスワード不一致
+    if (account.password !== password) {
+      setPasswordError("パスワードが正しくありません");
+      setLoading(false);
+      return;
+    }
+
+    // アカウント無効
+    if (!account.isActive) {
+      setFormError("このアカウントは無効化されています。管理者にお問い合わせください");
       setLoading(false);
       return;
     }
@@ -68,11 +112,19 @@ function LoginPageContent() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(""); setFormError(""); }}
                 placeholder="example@keyaki-s.com"
-                required
-                className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-300 transition"
+                className={`w-full text-sm border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 transition ${
+                  emailError
+                    ? "border-rose-300 focus:ring-rose-300 bg-rose-50/40"
+                    : "border-gray-200 focus:ring-emerald-300"
+                }`}
               />
+              {emailError && (
+                <p className="mt-1.5 text-xs text-rose-600 font-medium flex items-center gap-1">
+                  <span className="text-rose-400">⚠</span>{emailError}
+                </p>
+              )}
             </div>
 
             <div>
@@ -81,10 +133,13 @@ function LoginPageContent() {
                 <input
                   type={showPass ? "text" : "password"}
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                  onChange={(e) => { setPassword(e.target.value); setPasswordError(""); setFormError(""); }}
                   placeholder="••••••••"
-                  required
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 pr-16 focus:outline-none focus:ring-2 focus:ring-emerald-300 transition"
+                  className={`w-full text-sm border rounded-xl px-4 py-3 pr-16 focus:outline-none focus:ring-2 transition ${
+                    passwordError
+                      ? "border-rose-300 focus:ring-rose-300 bg-rose-50/40"
+                      : "border-gray-200 focus:ring-emerald-300"
+                  }`}
                 />
                 <button
                   type="button"
@@ -94,11 +149,16 @@ function LoginPageContent() {
                   {showPass ? "隠す" : "表示"}
                 </button>
               </div>
+              {passwordError && (
+                <p className="mt-1.5 text-xs text-rose-600 font-medium flex items-center gap-1">
+                  <span className="text-rose-400">⚠</span>{passwordError}
+                </p>
+              )}
             </div>
 
-            {error && (
+            {formError && (
               <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
-                <p className="text-xs text-rose-600 font-medium">{error}</p>
+                <p className="text-xs text-rose-600 font-medium">{formError}</p>
               </div>
             )}
 
@@ -115,30 +175,6 @@ function LoginPageContent() {
               ) : "ログイン"}
             </button>
           </form>
-
-          <div className="mt-6 pt-5 border-t">
-            <p className="text-xs text-gray-400 font-semibold mb-2 text-center">デモアカウント</p>
-            <div className="space-y-1.5">
-              {[
-                { role: "システム管理者", email: "admin@keyaki-s.com", pass: "admin1234" },
-                { role: "人事管理者", email: "tanaka@keyaki-s.com", pass: "password123" },
-                { role: "一般社員", email: "suzuki@keyaki-s.com", pass: "password123" },
-              ].map((d) => (
-                <button
-                  key={d.email}
-                  type="button"
-                  onClick={() => { setEmail(d.email); setPassword(d.pass); setError(""); }}
-                  className="w-full text-left bg-gray-50 hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 rounded-lg px-4 py-3 transition"
-                >
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs font-semibold text-gray-700">{d.role}</span>
-                    <span className="text-xs text-gray-400 font-mono break-all">{d.email}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-300 text-center mt-2">クリックで自動入力</p>
-          </div>
         </div>
       </div>
     </div>

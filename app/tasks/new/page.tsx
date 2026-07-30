@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createTask, CATEGORIES, MOCK_EMPLOYEES, type TaskType, type TaskPriority } from "@/lib/taskStore";
+import { createTask, getCategories, MOCK_EMPLOYEES, type TaskType, type TaskPriority } from "@/lib/taskStore";
 
 export default function NewTaskPage() {
   const router = useRouter();
@@ -11,11 +11,18 @@ export default function NewTaskPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
   const [category, setCategory] = useState("営業");
   const [type, setType] = useState<TaskType>("personal");
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [selectedMembers, setSelectedMembers] = useState<string[]>(["001"]);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const cats = getCategories();
+    setCategories(cats);
+    setCategory(cats[0] ?? "営業");
+  }, []);
 
   const toggleMember = (id: string) => {
     if (id === "001") return; // owner cannot be removed
@@ -100,9 +107,9 @@ export default function NewTaskPage() {
           <div className="grid grid-cols-2 gap-4">
             {/* 期日 */}
             <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">期日 <span className="text-rose-400">*</span></label>
+              <label className="block text-xs font-bold text-gray-600 mb-1">期日・時刻 <span className="text-rose-400">*</span></label>
               <input
-                type="date"
+                type="datetime-local"
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
@@ -117,7 +124,7 @@ export default function NewTaskPage() {
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400"
               >
-                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                {categories.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           </div>

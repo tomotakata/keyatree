@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { permissions, Permission } from "@/lib/permissions";
+import { addStoredStaff, addStoredAccount, makeNewEmployee } from "@/lib/staffStore";
 
 const departments = ["営業部 > 第一営業課", "営業部 > 第二営業課", "管理部 > 総務課", "物件管理部 > 物件課", "経営管理部"];
 const positions = ["代表取締役", "部長", "課長", "主任", "担当者"];
@@ -59,6 +60,7 @@ export default function NewEmployeePage() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [createdId, setCreatedId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
 
   const set = (key: keyof FormData, val: string) => {
@@ -87,6 +89,39 @@ export default function NewEmployeePage() {
     e.preventDefault();
     const err = validate();
     if (Object.keys(err).length > 0) { setErrors(err); return; }
+
+    // スタッフ情報を localStorage に永続化（マイページ・一覧に反映される）
+    const label = enneagramTypes.find((t) => String(t.type) === form.enneagramType)?.label ?? "";
+    const emp = makeNewEmployee({
+      name: form.name,
+      nameKana: form.nameKana,
+      department: form.department,
+      position: form.position,
+      grade: form.grade,
+      jobType: form.jobType,
+      employmentType: form.employmentType,
+      joinedAt: form.joinedAt,
+      enneagramType: Number(form.enneagramType),
+      enneagramLabel: label,
+      bio: form.bio,
+    });
+    addStoredStaff(emp);
+
+    // ログインアカウントも永続化
+    addStoredAccount({
+      id: `acc_${emp.id}`,
+      employeeId: emp.id,
+      name: form.name,
+      email: form.email.trim(),
+      password: form.password,
+      permissionId: selectedPerm.id,
+      permissionName: selectedPerm.name,
+      isActive: true,
+      lastLoginAt: null,
+      createdAt: new Date().toISOString().slice(0, 10),
+    });
+
+    setCreatedId(emp.id);
     setSubmitted(true);
   };
 
@@ -101,10 +136,15 @@ export default function NewEmployeePage() {
           <p className="text-sm text-gray-500 mb-1"><span className="font-bold text-gray-700">{form.name}</span> さんのアカウントを作成しました。</p>
           <p className="text-xs text-gray-400 mb-6">ログイン情報は登録メールアドレス宛に送信されます。</p>
           <div className="flex flex-col gap-2">
-            <Link href="/employees" className="w-full text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl transition text-center">
+            {createdId && (
+              <Link href={`/employees/${createdId}`} className="w-full text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl transition text-center">
+                マイページを開く
+              </Link>
+            )}
+            <Link href="/employees" className="w-full text-sm border border-emerald-200 text-emerald-600 hover:bg-emerald-50 font-bold py-2.5 rounded-xl transition text-center">
               スタッフ一覧へ戻る
             </Link>
-            <button onClick={() => { setForm(initial); setSubmitted(false); }} className="w-full text-sm border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium py-2.5 rounded-xl transition">
+            <button onClick={() => { setForm(initial); setSubmitted(false); setCreatedId(null); }} className="w-full text-sm border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium py-2.5 rounded-xl transition">
               続けて登録する
             </button>
           </div>

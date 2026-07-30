@@ -73,10 +73,26 @@ export const mockAccounts: Account[] = [
     lastLoginAt: "2025-05-26 10:00",
     createdAt: "2013-01-01",
   },
+  {
+    id: "acc_otomo",
+    employeeId: "",
+    name: "大友 様",
+    email: "otomo.palco.me@gmail.com",
+    password: "Yalove0911",
+    permissionId: "admin",
+    permissionName: "システム管理者",
+    isActive: true,
+    lastLoginAt: null,
+    createdAt: "2025-06-01",
+  },
 ];
 
 export function findAccount(email: string, password: string): Account | null {
   return mockAccounts.find(
     (a) => a.email === email && a.password === password && a.isActive
   ) ?? null;
+}
+
+export function findAccountByEmail(email: string): Account | null {
+  return mockAccounts.find((a) => a.email === email) ?? null;
 }

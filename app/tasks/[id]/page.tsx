@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   getTask, addMessage, updateTask, updateTaskStatus, addMember, removeMember, toggleReaction,
-  MOCK_EMPLOYEES, STATUS_CONFIG, PRIORITY_CONFIG, CATEGORIES,
+  archiveTask, deleteMessage, getCategories, formatDeadline, toDateTimeLocal,
+  MOCK_EMPLOYEES, STATUS_CONFIG, PRIORITY_CONFIG,
   type FullTask, type TaskStatus, type TaskMember, type TaskMessage, type TaskPriority, type TaskType,
 } from "@/lib/taskStore";
 
@@ -171,7 +172,7 @@ function MessageBubble({
 type Thread = { root: TaskMessage; replies: TaskMessage[] };
 
 function ThreadCard({
-  thread, allMessages, taskId, query, onReaction, onReply, defaultOpen,
+  thread, allMessages, taskId, query, onReaction, onReply, onDelete, defaultOpen,
 }: {
   thread: Thread;
   allMessages: TaskMessage[];
@@ -179,6 +180,7 @@ function ThreadCard({
   query: string;
   onReaction: (t: FullTask) => void;
   onReply: (msg: TaskMessage) => void;
+  onDelete: (msg: TaskMessage) => void;
   defaultOpen: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -227,6 +229,13 @@ function ThreadCard({
           >
             {open ? "▲" : "▼"}
           </button>
+          <button
+            onClick={() => { if (confirm("このスレッドを削除しますか？返信も全て削除されます。")) onDelete(root); }}
+            className="text-xs text-gray-300 hover:text-rose-500 transition px-1"
+            title="スレッドを削除"
+          >
+            🗑
+          </button>
         </div>
       </div>
 
@@ -266,10 +275,11 @@ function TaskEditModal({
 }) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
-  const [deadline, setDeadline] = useState(task.deadline);
+  const [deadline, setDeadline] = useState(toDateTimeLocal(task.deadline));
   const [category, setCategory] = useState(task.category);
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
   const [type, setType] = useState<TaskType>(task.type);
+  const categories = getCategories();
 
   const handleSave = () => {
     if (!title.trim()) return;
@@ -297,15 +307,15 @@ function TaskEditModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">期日</label>
-              <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)}
+              <label className="block text-xs font-bold text-gray-500 mb-1">期日・時刻</label>
+              <input type="datetime-local" value={deadline} onChange={e => setDeadline(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 mb-1">カテゴリ</label>
               <select value={category} onChange={e => setCategory(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
@@ -572,6 +582,19 @@ export default function TaskWorkspacePage() {
     showToast("タスクを更新しました");
   };
 
+  const handleDeleteThread = (msg: TaskMessage) => {
+    if (!task) return;
+    const updated = deleteMessage(task.id, msg.id);
+    if (updated) { setTask(updated); showToast("スレッドを削除しました"); }
+  };
+
+  const handleDeleteTask = () => {
+    if (!task) return;
+    if (!confirm("このタスクをアーカイブに移動しますか？アーカイブからいつでも復旧・完全削除できます。")) return;
+    archiveTask(task.id);
+    router.push("/tasks");
+  };
+
   if (!task) return null;
 
   const cfg = STATUS_CONFIG[task.status];
@@ -583,6 +606,14 @@ export default function TaskWorkspacePage() {
       {/* ヘッダー */}
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm flex-shrink-0">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
+          <button onClick={() => router.push("/tasks")}
+            className="flex items-center gap-1 text-sm text-gray-500 hover:text-emerald-600 transition font-medium">
+            <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" stroke="currentColor" strokeWidth="2">
+              <path d="M12 15l-5-5 5-5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            もどる
+          </button>
+          <span className="text-gray-200">|</span>
           <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
             <span className="text-white text-xs font-bold">K</span>
           </div>
@@ -622,7 +653,7 @@ export default function TaskWorkspacePage() {
             </button>
             {detailOpen && (
               <div className="px-4 pb-4 border-t pt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div><p className="text-xs text-gray-400 mb-0.5">期日</p><p className="text-sm font-semibold text-gray-700">{fmtD(task.deadline)}</p></div>
+                <div><p className="text-xs text-gray-400 mb-0.5">期日</p><p className="text-sm font-semibold text-gray-700">{formatDeadline(task.deadline)}</p></div>
                 <div><p className="text-xs text-gray-400 mb-0.5">カテゴリ</p><span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{task.category}</span></div>
                 <div><p className="text-xs text-gray-400 mb-0.5">作成者</p><p className="text-sm text-gray-700">{task.ownerName}</p></div>
                 <div><p className="text-xs text-gray-400 mb-0.5">作成日</p><p className="text-xs text-gray-600">{fmtD(task.createdAt)}</p></div>
@@ -690,6 +721,7 @@ export default function TaskWorkspacePage() {
                   query={searchQuery}
                   onReaction={setTask}
                   onReply={setReplyTo}
+                  onDelete={handleDeleteThread}
                   defaultOpen={i === filteredThreads.length - 1}
                 />
               ))}
@@ -777,6 +809,15 @@ export default function TaskWorkspacePage() {
                 {action.label}
               </button>
             ))}
+          </div>
+          {/* アーカイブ */}
+          <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-4">
+            <p className="text-xs font-bold text-amber-500 uppercase tracking-wide mb-3">タスクのアーカイブ</p>
+            <button onClick={handleDeleteTask}
+              className="w-full text-center px-3 py-2.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-sm font-bold hover:bg-amber-100 transition">
+              アーカイブに移動する
+            </button>
+            <p className="text-xs text-gray-400 mt-2 leading-relaxed">アーカイブしたタスクは一覧から非表示になりますが、アーカイブ画面から閲覧・復旧・完全削除できます。</p>
           </div>
         </div>
       </div>

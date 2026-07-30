@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { employees, calcTenure } from "@/lib/mockData";
+import { employees, calcTenure, Employee } from "@/lib/mockData";
+import { getStoredStaff } from "@/lib/staffStore";
 import Avatar from "@/components/Avatar";
 import HeaderNav from "@/components/HeaderNav";
 
@@ -20,8 +21,18 @@ export default function EmployeeListPage() {
   const [search, setSearch] = useState("");
   const [dept, setDept] = useState("すべて");
   const [rank, setRank] = useState("すべて");
+  const [allEmployees, setAllEmployees] = useState<Employee[]>(employees);
 
-  const filtered = employees.filter((e) => {
+  useEffect(() => {
+    const stored = getStoredStaff();
+    if (stored.length > 0) {
+      // 静的データと重複しないIDのみマージ
+      const existing = new Set(employees.map((e) => e.id));
+      setAllEmployees([...employees, ...stored.filter((s) => !existing.has(s.id))]);
+    }
+  }, []);
+
+  const filtered = allEmployees.filter((e) => {
     const matchSearch =
       e.name.includes(search) ||
       e.nameKana.includes(search) ||
@@ -71,7 +82,7 @@ export default function EmployeeListPage() {
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-500">
             <span className="font-bold text-gray-800">{filtered.length}</span> 名表示中
-            {employees.length !== filtered.length && `（全${employees.length}名中）`}
+            {allEmployees.length !== filtered.length && `（全${allEmployees.length}名中）`}
           </p>
         </div>
 

@@ -1,6 +1,10 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { getEmployee, calcTenure } from "@/lib/mockData";
+import { getEmployee, calcTenure, Employee } from "@/lib/mockData";
+import { getStoredStaffById } from "@/lib/staffStore";
 import EmployeeCard from "@/components/EmployeeCard";
 import BasicInfo from "@/components/BasicInfo";
 import SkillRadar from "@/components/SkillRadar";
@@ -20,14 +24,38 @@ const rankColors: Record<string, { bg: string; text: string; border: string }> =
   C: { bg: "bg-gray-50", text: "text-gray-500", border: "border-gray-200" },
 };
 
-export default async function EmployeePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const employee = getEmployee(id);
-  if (!employee) notFound();
+export default function EmployeePage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
+  const [employee, setEmployee] = useState<Employee | null | undefined>(undefined);
+
+  useEffect(() => {
+    // 静的データ → localStorage の新規スタッフ の順で解決
+    const emp = getEmployee(id) ?? getStoredStaffById(id) ?? null;
+    setEmployee(emp);
+  }, [id]);
+
+  if (employee === undefined) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <span className="w-8 h-8 border-2 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (employee === null) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-sm border p-10 text-center max-w-sm w-full mx-4">
+          <p className="text-2xl font-black text-gray-700 mb-2">スタッフが見つかりません</p>
+          <p className="text-sm text-gray-500 mb-6">指定されたスタッフは存在しないか、削除された可能性があります。</p>
+          <Link href="/employees" className="inline-block text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl transition">
+            スタッフ一覧へ戻る
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const tenure = calcTenure(employee.joinedAt);
   const rank = rankColors[employee.evaluationRank] ?? rankColors["B"];

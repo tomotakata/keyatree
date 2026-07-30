@@ -39,6 +39,8 @@ export type FullTask = {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
+  archived?: boolean;
+  archivedAt?: string;
 };
 
 const STORAGE_KEY = "keyatree_tasks_v1";
@@ -169,7 +171,11 @@ export function seedTasks() {
 }
 
 export function getAllTasks(): FullTask[] {
-  return readAll().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return readAll().filter((t) => !t.archived).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export function getArchivedTasks(): FullTask[] {
+  return readAll().filter((t) => t.archived).sort((a, b) => (b.archivedAt ?? "").localeCompare(a.archivedAt ?? ""));
 }
 
 export function getTask(id: string): FullTask | null {
@@ -267,6 +273,44 @@ export function removeMember(taskId: string, memberId: string): FullTask | null 
   return all[idx];
 }
 
+export function archiveTask(taskId: string): boolean {
+  const all = readAll();
+  const idx = all.findIndex((t) => t.id === taskId);
+  if (idx < 0) return false;
+  all[idx].archived = true;
+  all[idx].archivedAt = new Date().toISOString();
+  writeAll(all);
+  return true;
+}
+
+export function restoreTask(taskId: string): boolean {
+  const all = readAll();
+  const idx = all.findIndex((t) => t.id === taskId);
+  if (idx < 0) return false;
+  all[idx].archived = false;
+  delete all[idx].archivedAt;
+  all[idx].updatedAt = new Date().toISOString();
+  writeAll(all);
+  return true;
+}
+
+export function deleteTask(taskId: string): boolean {
+  const all = readAll();
+  const next = all.filter((t) => t.id !== taskId);
+  writeAll(next);
+  return next.length !== all.length;
+}
+
+export function deleteMessage(taskId: string, msgId: string): FullTask | null {
+  const all = readAll();
+  const idx = all.findIndex((t) => t.id === taskId);
+  if (idx < 0) return null;
+  all[idx].messages = all[idx].messages.filter((m) => m.id !== msgId && m.replyToId !== msgId);
+  all[idx].updatedAt = new Date().toISOString();
+  writeAll(all);
+  return all[idx];
+}
+
 export function toggleReaction(taskId: string, msgId: string, emoji: string, userId: string): FullTask | null {
   const all = readAll();
   const idx = all.findIndex((t) => t.id === taskId);
@@ -303,3 +347,42 @@ export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: strin
 };
 
 export const CATEGORIES = ["営業", "管理", "報告", "契約", "物件管理", "研修", "総務", "経営", "その他"];
+
+const CATEGORY_KEY = "keyatree_task_categories_v1";
+
+export function getCategories(): string[] {
+  if (typeof window === "undefined") return CATEGORIES;
+  try {
+    const raw = window.localStorage.getItem(CATEGORY_KEY);
+    if (!raw) return CATEGORIES;
+    const arr = JSON.parse(raw) as string[];
+    return Array.isArray(arr) && arr.length > 0 ? arr : CATEGORIES;
+  } catch {
+    return CATEGORIES;
+  }
+}
+
+export function saveCategories(cats: string[]) {
+  if (typeof window === "undefined") return;
+  const cleaned = cats.map((c) => c.trim()).filter((c, i, a) => c && a.indexOf(c) === i);
+  window.localStorage.setItem(CATEGORY_KEY, JSON.stringify(cleaned));
+}
+
+/** 期限を「年月日 + 時刻(あれば)」で表示 */
+export function formatDeadline(value: string): string {
+  if (!value) return "未設定";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const date = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+  if (value.includes("T")) {
+    return `${date} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }
+  return date;
+}
+
+/** datetime-local入力用の値に正規化 */
+export function toDateTimeLocal(value: string): string {
+  if (!value) return "";
+  if (value.includes("T")) return value.slice(0, 16);
+  return `${value}T00:00`;
+}
