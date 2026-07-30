@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import BackButton from "@/components/BackButton";
 
 // ---- 初期マスターデータ ----
 type MasterItem = { id: string; label: string; order: number };
@@ -190,6 +191,7 @@ export default function MastersPage() {
         {/* ヘッダー */}
         <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
           <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
+            <BackButton />
             <Link href="/employees" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
               <span className="text-white text-xs font-bold">K</span>
             </Link>

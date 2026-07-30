@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import BackButton from "@/components/BackButton";
 import {
   getTask, addMessage, updateTask, updateTaskStatus, addMember, removeMember, toggleReaction,
   archiveTask, deleteMessage, getCategories, formatDeadline, toDateTimeLocal,
@@ -606,6 +607,7 @@ export default function TaskWorkspacePage() {
       {/* ヘッダー */}
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm flex-shrink-0">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
+          <BackButton />
           <button onClick={() => router.push("/tasks")}
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-emerald-600 transition font-medium">
             <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" stroke="currentColor" strokeWidth="2">

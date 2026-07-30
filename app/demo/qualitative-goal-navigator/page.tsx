@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import AiAssist from "@/components/goal-navigator/AiAssist";
+import BackButton from "@/components/BackButton";
 
 const stageOptions = ["Stage 1 基礎遂行", "Stage 2 自律推進", "Stage 3 周囲牽引"];
 const departmentOptions = [
@@ -102,6 +103,7 @@ export default function QualitativeGoalNavigatorDemoPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
+          <BackButton />
           <Link href="/docs" className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center">
             <span className="text-white text-xs font-bold">K</span>
           </Link>

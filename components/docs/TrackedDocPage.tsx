@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import BackButton from "@/components/BackButton";
 
 type ViewRecord = {
   id: string;
@@ -184,6 +185,7 @@ export default function TrackedDocPage({
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
           <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
+            <BackButton />
             <Link href="/employees" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
               <span className="text-white text-xs font-bold">K</span>
             </Link>

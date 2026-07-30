@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import AiAssist from "@/components/goal-navigator/AiAssist";
+import BackButton from "@/components/BackButton";
 
 const whyPrompts = [
   "その目標を達成したい理由を教えてください。",
@@ -122,6 +123,7 @@ export default function GoalNavigatorDemoPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
+          <BackButton />
           <Link href="/docs" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
             <span className="text-white text-xs font-bold">K</span>
           </Link>

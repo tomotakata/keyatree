@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { permissions, Permission } from "@/lib/permissions";
 import { makeNewEmployee } from "@/lib/staffStore";
+import BackButton from "@/components/BackButton";
 
 const departments = ["営業部 > 第一営業課", "営業部 > 第二営業課", "管理部 > 総務課", "物件管理部 > 物件課", "経営管理部"];
 const positions = ["代表取締役", "部長", "課長", "主任", "担当者"];
@@ -175,6 +176,7 @@ export default function NewEmployeePage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
+          <BackButton />
           <Link href="/employees" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
             <span className="text-white text-xs font-bold">K</span>
           </Link>

@@ -9,6 +9,7 @@ import { saveNavigatorRecord } from "@/lib/goalNavigatorActions";
 import { QUAL_DRAFT_BASE, nsKey } from "@/lib/goalStorage";
 import AiAssist from "@/components/goal-navigator/AiAssist";
 import ChatNavigator from "@/components/goal-navigator/ChatNavigator";
+import BackButton from "@/components/BackButton";
 
 const sampleAnswers: Record<string, string> = {
   name: "田中 花子",
@@ -257,6 +258,7 @@ export default function QualitativeGoalNavigatorPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
+          <BackButton />
           <Link href="/employees" className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center">
             <span className="text-white text-xs font-bold">K</span>
           </Link>

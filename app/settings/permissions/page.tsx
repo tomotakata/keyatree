@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { permissions, accessLabels, featureLabels } from "@/lib/permissions";
+import BackButton from "@/components/BackButton";
 
 const colorMap: Record<string, { badge: string; header: string; dot: string }> = {
   rose:    { badge: "bg-rose-100 text-rose-700 border border-rose-200",    header: "bg-rose-500",    dot: "bg-rose-400" },
@@ -27,6 +28,7 @@ export default function PermissionsPage() {
       {/* ヘッダー */}
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
+          <BackButton />
           <Link href="/employees" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
             <span className="text-white text-xs font-bold">K</span>
           </Link>

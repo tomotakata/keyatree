@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createTask, getCategories, MOCK_EMPLOYEES, type TaskType, type TaskPriority } from "@/lib/taskStore";
+import BackButton from "@/components/BackButton";
 
 export default function NewTaskPage() {
   const router = useRouter();
@@ -67,6 +68,7 @@ export default function NewTaskPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
+          <BackButton />
           <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
             <span className="text-white text-xs font-bold">K</span>
           </div>

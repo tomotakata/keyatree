@@ -23,10 +23,22 @@ export default function HeaderNav({ currentLabel, extraRight }: { currentLabel?:
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(false);
 
   useEffect(() => {
     setSession(parseCookieSession());
+    if (typeof window !== "undefined") {
+      setCanGoBack(window.history.length > 1);
+    }
   }, []);
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/employees");
+    }
+  };
 
   const handleLogout = () => {
     document.cookie = "kt_session=; path=/; max-age=0";
@@ -36,6 +48,17 @@ export default function HeaderNav({ currentLabel, extraRight }: { currentLabel?:
   return (
     <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
+        {/* 戻る */}
+        {canGoBack && (
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-1 text-xs font-bold text-gray-600 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300 rounded-full pl-2 pr-3 py-1.5 transition flex-shrink-0"
+            aria-label="一つ前に戻る"
+          >
+            <span className="text-sm leading-none">‹</span>
+            戻る
+          </button>
+        )}
         {/* ロゴ */}
         <Link href="/employees" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
           <span className="text-white text-xs font-bold">K</span>

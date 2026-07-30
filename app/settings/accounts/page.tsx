@@ -5,6 +5,7 @@ import Link from "next/link";
 import { mockAccounts, Account } from "@/lib/mockAccounts";
 import { permissions } from "@/lib/permissions";
 import Avatar from "@/components/Avatar";
+import BackButton from "@/components/BackButton";
 
 const permColorMap: Record<string, string> = {
   admin:        "bg-rose-100 text-rose-700 border-rose-200",
@@ -149,6 +150,7 @@ export default function AccountsPage() {
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
           <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
+            <BackButton />
             <Link href="/employees" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
               <span className="text-white text-xs font-bold">K</span>
             </Link>

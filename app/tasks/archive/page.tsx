@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/BackButton";
 import {
   getArchivedTasks, restoreTask, deleteTask, formatDeadline,
   STATUS_CONFIG, PRIORITY_CONFIG,
@@ -101,6 +102,7 @@ export default function ArchivePage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
+          <BackButton />
           <button onClick={() => router.push("/tasks")}
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-emerald-600 transition font-medium">
             <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" stroke="currentColor" strokeWidth="2">

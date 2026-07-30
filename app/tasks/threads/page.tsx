@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { getAllTasks, seedTasks, STATUS_CONFIG, PRIORITY_CONFIG, type FullTask, type TaskMessage } from "@/lib/taskStore";
+import BackButton from "@/components/BackButton";
 
 function fmtDT(iso: string) {
   const d = new Date(iso);
@@ -64,6 +65,7 @@ export default function ThreadListPage() {
       {/* ヘッダー */}
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
+          <BackButton />
           <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
             <span className="text-white text-xs font-bold">K</span>
           </div>
