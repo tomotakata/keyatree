@@ -62,13 +62,15 @@ export default function MonthlyGoalCard({
         </div>
 
         <div className="p-5 space-y-5">
-          {/* 宣言文 */}
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-xl p-4">
-            <p className="text-gray-800 font-bold text-sm leading-relaxed text-center">
-              "{monthlyGoal.declaration}"
-            </p>
-            <p className="text-right text-xs text-gray-400 mt-2">— {employeeName}</p>
-          </div>
+          {/* 宣言文（設定済みのときのみ表示） */}
+          {monthlyGoal.declaration?.trim() ? (
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-xl p-4">
+              <p className="text-gray-800 font-bold text-sm leading-relaxed text-center">
+                "{monthlyGoal.declaration}"
+              </p>
+              <p className="text-right text-xs text-gray-400 mt-2">— {employeeName}</p>
+            </div>
+          ) : null}
 
           {/* 承認済み目標 進捗リマインド */}
           <ProgressReminder employeeId={employeeId} />

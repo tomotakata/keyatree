@@ -1,33 +1,32 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import {
-  QUANT_DRAFT_BASE,
-  QUAL_DRAFT_BASE,
-  nsKey,
-  progressLogsKey,
-} from "@/lib/goalStorage";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
-type ProgressLog = {
-  loggedAt: string;
-  progress: string;
-  challenge: string;
+type ProgressReply = {
+  id: string;
+  at: string;
+  authorName: string;
+  isApprover?: boolean;
+  body: string;
 };
 
-type ReminderRecord = {
-  storageKey: string;
-  recordId: string;
-  employeeId: string;
+type ProgressUpdate = {
+  id: string;
+  at: string;
+  authorName: string;
+  body: string;
+  replies?: ProgressReply[];
+};
+
+type NavigatorRecord = {
+  id: string;
   kind: "quantitative" | "qualitative";
   title: string;
-  name: string;
-  department: string;
-  deadline?: string;
-  kr1?: string;
-  kr2?: string;
-  kr3?: string;
+  status: "draft" | "submitted" | "approved" | "rejected";
+  answers: Record<string, string>;
   approvedAt?: string;
-  logs: ProgressLog[];
+  progressUpdates?: ProgressUpdate[];
 };
 
 function formatDate(iso?: string) {
@@ -48,20 +47,17 @@ function daysSince(iso?: string): number {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 
-function reminderMessage(record: ReminderRecord): string {
-  const logs = record.logs;
+function reminderMessage(record: NavigatorRecord): string {
+  const logs = record.progressUpdates ?? [];
   const sinceApproval = daysSince(record.approvedAt);
-
   if (logs.length === 0) {
     if (sinceApproval >= 7) {
       return `「${record.title}」の承認から${sinceApproval}日が経過しています。最初の進捗を記録しましょう！`;
     }
     return `「${record.title}」が承認されました。目標に向けて、進捗を記録していきましょう。`;
   }
-
-  const lastLog = logs[logs.length - 1];
-  const daysSinceLast = daysSince(lastLog.loggedAt);
-
+  const last = logs[logs.length - 1];
+  const daysSinceLast = daysSince(last.at);
   if (daysSinceLast >= 14) {
     return `前回の進捗記録から${daysSinceLast}日が経過しています。「${record.title}」の現状を確認しましょう。`;
   }
@@ -71,74 +67,37 @@ function reminderMessage(record: ReminderRecord): string {
   return `「${record.title}」の進捗を継続して記録できています。この調子で続けましょう！`;
 }
 
-function urgencyLevel(record: ReminderRecord): "high" | "medium" | "low" {
+function urgencyLevel(record: NavigatorRecord): "high" | "medium" | "low" {
+  const logs = record.progressUpdates ?? [];
   const sinceApproval = daysSince(record.approvedAt);
-  if (record.logs.length === 0 && sinceApproval >= 7) return "high";
-  if (record.logs.length > 0) {
-    const daysSinceLast = daysSince(record.logs[record.logs.length - 1].loggedAt);
+  if (logs.length === 0 && sinceApproval >= 7) return "high";
+  if (logs.length > 0) {
+    const daysSinceLast = daysSince(logs[logs.length - 1].at);
     if (daysSinceLast >= 14) return "high";
     if (daysSinceLast >= 7) return "medium";
   }
   return "low";
 }
 
-function ProgressCard({ record, onUpdate }: { record: ReminderRecord; onUpdate: () => void }) {
-  const [open, setOpen] = useState(false);
+function ProgressCard({ record }: { record: NavigatorRecord }) {
   const [showHistory, setShowHistory] = useState(false);
-  const [progress, setProgress] = useState("");
-  const [challenge, setChallenge] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const logs = record.progressUpdates ?? [];
+  const a = record.answers || {};
+  const krs = [a.kr1, a.kr2, a.kr3].filter(Boolean) as string[];
 
   const urgency = urgencyLevel(record);
   const message = reminderMessage(record);
 
   const urgencyStyles = {
-    high: { bar: "bg-red-400", badge: "bg-red-100 text-red-700 border-red-200", icon: "!" },
-    medium: { bar: "bg-amber-400", badge: "bg-amber-100 text-amber-700 border-amber-200", icon: "?" },
-    low: { bar: "bg-emerald-400", badge: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: "ok" },
+    high: { bar: "bg-red-400", badge: "bg-red-100 text-red-700 border-red-200" },
+    medium: { bar: "bg-amber-400", badge: "bg-amber-100 text-amber-700 border-amber-200" },
+    low: { bar: "bg-emerald-400", badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   };
   const style = urgencyStyles[urgency];
 
-  function handleSave() {
-    if (!progress.trim()) return;
-    setSaving(true);
-
-    const newLog: ProgressLog = {
-      loggedAt: new Date().toISOString(),
-      progress: progress.trim(),
-      challenge: challenge.trim(),
-    };
-
-    const logsKey = progressLogsKey(record.recordId, record.employeeId);
-    const existing: ProgressLog[] = (() => {
-      try {
-        return JSON.parse(window.localStorage.getItem(logsKey) || "[]");
-      } catch {
-        return [];
-      }
-    })();
-
-    existing.push(newLog);
-    window.localStorage.setItem(logsKey, JSON.stringify(existing));
-
-    setTimeout(() => {
-      setSaving(false);
-      setSaved(true);
-      setProgress("");
-      setChallenge("");
-      setOpen(false);
-      onUpdate();
-      setTimeout(() => setSaved(false), 3000);
-    }, 400);
-  }
-
   return (
     <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
-      {/* urgency bar */}
       <div className={`h-1 w-full ${style.bar}`} />
-
       <div className="p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1 flex-1">
@@ -153,14 +112,13 @@ function ProgressCard({ record, onUpdate }: { record: ReminderRecord; onUpdate: 
             <p className="text-base font-bold text-gray-800">{record.title}</p>
             <p className="text-sm text-gray-500">{message}</p>
 
-            {record.deadline && (
-              <p className="text-xs text-gray-400">期限: {record.deadline} / 承認日: {formatDate(record.approvedAt)}</p>
+            {a.deadline && (
+              <p className="text-xs text-gray-400">期限: {a.deadline} / 承認日: {formatDate(record.approvedAt)}</p>
             )}
 
-            {/* KR list */}
-            {(record.kr1 || record.kr2 || record.kr3) && (
+            {krs.length > 0 && (
               <ul className="mt-2 space-y-0.5">
-                {[record.kr1, record.kr2, record.kr3].filter(Boolean).map((kr, i) => (
+                {krs.map((kr, i) => (
                   <li key={i} className="text-xs text-gray-500 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
                     {kr}
@@ -169,89 +127,50 @@ function ProgressCard({ record, onUpdate }: { record: ReminderRecord; onUpdate: 
               </ul>
             )}
 
-            {/* latest log */}
-            {record.logs.length > 0 && (
+            {logs.length > 0 && (
               <div className="mt-2 rounded-xl bg-gray-50 border p-3">
-                <p className="text-xs text-gray-400 mb-1">最終記録: {formatDateTime(record.logs[record.logs.length - 1].loggedAt)}</p>
-                <p className="text-sm text-gray-700">{record.logs[record.logs.length - 1].progress}</p>
-                {record.logs[record.logs.length - 1].challenge && (
-                  <p className="text-xs text-gray-500 mt-1">課題: {record.logs[record.logs.length - 1].challenge}</p>
-                )}
+                <p className="text-xs text-gray-400 mb-1">最終記録: {formatDateTime(logs[logs.length - 1].at)}</p>
+                <p className="text-sm text-gray-700">{logs[logs.length - 1].body}</p>
               </div>
             )}
           </div>
 
           <div className="flex flex-wrap gap-2 flex-shrink-0">
-            {record.logs.length > 0 && (
+            {logs.length > 0 && (
               <button
                 onClick={() => setShowHistory((v) => !v)}
                 className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
               >
-                履歴 ({record.logs.length}件)
+                履歴 ({logs.length}件)
               </button>
             )}
-            <button
-              onClick={() => { setOpen((v) => !v); setTimeout(() => textareaRef.current?.focus(), 100); }}
+            <Link
+              href={`/approvals/goal-navigators/${record.id}`}
               className="rounded-xl bg-emerald-500 hover:bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition"
             >
-              {open ? "閉じる" : "進捗を入力"}
-            </button>
+              進捗を入力
+            </Link>
           </div>
         </div>
 
-        {/* history panel */}
-        {showHistory && record.logs.length > 0 && (
+        {showHistory && logs.length > 0 && (
           <div className="mt-4 space-y-2 border-t pt-4">
             <p className="text-xs font-bold text-gray-500">進捗履歴</p>
-            {[...record.logs].reverse().map((log, i) => (
-              <div key={i} className="rounded-xl bg-gray-50 border p-3 space-y-1">
-                <p className="text-xs text-gray-400">{formatDateTime(log.loggedAt)}</p>
-                <p className="text-sm text-gray-700">{log.progress}</p>
-                {log.challenge && (
-                  <p className="text-xs text-gray-500">課題: {log.challenge}</p>
-                )}
+            {[...logs].reverse().map((log) => (
+              <div key={log.id} className="rounded-xl bg-gray-50 border p-3 space-y-1">
+                <p className="text-xs text-gray-400">{formatDateTime(log.at)} ・ {log.authorName}</p>
+                <p className="text-sm text-gray-700">{log.body}</p>
+                {(log.replies ?? []).map((rep) => (
+                  <div key={rep.id} className={`mt-2 rounded-lg border p-2 ${rep.isApprover ? "bg-amber-50 border-amber-200" : "bg-white border-gray-200"}`}>
+                    <p className="text-xs text-gray-400">
+                      {formatDateTime(rep.at)} ・ {rep.authorName}
+                      {rep.isApprover ? <span className="ml-1 rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">管理者</span> : null}
+                    </p>
+                    <p className="text-sm text-gray-700">{rep.body}</p>
+                  </div>
+                ))}
               </div>
             ))}
-          </div>
-        )}
-
-        {/* input form */}
-        {open && (
-          <div className="mt-4 space-y-3 border-t pt-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">現在の進捗状況 <span className="text-red-400">*</span></label>
-              <textarea
-                ref={textareaRef}
-                value={progress}
-                onChange={(e) => setProgress(e.target.value)}
-                rows={3}
-                placeholder="例：紹介案件比率が22%に改善。引き続き既存顧客へのフォロー連絡を継続中。"
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">現在の課題・困っていること（任意）</label>
-              <textarea
-                value={challenge}
-                onChange={(e) => setChallenge(e.target.value)}
-                rows={2}
-                placeholder="例：月初の商談数がまだ不足気味で、月末に負荷が集中しやすい。"
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-400">記録はこの端末に保存されます</p>
-              <div className="flex gap-2 items-center">
-                {saved && <span className="text-xs font-bold text-emerald-600">保存しました</span>}
-                <button
-                  onClick={handleSave}
-                  disabled={!progress.trim() || saving}
-                  className="rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 disabled:text-gray-400 px-5 py-2 text-sm font-bold text-white transition"
-                >
-                  {saving ? "保存中..." : "保存する"}
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>
@@ -260,67 +179,49 @@ function ProgressCard({ record, onUpdate }: { record: ReminderRecord; onUpdate: 
 }
 
 export default function ProgressReminder({ employeeId }: { employeeId: string }) {
-  const [records, setRecords] = useState<ReminderRecord[]>([]);
-
-  function load() {
-
-    const sources = [
-      { base: QUANT_DRAFT_BASE, kind: "quantitative" as const },
-      { base: QUAL_DRAFT_BASE, kind: "qualitative" as const },
-    ];
-
-    const next: ReminderRecord[] = [];
-
-    for (const source of sources) {
-      const key = nsKey(source.base, employeeId);
-      const raw = window.localStorage.getItem(key);
-      if (!raw) continue;
-      try {
-        const parsed = JSON.parse(raw) as {
-          recordId?: string;
-          status?: string;
-          approvedAt?: string;
-          answers?: Record<string, string>;
-        };
-        if (parsed.status !== "approved" || !parsed.answers) continue;
-
-        const recordId = parsed.recordId || `${source.kind}-local`;
-        const logsKey = progressLogsKey(recordId, employeeId);
-        const logs: ProgressLog[] = (() => {
-          try { return JSON.parse(window.localStorage.getItem(logsKey) || "[]"); } catch { return []; }
-        })();
-
-        const a = parsed.answers;
-        next.push({
-          storageKey: key,
-          recordId,
-          employeeId,
-          kind: source.kind,
-          title: a.goal || (source.kind === "quantitative" ? "目標設定シート" : "定性目標設定シート"),
-          name: a.name || "",
-          department: a.department || "",
-          deadline: a.deadline,
-          kr1: a.kr1,
-          kr2: a.kr2,
-          kr3: a.kr3,
-          approvedAt: parsed.approvedAt,
-          logs,
-        });
-      } catch {}
-    }
-
-    setRecords(next);
-  }
+  const [records, setRecords] = useState<NavigatorRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    load();
-    // SeedGoalData からのシード完了イベントを受け取って再ロード
-    const handler = () => load();
-    window.addEventListener("keyatree_seed_done", handler);
-    return () => window.removeEventListener("keyatree_seed_done", handler);
+    let active = true;
+    setLoading(true);
+    fetch(`/api/goal-navigators?employeeId=${encodeURIComponent(employeeId)}`, {
+      cache: "no-store",
+    })
+      .then((r) => (r.ok ? r.json() : { records: [] }))
+      .then((data: { records?: NavigatorRecord[] }) => {
+        if (!active) return;
+        const approved = (data.records ?? []).filter((r) => r.status === "approved");
+        setRecords(approved);
+      })
+      .catch(() => {
+        if (active) setRecords([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [employeeId]);
 
-  if (records.length === 0) return null;
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-gray-400">
+        <span className="w-4 h-4 border-2 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
+        承認済み目標を読み込み中...
+      </div>
+    );
+  }
+
+  if (records.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-center">
+        <p className="text-sm text-gray-500">承認済みの目標はまだありません。</p>
+        <p className="text-xs text-gray-400 mt-1">目標設定を作成し、承認されるとここに表示されます。</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -330,9 +231,9 @@ export default function ProgressReminder({ employeeId }: { employeeId: string })
           {records.length}件
         </span>
       </div>
-      <p className="text-xs text-gray-500">承認済みの目標に対して、定期的に進捗・課題を記録することで振り返りができます。</p>
+      <p className="text-xs text-gray-500">承認済みの目標に対して、定期的に進捗・課題を記録することで振り返りができます。記録はどの端末からでも確認できます。</p>
       {records.map((record) => (
-        <ProgressCard key={record.recordId} record={record} onUpdate={load} />
+        <ProgressCard key={record.id} record={record} />
       ))}
     </div>
   );
