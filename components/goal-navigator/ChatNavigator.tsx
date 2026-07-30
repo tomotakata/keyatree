@@ -353,7 +353,14 @@ export default function ChatNavigator({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && current?.kind !== "textarea") {
+                // IME変換確定のEnterは送信しない（日本語入力対策）
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  current?.kind !== "textarea" &&
+                  !e.nativeEvent.isComposing &&
+                  (e.nativeEvent as { keyCode?: number }).keyCode !== 229
+                ) {
                   e.preventDefault();
                   submitValue(input);
                 }
