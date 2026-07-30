@@ -15,8 +15,11 @@ type AssistBody = {
   answers?: Record<string, string>;
 };
 
-// 高い再現性のため gpt-4o を使用（環境変数 OPENAI_MODEL で上書き可能）
-const MODEL = process.env.OPENAI_MODEL || "gpt-4o";
+// KIE AI 経由で最適な LLM を利用する。
+// 既定は gpt-5.2（KIE のモデルパス/モデル名は "gpt-5-2"）。環境変数 KIE_MODEL で上書き可能。
+const MODEL = process.env.KIE_MODEL || "gpt-5-2";
+// KIE の chat completions エンドポイントは https://api.kie.ai/{model}/v1/chat/completions
+const KIE_BASE = process.env.KIE_BASE_URL || "https://api.kie.ai";
 
 // ─────────────────────────────────────────────────────────────
 // マイGPT「目標設定ナビゲーター（定量）」の思考プロセスを再現するシステムプロンプト
@@ -149,10 +152,10 @@ function buildUserPrompt(body: AssistBody): string {
 }
 
 export async function POST(request: Request) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.KIE_API_KEY || process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: "OPENAI_API_KEY が設定されていません。" },
+      { error: "KIE_API_KEY が設定されていません。" },
       { status: 500 }
     );
   }
@@ -167,7 +170,7 @@ export async function POST(request: Request) {
   const system = body.kind === "qualitative" ? QUAL_SYSTEM : QUANT_SYSTEM;
 
   try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch(`${KIE_BASE}/${MODEL}/v1/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -175,8 +178,6 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         model: MODEL,
-        temperature: 0.7,
-        max_tokens: 700,
         messages: [
           { role: "system", content: system },
           { role: "user", content: buildUserPrompt(body) },
@@ -191,24 +192,19 @@ export async function POST(request: Request) {
       try {
         const parsed = JSON.parse(detail);
         code = parsed?.error?.code ?? parsed?.error?.type ?? "";
-        apiMessage = parsed?.error?.message ?? "";
+        apiMessage = parsed?.error?.message ?? parsed?.message ?? "";
       } catch {
         // detail was not JSON
       }
 
-      let friendly = `OpenAI APIエラー (${res.status})`;
+      let friendly = `AI APIエラー (${res.status})`;
       if (res.status === 429) {
-        if (code === "insufficient_quota") {
-          friendly =
-            "OpenAIの利用枠（クレジット残高）が不足しています。OpenAIダッシュボードの Billing で支払い方法の登録／クレジットの追加が必要です。";
-        } else {
-          friendly =
-            "OpenAIのレート制限に達しました。少し時間をおいて再度お試しください。";
-        }
-      } else if (res.status === 401) {
-        friendly = "OpenAI APIキーが無効です。キーを確認してください。";
+        friendly =
+          "KIE AI の利用枠（クレジット残高）が不足しているか、レート制限に達しました。KIE ダッシュボードで残高を確認してください。";
+      } else if (res.status === 401 || res.status === 403) {
+        friendly = "KIE AI の APIキーが無効です。キーを確認してください。";
       } else if (res.status === 404) {
-        friendly = `モデル「${MODEL}」が利用できません。APIキーの権限またはモデル名を確認してください。`;
+        friendly = `モデル「${MODEL}」が利用できません。KIE_MODEL の設定を確認してください。`;
       }
 
       return NextResponse.json(
