@@ -5,11 +5,20 @@ import Link from "next/link";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import { saveNavigatorRecord } from "@/lib/goalNavigatorActions";
+import { saveNavigatorRecord, getMyNavigatorRecords } from "@/lib/goalNavigatorActions";
+import type { NavigatorRecord, RecordStatus } from "@/lib/goalNavigatorStore";
 import { QUAL_DRAFT_BASE, nsKey } from "@/lib/goalStorage";
 import AiAssist from "@/components/goal-navigator/AiAssist";
 import ChatNavigator from "@/components/goal-navigator/ChatNavigator";
+import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
 import BackButton from "@/components/BackButton";
+
+function formatDate(iso?: string) {
+  if (!iso) return "-";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "-";
+  return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
 
 const sampleAnswers: Record<string, string> = {
   name: "田中 花子",
@@ -86,6 +95,13 @@ export default function QualitativeGoalNavigatorPage() {
   const [recordId, setRecordId] = useState<string>("");
   const [isPending, startTransition] = useTransition();
 
+  const [mode, setMode] = useState<"list" | "editor">("list");
+  const [records, setRecords] = useState<NavigatorRecord[]>([]);
+  const [loadingRecords, setLoadingRecords] = useState(true);
+  const [activeStatus, setActiveStatus] = useState<RecordStatus | "new">("new");
+  const [reviewComment, setReviewComment] = useState("");
+  const readOnly = activeStatus === "submitted" || activeStatus === "approved";
+
   const current = flow[stepIndex];
   const progress = Math.round(((stepIndex + 1) / flow.length) * 100);
   const gradeOptions = gradeMap[answers.stage] ?? [];
@@ -101,17 +117,59 @@ export default function QualitativeGoalNavigatorPage() {
 
   const currentValue = answers[current.key] ?? "";
 
+  const refreshRecords = () => {
+    setLoadingRecords(true);
+    return getMyNavigatorRecords("qualitative")
+      .then((recs) => setRecords(recs))
+      .catch(() => setRecords([]))
+      .finally(() => setLoadingRecords(false));
+  };
+
   useEffect(() => {
-    const saved = window.localStorage.getItem(nsKey(QUAL_DRAFT_BASE));
-    if (!saved) return;
-    try {
-      const parsed = JSON.parse(saved) as { answers?: Record<string, string>; stepIndex?: number; submitted?: boolean; recordId?: string };
-      if (parsed.answers) setAnswers(parsed.answers);
-      if (typeof parsed.stepIndex === "number") setStepIndex(parsed.stepIndex);
-      if (typeof parsed.submitted === "boolean") setSubmitted(parsed.submitted);
-      if (parsed.recordId) setRecordId(parsed.recordId);
-    } catch {}
+    let alive = true;
+    getMyNavigatorRecords("qualitative")
+      .then((recs) => {
+        if (alive) setRecords(recs);
+      })
+      .catch(() => {
+        if (alive) setRecords([]);
+      })
+      .finally(() => {
+        if (alive) setLoadingRecords(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
+
+  const startNew = () => {
+    setAnswers({});
+    setRecordId("");
+    setStepIndex(0);
+    setSubmitted(false);
+    setActiveStatus("new");
+    setReviewComment("");
+    setUiMode("step");
+    setNotice("");
+    setMode("editor");
+  };
+
+  const loadRecord = (record: NavigatorRecord) => {
+    setAnswers(record.answers || {});
+    setRecordId(record.id);
+    setStepIndex(0);
+    setActiveStatus(record.status);
+    setReviewComment(record.reviewComment || "");
+    setUiMode("step");
+    setNotice("");
+    setSubmitted(record.status === "submitted" || record.status === "approved");
+    setMode("editor");
+  };
+
+  const backToList = () => {
+    setMode("list");
+    refreshRecords();
+  };
 
   const onChange = (value: string) => {
     setAnswers((prev) => {
@@ -167,6 +225,8 @@ export default function QualitativeGoalNavigatorPage() {
       }
       setRecordId(result.record.id);
       persistLocal(result.record.id);
+      setActiveStatus("draft");
+      refreshRecords();
       setNotice("下書きを保存しました");
       window.setTimeout(() => setNotice(""), 2500);
     });
@@ -189,6 +249,8 @@ export default function QualitativeGoalNavigatorPage() {
       setRecordId(result.record.id);
       setSubmitted(true);
       persistLocal(result.record.id);
+      setActiveStatus("submitted");
+      refreshRecords();
       setNotice("承認依頼を送信しました");
       window.setTimeout(() => setNotice(""), 2500);
     });
@@ -268,19 +330,127 @@ export default function QualitativeGoalNavigatorPage() {
         </div>
       </header>
 
+      {mode === "list" ? (
+        <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+          <section className="bg-white rounded-3xl border shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-6">
+              <p className="text-blue-100 text-xs font-semibold tracking-wide uppercase">Qualitative Goal Navigator</p>
+              <h1 className="text-white text-2xl font-black mt-1">定性目標設定ナビゲーター</h1>
+              <p className="text-blue-100 text-sm mt-2">新しく定性目標を作成するか、これまでの記録の続きを進められます。</p>
+              <button
+                onClick={startNew}
+                className="mt-4 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-indigo-700 shadow-sm transition hover:bg-indigo-50"
+              >
+                ＋ 新しく定性目標を作成
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-gray-800">これまでの記録</h2>
+                <div className="flex items-center gap-3 text-xs">
+                  <Link href="/qualitative-goal-navigator/history" className="text-indigo-600 hover:underline font-medium">保存履歴</Link>
+                  <Link href="/approvals/goal-navigators" className="text-amber-600 hover:underline font-medium">承認一覧</Link>
+                </div>
+              </div>
+
+              {loadingRecords ? (
+                <p className="mt-6 text-sm text-gray-400">読み込み中...</p>
+              ) : records.length === 0 ? (
+                <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center">
+                  <p className="text-sm text-gray-500">まだ記録がありません。</p>
+                  <button
+                    onClick={startNew}
+                    className="mt-4 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700"
+                  >
+                    最初の定性目標を作成する
+                  </button>
+                </div>
+              ) : (
+                <ul className="mt-4 space-y-3">
+                  {records.map((record) => {
+                    const actionLabel =
+                      record.status === "draft"
+                        ? "続きを編集"
+                        : record.status === "rejected"
+                        ? "修正する"
+                        : "内容を確認";
+                    return (
+                      <li
+                        key={record.id}
+                        className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:border-indigo-200"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-gray-800">{record.title || "無題の目標"}</p>
+                              <RecordStatusBadge status={record.status} />
+                            </div>
+                            {record.department && (
+                              <p className="text-xs text-gray-500">{record.department}</p>
+                            )}
+                            <p className="text-[11px] text-gray-400">
+                              更新 {formatDate(record.updatedAt)}
+                              {record.submittedAt ? ` ・ 提出 ${formatDate(record.submittedAt)}` : ""}
+                              {record.approvedAt ? ` ・ 承認 ${formatDate(record.approvedAt)}` : ""}
+                            </p>
+                            {record.status === "rejected" && record.reviewComment && (
+                              <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 p-3">
+                                <p className="text-[11px] font-bold text-rose-600">やり直し依頼のコメント</p>
+                                <p className="mt-1 text-xs text-rose-700 leading-5 whitespace-pre-wrap">{record.reviewComment}</p>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => loadRecord(record)}
+                            className={`shrink-0 rounded-xl px-4 py-2 text-xs font-bold transition ${
+                              record.status === "rejected"
+                                ? "bg-rose-500 text-white hover:bg-rose-600"
+                                : record.status === "draft"
+                                ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                                : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            {actionLabel}
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </section>
+        </main>
+      ) : (
       <main className="max-w-6xl mx-auto px-4 py-8 grid lg:grid-cols-[1.2fr_0.8fr] gap-6">
         <section className="bg-white rounded-3xl border shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5">
-            <p className="text-blue-100 text-xs font-semibold tracking-wide uppercase">Qualitative Goal Navigator</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-blue-100 text-xs font-semibold tracking-wide uppercase">Qualitative Goal Navigator</p>
+              <button
+                onClick={backToList}
+                className="rounded-lg bg-white/15 px-3 py-1.5 text-xs font-bold text-white backdrop-blur transition hover:bg-white/25"
+              >
+                ← 一覧へ戻る
+              </button>
+            </div>
             <h1 className="text-white text-2xl font-black mt-1">定性目標設定ナビゲーター</h1>
             <p className="text-blue-100 text-sm mt-2">選択式で定性目標と3つの行動計画を整理できます。</p>
+            {activeStatus === "rejected" && reviewComment && (
+              <div className="mt-4 rounded-xl border border-white/40 bg-white/15 p-3 backdrop-blur">
+                <p className="text-[11px] font-bold text-white">やり直し依頼のコメント</p>
+                <p className="mt-1 text-xs text-white/90 leading-5 whitespace-pre-wrap">{reviewComment}</p>
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                onClick={fillSample}
-                className="rounded-xl bg-white/15 px-4 py-2 text-sm font-bold text-white backdrop-blur transition hover:bg-white/25"
-              >
-                サンプル回答を入れる
-              </button>
+              {activeStatus === "new" && (
+                <button
+                  onClick={fillSample}
+                  className="rounded-xl bg-white/15 px-4 py-2 text-sm font-bold text-white backdrop-blur transition hover:bg-white/25"
+                >
+                  サンプル回答を入れる
+                </button>
+              )}
               <div className="inline-flex rounded-xl bg-white/15 p-1 backdrop-blur">
                 <button
                   onClick={() => setUiMode("step")}
@@ -481,15 +651,17 @@ export default function QualitativeGoalNavigatorPage() {
                 </div>
               ) : null}
               <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => {
-                    setSubmitted(false);
-                    setStepIndex(0);
-                  }}
-                  className="px-5 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition"
-                >
-                  もう一度入力
-                </button>
+                {!readOnly && (
+                  <button
+                    onClick={() => {
+                      setSubmitted(false);
+                      setStepIndex(0);
+                    }}
+                    className="px-5 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition"
+                  >
+                    もう一度入力
+                  </button>
+                )}
                 <button
                   onClick={downloadWord}
                   className="px-5 py-3 rounded-xl bg-indigo-600 text-sm text-white font-bold hover:bg-indigo-700 transition"
@@ -502,13 +674,20 @@ export default function QualitativeGoalNavigatorPage() {
                 >
                   PDF出力
                 </button>
-                <button
-                  onClick={submitForApproval}
-                  disabled={isPending}
-                  className="px-5 py-3 rounded-xl bg-amber-500 text-sm text-white font-bold hover:bg-amber-600 transition disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isPending ? "送信中..." : "承認依頼を送信"}
-                </button>
+                {!readOnly && (
+                  <button
+                    onClick={submitForApproval}
+                    disabled={isPending}
+                    className="px-5 py-3 rounded-xl bg-amber-500 text-sm text-white font-bold hover:bg-amber-600 transition disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isPending ? "送信中..." : activeStatus === "rejected" ? "修正して再申請" : "承認依頼を送信"}
+                  </button>
+                )}
+                {readOnly && (
+                  <span className="px-5 py-3 text-sm font-medium text-gray-400">
+                    {activeStatus === "approved" ? "承認済みのため編集できません" : "承認待ちのため編集できません"}
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -559,6 +738,7 @@ export default function QualitativeGoalNavigatorPage() {
           </div>
         </aside>
       </main>
+      )}
     </div>
   );
 }
