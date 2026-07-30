@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { permissions, Permission } from "@/lib/permissions";
-import { addStoredStaff, addStoredAccount, makeNewEmployee } from "@/lib/staffStore";
+import { makeNewEmployee } from "@/lib/staffStore";
 
 const departments = ["営業部 > 第一営業課", "営業部 > 第二営業課", "管理部 > 総務課", "物件管理部 > 物件課", "経営管理部"];
 const positions = ["代表取締役", "部長", "課長", "主任", "担当者"];
@@ -61,6 +61,8 @@ export default function NewEmployeePage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
 
   const set = (key: keyof FormData, val: string) => {
@@ -85,12 +87,13 @@ export default function NewEmployeePage() {
     return err;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaveError("");
     const err = validate();
     if (Object.keys(err).length > 0) { setErrors(err); return; }
 
-    // スタッフ情報を localStorage に永続化（マイページ・一覧に反映される）
+    // スタッフ情報を生成
     const label = enneagramTypes.find((t) => String(t.type) === form.enneagramType)?.label ?? "";
     const emp = makeNewEmployee({
       name: form.name,
@@ -105,10 +108,8 @@ export default function NewEmployeePage() {
       enneagramLabel: label,
       bio: form.bio,
     });
-    addStoredStaff(emp);
 
-    // ログインアカウントも永続化
-    addStoredAccount({
+    const account = {
       id: `acc_${emp.id}`,
       employeeId: emp.id,
       name: form.name,
@@ -119,10 +120,27 @@ export default function NewEmployeePage() {
       isActive: true,
       lastLoginAt: null,
       createdAt: new Date().toISOString().slice(0, 10),
-    });
+    };
 
-    setCreatedId(emp.id);
-    setSubmitted(true);
+    setSaving(true);
+    try {
+      // Supabase に永続化（どの端末からでも参照可能）
+      const res = await fetch("/api/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employee: emp, account }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? "保存に失敗しました");
+      }
+      setCreatedId(emp.id);
+      setSubmitted(true);
+    } catch (e2) {
+      setSaveError((e2 as Error).message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (submitted) {
@@ -331,14 +349,24 @@ export default function NewEmployeePage() {
           </section>
 
           {/* 送信ボタン */}
+          {saveError && (
+            <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+              <p className="text-xs text-rose-600 font-medium">{saveError}</p>
+            </div>
+          )}
           <div className="flex gap-3 pb-8">
             <Link href="/employees"
               className="flex-1 text-sm border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium py-3 rounded-xl transition text-center">
               キャンセル
             </Link>
-            <button type="submit"
-              className="flex-1 text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition">
-              登録する
+            <button type="submit" disabled={saving}
+              className="flex-1 text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed">
+              {saving ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  保存中...
+                </span>
+              ) : "登録する"}
             </button>
           </div>
         </form>

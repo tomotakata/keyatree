@@ -2,8 +2,6 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { findAccountByEmail } from "@/lib/mockAccounts";
-import { findStoredAccountByEmail } from "@/lib/staffStore";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -48,41 +46,44 @@ function LoginPageContent() {
     if (hasInputError) return;
 
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
 
-    const account = findAccountByEmail(trimmedEmail) ?? findStoredAccountByEmail(trimmedEmail);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail, password }),
+      });
+      const data = await res.json();
 
-    // メールアドレスが登録されていない
-    if (!account) {
-      setEmailError("このメールアドレスは登録されていません");
+      if (!res.ok) {
+        setFormError(data?.error ?? "ログイン処理でエラーが発生しました");
+        setLoading(false);
+        return;
+      }
+
+      if (!data.ok) {
+        if (data.field === "email") setEmailError(data.message);
+        else if (data.field === "password") setPasswordError(data.message);
+        else setFormError(data.message ?? "ログインに失敗しました");
+        setLoading(false);
+        return;
+      }
+
+      const account = data.account;
+      document.cookie = `kt_session=${JSON.stringify({
+        id: account.id,
+        name: account.name,
+        email: account.email,
+        permissionId: account.permissionId,
+        permissionName: account.permissionName,
+        employeeId: account.employeeId,
+      })}; path=/; max-age=${60 * 60 * 8}`;
+
+      router.push(redirectTo);
+    } catch {
+      setFormError("通信エラーが発生しました。時間をおいて再度お試しください");
       setLoading(false);
-      return;
     }
-
-    // パスワード不一致
-    if (account.password !== password) {
-      setPasswordError("パスワードが正しくありません");
-      setLoading(false);
-      return;
-    }
-
-    // アカウント無効
-    if (!account.isActive) {
-      setFormError("このアカウントは無効化されています。管理者にお問い合わせください");
-      setLoading(false);
-      return;
-    }
-
-    document.cookie = `kt_session=${JSON.stringify({
-      id: account.id,
-      name: account.name,
-      email: account.email,
-      permissionId: account.permissionId,
-      permissionName: account.permissionName,
-      employeeId: account.employeeId,
-    })}; path=/; max-age=${60 * 60 * 8}`;
-
-    router.push(redirectTo);
   };
 
   const destinationLabel = redirectTo.startsWith("/docs")

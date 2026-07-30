@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { employees, calcTenure, Employee } from "@/lib/mockData";
-import { getStoredStaff } from "@/lib/staffStore";
 import Avatar from "@/components/Avatar";
 import HeaderNav from "@/components/HeaderNav";
 
@@ -24,12 +23,17 @@ export default function EmployeeListPage() {
   const [allEmployees, setAllEmployees] = useState<Employee[]>(employees);
 
   useEffect(() => {
-    const stored = getStoredStaff();
-    if (stored.length > 0) {
-      // 静的データと重複しないIDのみマージ
-      const existing = new Set(employees.map((e) => e.id));
-      setAllEmployees([...employees, ...stored.filter((s) => !existing.has(s.id))]);
-    }
+    // Supabase に保存された新規スタッフを取得してマージ
+    fetch("/api/staff")
+      .then((r) => (r.ok ? r.json() : { staff: [] }))
+      .then((data) => {
+        const stored: Employee[] = data.staff ?? [];
+        if (stored.length > 0) {
+          const existing = new Set(employees.map((e) => e.id));
+          setAllEmployees([...employees, ...stored.filter((s) => !existing.has(s.id))]);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const filtered = allEmployees.filter((e) => {

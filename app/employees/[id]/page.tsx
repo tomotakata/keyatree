@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { getEmployee, calcTenure, Employee } from "@/lib/mockData";
-import { getStoredStaffById } from "@/lib/staffStore";
 import EmployeeCard from "@/components/EmployeeCard";
 import BasicInfo from "@/components/BasicInfo";
 import SkillRadar from "@/components/SkillRadar";
@@ -30,9 +29,16 @@ export default function EmployeePage() {
   const [employee, setEmployee] = useState<Employee | null | undefined>(undefined);
 
   useEffect(() => {
-    // 静的データ → localStorage の新規スタッフ の順で解決
-    const emp = getEmployee(id) ?? getStoredStaffById(id) ?? null;
-    setEmployee(emp);
+    // 静的データを優先。無ければ Supabase から取得
+    const staticEmp = getEmployee(id);
+    if (staticEmp) {
+      setEmployee(staticEmp);
+      return;
+    }
+    fetch(`/api/staff/${encodeURIComponent(id)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setEmployee(data?.staff ?? null))
+      .catch(() => setEmployee(null));
   }, [id]);
 
   if (employee === undefined) {
