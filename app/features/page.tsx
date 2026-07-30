@@ -54,6 +54,16 @@ const features: Feature[] = [
     status: "公開中",
   },
   {
+    id: "goal-approvals",
+    href: "/approvals/goal-navigators",
+    label: "APPR",
+    color: "from-emerald-500 to-lime-500",
+    title: "目標設定 承認・進捗管理",
+    desc: "管理者・人事管理者向け。スタッフの目標設定申請を確認し、承認 / やり直し依頼（非承認）を決裁。各目標の進捗報告も確認できます。",
+    tags: ["承認", "決裁", "進捗管理"],
+    status: "公開中",
+  },
+  {
     id: "employees",
     href: "/employees",
     label: "EMP",
