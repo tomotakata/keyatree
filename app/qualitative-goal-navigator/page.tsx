@@ -342,6 +342,7 @@ export default function QualitativeGoalNavigatorPage() {
                 {current.kind !== "select" ? (
                   <AiAssist
                     kind="qualitative"
+                    stepKey={current.key}
                     stepTitle={current.title}
                     section={current.title}
                     prompt={current.prompt}

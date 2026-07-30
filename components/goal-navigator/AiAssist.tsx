@@ -6,6 +6,7 @@ type AssistMode = "suggest" | "refine" | "generate";
 
 type Props = {
   kind: "quantitative" | "qualitative";
+  stepKey?: string;
   stepTitle: string;
   section: string;
   prompt: string;
@@ -22,6 +23,7 @@ const MODE_LABEL: Record<AssistMode, string> = {
 
 export default function AiAssist({
   kind,
+  stepKey,
   stepTitle,
   section,
   prompt,
@@ -44,6 +46,7 @@ export default function AiAssist({
         body: JSON.stringify({
           kind,
           mode,
+          stepKey,
           stepTitle,
           section,
           prompt,

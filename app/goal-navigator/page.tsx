@@ -373,6 +373,7 @@ export default function GoalNavigatorPage() {
                 {current.kind !== "select" ? (
                   <AiAssist
                     kind="quantitative"
+                    stepKey={current.key}
                     stepTitle={current.title}
                     section={current.section}
                     prompt={current.prompt}
