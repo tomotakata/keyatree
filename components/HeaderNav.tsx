@@ -74,6 +74,14 @@ export default function HeaderNav({ currentLabel, extraRight }: { currentLabel?:
 
         {/* 右側 */}
         <div className="ml-auto flex items-center gap-3">
+          {session?.employeeId && (
+            <Link
+              href={`/employees/${session.employeeId}`}
+              className="text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-full px-3 py-1.5 transition"
+            >
+              マイページ
+            </Link>
+          )}
           <Link
             href="/features"
             className="text-xs font-bold text-gray-600 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300 rounded-full px-3 py-1.5 transition"
