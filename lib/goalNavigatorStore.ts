@@ -30,15 +30,24 @@ export type NavigatorRecord = {
   approvedBy?: string;
 };
 
-const globalStore = globalThis as typeof globalThis & {
-  __keyatreeNavigatorRecords?: NavigatorRecord[];
-};
-
 type AuditActor = {
   actorId?: string;
   actorName?: string;
 };
 
+/**
+ * 目標ナビの記録を Supabase Storage バケットに JSON として永続化する。
+ * スタッフ/間取りと同じく DDL 不要のバケット方式。
+ * env 未設定時はメモリfallback（開発用）。
+ */
+const BUCKET = "goal-navigator";
+const RECORD_PREFIX = "records";
+const AUDIT_PREFIX = "audit";
+
+// ---- In-memory fallback ----
+const globalStore = globalThis as typeof globalThis & {
+  __keyatreeNavigatorRecords?: NavigatorRecord[];
+};
 function getStore() {
   if (!globalStore.__keyatreeNavigatorRecords) {
     globalStore.__keyatreeNavigatorRecords = [];
@@ -46,6 +55,56 @@ function getStore() {
   return globalStore.__keyatreeNavigatorRecords;
 }
 
+// ---- Storage helpers ----
+type Admin = ReturnType<typeof getSupabaseAdmin>;
+let bucketReady = false;
+async function ensureBucket(supabase: Admin) {
+  if (bucketReady) return;
+  const { data } = await supabase.storage.getBucket(BUCKET);
+  if (!data) {
+    const { error } = await supabase.storage.createBucket(BUCKET, { public: false });
+    if (error && !/exist/i.test(error.message)) {
+      throw new Error(`bucket作成に失敗: ${error.message}`);
+    }
+  }
+  bucketReady = true;
+}
+
+function recordPath(id: string) {
+  return `${RECORD_PREFIX}/${encodeURIComponent(id)}.json`;
+}
+
+async function putJson(supabase: Admin, path: string, value: unknown) {
+  const { error } = await supabase.storage.from(BUCKET).upload(path, JSON.stringify(value), {
+    contentType: "application/json",
+    upsert: true,
+  });
+  if (error) throw new Error(error.message);
+}
+
+async function getJson<T>(supabase: Admin, path: string): Promise<T | null> {
+  const { data, error } = await supabase.storage.from(BUCKET).download(path);
+  if (error || !data) return null;
+  try {
+    return JSON.parse(await data.text()) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function listRecords(supabase: Admin): Promise<NavigatorRecord[]> {
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .list(RECORD_PREFIX, { limit: 1000 });
+  if (error || !data) return [];
+  const files = data.filter((i) => i.name.endsWith(".json"));
+  const results = (await Promise.all(
+    files.map((i) => getJson<NavigatorRecord>(supabase, `${RECORD_PREFIX}/${i.name}`))
+  )) as (NavigatorRecord | null)[];
+  return results.filter((r): r is NavigatorRecord => r !== null);
+}
+
+// ---- Session ----
 export async function getServerSession(): Promise<NavigatorSession | null> {
   const cookieStore = await cookies();
   const raw = cookieStore.get("kt_session")?.value;
@@ -61,89 +120,50 @@ export function canApprove(session: NavigatorSession | null) {
   return session?.permissionId === "admin" || session?.permissionId === "hr_manager";
 }
 
-function normalizeRecord(record: {
-  id: string;
-  owner_id?: string | null;
-  kind: NavigatorKind;
-  employee_id: string;
-  employee_name: string;
-  department: string;
-  title: string;
-  status: RecordStatus;
-  answers: Record<string, string>;
-  created_at: string;
-  updated_at: string;
-  submitted_at?: string | null;
-  approved_at?: string | null;
-  approved_by?: string | null;
-}): NavigatorRecord {
-  return {
-    id: record.id,
-    ownerId: record.owner_id ?? record.employee_id,
-    kind: record.kind,
-    employeeId: record.employee_id,
-    employeeName: record.employee_name,
-    department: record.department,
-    title: record.title,
-    status: record.status,
-    answers: record.answers,
-    createdAt: record.created_at,
-    updatedAt: record.updated_at,
-    submittedAt: record.submitted_at ?? undefined,
-    approvedAt: record.approved_at ?? undefined,
-    approvedBy: record.approved_by ?? undefined,
-  };
+// ---- Audit（ベストエフォート：失敗しても本処理を止めない）----
+async function writeAuditLog(
+  supabase: Admin,
+  input: {
+    entityId: string;
+    operation: "create" | "update" | "approve";
+    beforeData?: NavigatorRecord | null;
+    afterData?: NavigatorRecord | null;
+    actor?: AuditActor;
+  }
+) {
+  try {
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    await putJson(supabase, `${AUDIT_PREFIX}/${input.entityId}/${ts}.json`, {
+      entityType: "goal_navigator_record",
+      entityId: input.entityId,
+      operation: input.operation,
+      actorId: input.actor?.actorId ?? null,
+      actorName: input.actor?.actorName ?? null,
+      beforeData: input.beforeData ?? null,
+      afterData: input.afterData ?? null,
+      at: new Date().toISOString(),
+    });
+  } catch {
+    // 監査ログの失敗は無視
+  }
 }
 
-async function writeAuditLog(input: {
-  entityId: string;
-  operation: "create" | "update" | "approve";
-  beforeData?: NavigatorRecord | null;
-  afterData?: NavigatorRecord | null;
-  actor?: AuditActor;
-}) {
-  if (!isSupabaseEnabled()) return;
-
-  const supabase = getSupabaseAdmin();
-  await supabase.from("audit_logs").insert({
-    entity_type: "goal_navigator_record",
-    entity_id: input.entityId,
-    operation: input.operation,
-    actor_id: input.actor?.actorId ?? null,
-    actor_name: input.actor?.actorName ?? null,
-    before_data: input.beforeData ?? null,
-    after_data: input.afterData ?? null,
-  });
-}
-
+// ---- Records ----
 export async function listNavigatorRecords(params: {
   kind?: NavigatorKind;
   ownerId?: string;
   employeeId?: string;
   includeAll?: boolean;
 }) {
+  let records: NavigatorRecord[];
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseAdmin();
-    let query = supabase
-      .from("goal_navigator_records")
-      .select("*")
-      .order("updated_at", { ascending: false });
-
-    if (params.kind) {
-      query = query.eq("kind", params.kind);
-    }
-    if (!params.includeAll && params.ownerId) {
-      query = query.eq("owner_id", params.ownerId);
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      throw new Error(error.message);
-    }
-    return (data ?? []).map(normalizeRecord);
+    await ensureBucket(supabase);
+    records = await listRecords(supabase);
+  } else {
+    records = getStore();
   }
 
-  const records = getStore();
   const filtered = records.filter((record) => {
     if (params.kind && record.kind !== params.kind) return false;
     if (!params.includeAll && params.ownerId && record.ownerId !== params.ownerId) return false;
@@ -164,71 +184,48 @@ export async function upsertNavigatorRecord(input: {
   answers: Record<string, string>;
   actor?: AuditActor;
 }) {
+  const now = new Date().toISOString();
+
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseAdmin();
-    const now = new Date().toISOString();
+    await ensureBucket(supabase);
 
-    if (input.id) {
-      const { data: beforeRows, error: beforeError } = await supabase
-        .from("goal_navigator_records")
-        .select("*")
-        .eq("id", input.id)
-        .limit(1);
-      if (beforeError) throw new Error(beforeError.message);
-      const before = beforeRows?.[0] ? normalizeRecord(beforeRows[0]) : null;
+    const existing = input.id ? await getJson<NavigatorRecord>(supabase, recordPath(input.id)) : null;
 
-      const payload = {
-        owner_id: input.ownerId,
-        kind: input.kind,
-        employee_id: input.employeeId,
-        employee_name: input.employeeName,
-        department: input.department,
-        title: input.title,
-        status: input.status,
-        answers: input.answers,
-        submitted_at: input.status === "submitted" ? now : before?.submittedAt ?? null,
-      };
+    const record: NavigatorRecord = existing
+      ? {
+          ...existing,
+          ownerId: input.ownerId,
+          kind: input.kind,
+          employeeId: input.employeeId,
+          employeeName: input.employeeName,
+          department: input.department,
+          title: input.title,
+          status: input.status,
+          answers: input.answers,
+          updatedAt: now,
+          submittedAt: input.status === "submitted" ? now : existing.submittedAt,
+        }
+      : {
+          id: input.id || crypto.randomUUID(),
+          ownerId: input.ownerId,
+          kind: input.kind,
+          employeeId: input.employeeId,
+          employeeName: input.employeeName,
+          department: input.department,
+          title: input.title,
+          status: input.status,
+          answers: input.answers,
+          createdAt: now,
+          updatedAt: now,
+          submittedAt: input.status === "submitted" ? now : undefined,
+        };
 
-      const { data, error } = await supabase
-        .from("goal_navigator_records")
-        .update(payload)
-        .eq("id", input.id)
-        .select("*")
-        .limit(1);
-      if (error) throw new Error(error.message);
-      const record = normalizeRecord(data[0]);
-      await writeAuditLog({
-        entityId: record.id,
-        operation: "update",
-        beforeData: before,
-        afterData: record,
-        actor: input.actor,
-      });
-      return record;
-    }
-
-    const payload = {
-      owner_id: input.ownerId,
-      kind: input.kind,
-      employee_id: input.employeeId,
-      employee_name: input.employeeName,
-      department: input.department,
-      title: input.title,
-      status: input.status,
-      answers: input.answers,
-      submitted_at: input.status === "submitted" ? now : null,
-    };
-
-    const { data, error } = await supabase
-      .from("goal_navigator_records")
-      .insert(payload)
-      .select("*")
-      .limit(1);
-    if (error) throw new Error(error.message);
-    const record = normalizeRecord(data[0]);
-    await writeAuditLog({
+    await putJson(supabase, recordPath(record.id), record);
+    await writeAuditLog(supabase, {
       entityId: record.id,
-      operation: "create",
+      operation: existing ? "update" : "create",
+      beforeData: existing,
       afterData: record,
       actor: input.actor,
     });
@@ -236,7 +233,6 @@ export async function upsertNavigatorRecord(input: {
   }
 
   const records = getStore();
-  const now = new Date().toISOString();
   const existingIndex = input.id ? records.findIndex((record) => record.id === input.id) : -1;
 
   if (existingIndex >= 0) {
@@ -259,7 +255,7 @@ export async function upsertNavigatorRecord(input: {
   }
 
   const created: NavigatorRecord = {
-    id: crypto.randomUUID(),
+    id: input.id || crypto.randomUUID(),
     ownerId: input.ownerId,
     kind: input.kind,
     employeeId: input.employeeId,
@@ -277,38 +273,28 @@ export async function upsertNavigatorRecord(input: {
 }
 
 export async function approveNavigatorRecord(recordId: string, approverName: string, actorId?: string) {
+  const now = new Date().toISOString();
+
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseAdmin();
-    const { data: beforeRows, error: beforeError } = await supabase
-      .from("goal_navigator_records")
-      .select("*")
-      .eq("id", recordId)
-      .limit(1);
-    if (beforeError) throw new Error(beforeError.message);
-    if (!beforeRows?.[0]) return null;
-    const before = normalizeRecord(beforeRows[0]);
+    await ensureBucket(supabase);
+    const before = await getJson<NavigatorRecord>(supabase, recordPath(recordId));
+    if (!before) return null;
 
-    const { data, error } = await supabase
-      .from("goal_navigator_records")
-      .update({
-        status: "approved",
-        approved_at: new Date().toISOString(),
-        approved_by: approverName,
-      })
-      .eq("id", recordId)
-      .select("*")
-      .limit(1);
-    if (error) throw new Error(error.message);
-    const record = normalizeRecord(data[0]);
-    await writeAuditLog({
+    const record: NavigatorRecord = {
+      ...before,
+      status: "approved",
+      approvedAt: now,
+      updatedAt: now,
+      approvedBy: approverName,
+    };
+    await putJson(supabase, recordPath(record.id), record);
+    await writeAuditLog(supabase, {
       entityId: record.id,
       operation: "approve",
       beforeData: before,
       afterData: record,
-      actor: {
-        actorId,
-        actorName: approverName,
-      },
+      actor: { actorId, actorName: approverName },
     });
     return record;
   }
@@ -316,7 +302,6 @@ export async function approveNavigatorRecord(recordId: string, approverName: str
   const records = getStore();
   const record = records.find((item) => item.id === recordId);
   if (!record) return null;
-  const now = new Date().toISOString();
   record.status = "approved";
   record.approvedAt = now;
   record.updatedAt = now;
