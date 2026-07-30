@@ -5,6 +5,9 @@ import ReviewDecisionPanel from "@/components/goal-navigator/ReviewDecisionPanel
 import ProgressPanel from "@/components/goal-navigator/ProgressPanel";
 import { getNavigatorRecordDetail } from "@/lib/goalNavigatorActions";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function formatDate(iso?: string) {
   if (!iso) return "-";
   const date = new Date(iso);

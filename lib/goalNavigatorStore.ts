@@ -91,6 +91,7 @@ async function putJson(supabase: Admin, path: string, value: unknown) {
   const { error } = await supabase.storage.from(BUCKET).upload(path, JSON.stringify(value), {
     contentType: "application/json",
     upsert: true,
+    cacheControl: "0",
   });
   if (error) throw new Error(error.message);
 }
