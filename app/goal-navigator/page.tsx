@@ -487,7 +487,12 @@ export default function GoalNavigatorPage() {
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              {notice ? (
+                <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                  {notice}
+                </div>
+              ) : null}
+              <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => {
                     setSubmitted(false);

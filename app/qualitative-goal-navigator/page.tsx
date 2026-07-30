@@ -473,7 +473,12 @@ export default function QualitativeGoalNavigatorPage() {
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              {notice ? (
+                <div className="mb-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-700">
+                  {notice}
+                </div>
+              ) : null}
+              <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => {
                     setSubmitted(false);
