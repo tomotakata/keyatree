@@ -4,6 +4,9 @@ import RecordActions from "@/components/goal-navigator/RecordActions";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
 import { getApprovedNavigatorRecords } from "@/lib/goalNavigatorActions";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function formatDate(iso?: string) {
   if (!iso) return "-";
   const date = new Date(iso);

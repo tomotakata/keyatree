@@ -5,6 +5,7 @@ import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import type { NavigatorRecord } from "@/lib/goalNavigatorStore";
+import ProgressPanel from "@/components/goal-navigator/ProgressPanel";
 
 type Props = {
   record: NavigatorRecord;
@@ -95,6 +96,19 @@ export default function RecordActions({ record }: Props) {
                 <p className="mt-1 text-sm text-gray-700 leading-6 whitespace-pre-wrap">{value}</p>
               </div>
             ))}
+          </div>
+
+          {/* スタッフの進捗入力 + 管理者コメント返信（マイページと相互反映） */}
+          <div className="mt-6 border-t border-gray-200 pt-4">
+            <p className="mb-3 text-sm font-bold text-gray-700">
+              スタッフの進捗報告 / 管理者コメント
+            </p>
+            <ProgressPanel
+              recordId={record.id}
+              updates={record.progressUpdates ?? []}
+              canWrite={false}
+              canReply={true}
+            />
           </div>
         </div>
       ) : null}
