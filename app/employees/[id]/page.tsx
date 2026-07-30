@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { getEmployee, calcTenure, Employee } from "@/lib/mockData";
+import { getEmployee, calcTenure, Employee, normalizeEmployee } from "@/lib/mockData";
 import EmployeeCard from "@/components/EmployeeCard";
 import BasicInfo from "@/components/BasicInfo";
 import SkillRadar from "@/components/SkillRadar";
@@ -37,7 +37,9 @@ export default function EmployeePage() {
     }
     fetch(`/api/staff/${encodeURIComponent(id)}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setEmployee(data?.staff ?? null))
+      .then((data) =>
+        setEmployee(data?.staff ? normalizeEmployee(data.staff) : null)
+      )
       .catch(() => setEmployee(null));
   }, [id]);
 

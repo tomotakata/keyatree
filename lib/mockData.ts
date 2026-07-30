@@ -81,6 +81,58 @@ export type Employee = {
   monthlyGoal: MonthlyGoal;
 };
 
+// API/ストレージから取得した不完全なスタッフデータを完全な Employee 形に補完する。
+// これにより、どんな登録経路でもスタッフ詳細ページが必ず開ける。
+const DEFAULT_SKILLS: Skill[] = [
+  { subject: "リーダーシップ", value: 50, fullMark: 100 },
+  { subject: "チームワーク", value: 50, fullMark: 100 },
+  { subject: "課題分析", value: 50, fullMark: 100 },
+  { subject: "提案力", value: 50, fullMark: 100 },
+  { subject: "サポート", value: 50, fullMark: 100 },
+  { subject: "交渉力", value: 50, fullMark: 100 },
+];
+
+export function normalizeEmployee(raw: Partial<Employee> & { id: string }): Employee {
+  const now = new Date();
+  const monthLabel = `${now.getFullYear()}年${now.getMonth() + 1}月`;
+  const mg = raw.monthlyGoal ?? ({} as Partial<MonthlyGoal>);
+  const lm = mg.lastMonth ?? ({} as Partial<LastMonthResult>);
+  return {
+    id: raw.id,
+    name: raw.name ?? "名称未設定",
+    nameKana: raw.nameKana ?? "",
+    photo: raw.photo ?? "",
+    department: raw.department ?? "",
+    position: raw.position ?? "",
+    grade: raw.grade ?? "-",
+    jobType: raw.jobType ?? "",
+    employmentType: raw.employmentType ?? "",
+    joinedAt: raw.joinedAt ?? now.toISOString().slice(0, 10),
+    evaluationRank: raw.evaluationRank ?? "B",
+    enneagramType: raw.enneagramType ?? 0,
+    enneagramLabel: raw.enneagramLabel ?? "",
+    bio: raw.bio ?? "",
+    skills: Array.isArray(raw.skills) && raw.skills.length > 0 ? raw.skills : DEFAULT_SKILLS,
+    goals: Array.isArray(raw.goals) ? raw.goals : [],
+    thanks: Array.isArray(raw.thanks) ? raw.thanks : [],
+    monthlyGoal: {
+      month: mg.month ?? monthLabel,
+      declaration: mg.declaration ?? "",
+      cheers: typeof mg.cheers === "number" ? mg.cheers : 0,
+      comments: Array.isArray(mg.comments) ? mg.comments : [],
+      currentProgress: Array.isArray(mg.currentProgress) ? mg.currentProgress : [],
+      lastMonth: {
+        month: lm.month ?? "",
+        declaration: lm.declaration ?? "",
+        achieved: lm.achieved ?? false,
+        reflection: lm.reflection ?? "",
+        improvement: lm.improvement ?? "",
+        goalResults: Array.isArray(lm.goalResults) ? lm.goalResults : [],
+      },
+    },
+  };
+}
+
 // 同じ人が複数投稿している場合、最新をHOT扱いにする
 export function markHotComments(comments: CheerComment[]): (CheerComment & { isHot: boolean })[] {
   const latestByPerson: Record<string, string> = {};
