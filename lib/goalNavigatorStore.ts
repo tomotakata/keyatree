@@ -1,6 +1,23 @@
 import { cookies } from "next/headers";
 import { getSupabaseAdmin, isSupabaseEnabled } from "@/lib/supabaseServer";
 
+/**
+ * UTF-8バイト列がLatin-1として解釈されて生じた文字化け（mojibake）を復元する。
+ * 既に正しい文字列や、復元に失敗する文字列はそのまま返す。
+ */
+export function fixMojibake(input: string | undefined | null): string {
+  if (typeof input !== "string" || !input) return input ?? "";
+  // Latin-1拡張領域の文字が含まれていなければ、正常な文字列とみなす
+  if (!/[\u0080-\u00ff]/.test(input)) return input;
+  try {
+    const repaired = Buffer.from(input, "latin1").toString("utf8");
+    if (repaired && !repaired.includes("\ufffd")) return repaired;
+  } catch {
+    /* noop */
+  }
+  return input;
+}
+
 export type NavigatorKind = "quantitative" | "qualitative";
 export type RecordStatus = "draft" | "submitted" | "approved" | "rejected";
 
@@ -163,7 +180,15 @@ export async function getServerSession(): Promise<NavigatorSession | null> {
     } catch {
       text = raw;
     }
-    return JSON.parse(text) as NavigatorSession;
+    const parsed = JSON.parse(text) as NavigatorSession;
+    // 旧cookie（未エンコードのUTF-8）に起因する名前の文字化けを復元
+    if (parsed && typeof parsed.name === "string") {
+      parsed.name = fixMojibake(parsed.name);
+    }
+    if (parsed && typeof parsed.permissionName === "string") {
+      parsed.permissionName = fixMojibake(parsed.permissionName);
+    }
+    return parsed;
   } catch {
     return null;
   }
