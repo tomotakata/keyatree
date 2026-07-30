@@ -75,8 +75,8 @@ export const mockAccounts: Account[] = [
   },
   {
     id: "acc_otomo",
-    employeeId: "",
-    name: "大友 様",
+    employeeId: "s_dev_tomo",
+    name: "開発者 TOMO",
     email: "otomo.palco.me@gmail.com",
     password: "Yalove0911",
     permissionId: "admin",

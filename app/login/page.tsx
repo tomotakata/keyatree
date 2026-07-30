@@ -79,7 +79,11 @@ function LoginPageContent() {
         employeeId: account.employeeId,
       })}; path=/; max-age=${60 * 60 * 8}`;
 
-      router.push(redirectTo);
+      // ログイン後は必ず本人のマイページを開く（未紐付けの場合のみ redirect 先へ）
+      const myPage = account.employeeId
+        ? `/employees/${encodeURIComponent(account.employeeId)}`
+        : redirectTo;
+      router.push(myPage);
     } catch {
       setFormError("通信エラーが発生しました。時間をおいて再度お試しください");
       setLoading(false);
