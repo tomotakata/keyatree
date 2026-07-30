@@ -297,7 +297,7 @@ export default function ChatNavigator({
 
       {/* 入力エリア */}
       <div className="border-t bg-white px-6 py-4">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={goBack}
@@ -306,11 +306,23 @@ export default function ChatNavigator({
           >
             <span aria-hidden>←</span> 1つ前に戻る
           </button>
-          {!done && cursor > 0 ? (
-            <span className="text-[11px] text-gray-400">
-              間違えたら「1つ前に戻る」で修正できます
-            </span>
-          ) : null}
+          <div className="flex items-center gap-2">
+            {!done && cursor > 0 ? (
+              <span className="hidden sm:inline text-[11px] text-gray-400">
+                間違えたら「1つ前に戻る」で修正できます
+              </span>
+            ) : null}
+            {!done ? (
+              <button
+                type="button"
+                onClick={onSaveDraft}
+                disabled={isSaving || loading}
+                className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${theme.saveBtn}`}
+              >
+                {isSaving ? "保存中..." : "途中保存"}
+              </button>
+            ) : null}
+          </div>
         </div>
         {done ? (
           <div className="flex flex-wrap gap-3">
