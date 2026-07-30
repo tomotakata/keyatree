@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import LocalRecordActions from "@/components/goal-navigator/LocalRecordActions";
+import { QUANT_DRAFT_BASE, QUAL_DRAFT_BASE, nsKey } from "@/lib/goalStorage";
 
 type ApprovedItem = {
   id: string;
@@ -24,8 +25,8 @@ export default function ClientApprovedList() {
 
   useEffect(() => {
     const sources = [
-      { key: "keyatree_goal_navigator_draft", kind: "quantitative" as const },
-      { key: "keyatree_qualitative_goal_navigator_draft", kind: "qualitative" as const },
+      { key: nsKey(QUANT_DRAFT_BASE), kind: "quantitative" as const },
+      { key: nsKey(QUAL_DRAFT_BASE), kind: "qualitative" as const },
     ];
 
     const nextItems: ApprovedItem[] = [];

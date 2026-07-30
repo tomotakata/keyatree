@@ -32,6 +32,7 @@ function GoalRow({ g }: { g: GoalProgress }) {
 }
 
 export default function MonthlyGoalCard({
+  employeeId,
   monthlyGoal,
   employeeName,
 }: {
@@ -70,7 +71,7 @@ export default function MonthlyGoalCard({
           </div>
 
           {/* 承認済み目標 進捗リマインド */}
-          <ProgressReminder />
+          <ProgressReminder employeeId={employeeId} />
         </div>
       </div>
 

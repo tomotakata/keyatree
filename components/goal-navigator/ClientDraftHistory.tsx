@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { nsKey } from "@/lib/goalStorage";
 
 type DraftItem = {
   id: string;
@@ -30,7 +31,7 @@ export default function ClientDraftHistory({
   const [drafts, setDrafts] = useState<DraftItem[]>([]);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(storageKey);
+    const saved = window.localStorage.getItem(nsKey(storageKey));
     if (!saved) return;
     try {
       const parsed = JSON.parse(saved) as {

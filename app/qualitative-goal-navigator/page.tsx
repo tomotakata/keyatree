@@ -6,6 +6,7 @@ import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { saveNavigatorRecord } from "@/lib/goalNavigatorActions";
+import { QUAL_DRAFT_BASE, nsKey } from "@/lib/goalStorage";
 import AiAssist from "@/components/goal-navigator/AiAssist";
 
 const sampleAnswers: Record<string, string> = {
@@ -98,7 +99,7 @@ export default function QualitativeGoalNavigatorPage() {
   const currentValue = answers[current.key] ?? "";
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("keyatree_qualitative_goal_navigator_draft");
+    const saved = window.localStorage.getItem(nsKey(QUAL_DRAFT_BASE));
     if (!saved) return;
     try {
       const parsed = JSON.parse(saved) as { answers?: Record<string, string>; stepIndex?: number; submitted?: boolean; recordId?: string };
@@ -135,7 +136,7 @@ export default function QualitativeGoalNavigatorPage() {
 
   const persistLocal = (nextRecordId?: string) => {
     window.localStorage.setItem(
-      "keyatree_qualitative_goal_navigator_draft",
+      nsKey(QUAL_DRAFT_BASE),
       JSON.stringify({
         answers,
         stepIndex,

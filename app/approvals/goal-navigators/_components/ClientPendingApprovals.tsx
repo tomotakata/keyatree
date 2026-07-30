@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import LocalApprovalButton from "@/components/goal-navigator/LocalApprovalButton";
 import LocalRecordActions from "@/components/goal-navigator/LocalRecordActions";
+import { QUANT_DRAFT_BASE, QUAL_DRAFT_BASE, nsKey } from "@/lib/goalStorage";
 
 type PendingItem = {
   id: string;
@@ -28,12 +29,12 @@ export default function ClientPendingApprovals() {
   useEffect(() => {
     const sources = [
       {
-        key: "keyatree_goal_navigator_draft",
+        key: nsKey(QUANT_DRAFT_BASE),
         kind: "quantitative" as const,
         href: "/goal-navigator",
       },
       {
-        key: "keyatree_qualitative_goal_navigator_draft",
+        key: nsKey(QUAL_DRAFT_BASE),
         kind: "qualitative" as const,
         href: "/qualitative-goal-navigator",
       },

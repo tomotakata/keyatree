@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import {
+  QUANT_DRAFT_BASE,
+  QUAL_DRAFT_BASE,
+  nsKey,
+  progressLogsKey,
+} from "@/lib/goalStorage";
 
 /** 鈴木一郎（employee 001）のデモ用承認済みデータをlocalStorageにシードする */
 export default function SeedGoalData({ employeeId }: { employeeId: string }) {
@@ -105,21 +111,21 @@ export default function SeedGoalData({ employeeId }: { employeeId: string }) {
       },
     ];
 
-    // localStorageへ書き込み
+    // localStorageへ書き込み（employee 001 のユーザー名前空間にのみシード）
     window.localStorage.setItem(
-      "keyatree_goal_navigator_draft",
+      nsKey(QUANT_DRAFT_BASE, "001"),
       JSON.stringify(quantRecord)
     );
     window.localStorage.setItem(
-      "keyatree_qualitative_goal_navigator_draft",
+      nsKey(QUAL_DRAFT_BASE, "001"),
       JSON.stringify(qualRecord)
     );
     window.localStorage.setItem(
-      `keyatree_progress_logs_${quantRecord.recordId}`,
+      progressLogsKey(quantRecord.recordId, "001"),
       JSON.stringify(quantLogs)
     );
     window.localStorage.setItem(
-      `keyatree_progress_logs_${qualRecord.recordId}`,
+      progressLogsKey(qualRecord.recordId, "001"),
       JSON.stringify(qualLogs)
     );
 

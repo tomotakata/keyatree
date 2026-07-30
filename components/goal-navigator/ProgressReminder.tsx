@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import {
+  QUANT_DRAFT_BASE,
+  QUAL_DRAFT_BASE,
+  nsKey,
+  progressLogsKey,
+} from "@/lib/goalStorage";
 
 type ProgressLog = {
   loggedAt: string;
@@ -11,6 +17,7 @@ type ProgressLog = {
 type ReminderRecord = {
   storageKey: string;
   recordId: string;
+  employeeId: string;
   kind: "quantitative" | "qualitative";
   title: string;
   name: string;
@@ -104,7 +111,7 @@ function ProgressCard({ record, onUpdate }: { record: ReminderRecord; onUpdate: 
       challenge: challenge.trim(),
     };
 
-    const logsKey = `keyatree_progress_logs_${record.recordId}`;
+    const logsKey = progressLogsKey(record.recordId, record.employeeId);
     const existing: ProgressLog[] = (() => {
       try {
         return JSON.parse(window.localStorage.getItem(logsKey) || "[]");
@@ -252,20 +259,21 @@ function ProgressCard({ record, onUpdate }: { record: ReminderRecord; onUpdate: 
   );
 }
 
-export default function ProgressReminder() {
+export default function ProgressReminder({ employeeId }: { employeeId: string }) {
   const [records, setRecords] = useState<ReminderRecord[]>([]);
 
   function load() {
 
     const sources = [
-      { key: "keyatree_goal_navigator_draft", kind: "quantitative" as const },
-      { key: "keyatree_qualitative_goal_navigator_draft", kind: "qualitative" as const },
+      { base: QUANT_DRAFT_BASE, kind: "quantitative" as const },
+      { base: QUAL_DRAFT_BASE, kind: "qualitative" as const },
     ];
 
     const next: ReminderRecord[] = [];
 
     for (const source of sources) {
-      const raw = window.localStorage.getItem(source.key);
+      const key = nsKey(source.base, employeeId);
+      const raw = window.localStorage.getItem(key);
       if (!raw) continue;
       try {
         const parsed = JSON.parse(raw) as {
@@ -277,15 +285,16 @@ export default function ProgressReminder() {
         if (parsed.status !== "approved" || !parsed.answers) continue;
 
         const recordId = parsed.recordId || `${source.kind}-local`;
-        const logsKey = `keyatree_progress_logs_${recordId}`;
+        const logsKey = progressLogsKey(recordId, employeeId);
         const logs: ProgressLog[] = (() => {
           try { return JSON.parse(window.localStorage.getItem(logsKey) || "[]"); } catch { return []; }
         })();
 
         const a = parsed.answers;
         next.push({
-          storageKey: source.key,
+          storageKey: key,
           recordId,
+          employeeId,
           kind: source.kind,
           title: a.goal || (source.kind === "quantitative" ? "目標設定シート" : "定性目標設定シート"),
           name: a.name || "",
@@ -309,7 +318,7 @@ export default function ProgressReminder() {
     const handler = () => load();
     window.addEventListener("keyatree_seed_done", handler);
     return () => window.removeEventListener("keyatree_seed_done", handler);
-  }, []);
+  }, [employeeId]);
 
   if (records.length === 0) return null;
 
