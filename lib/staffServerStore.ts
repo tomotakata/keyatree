@@ -97,6 +97,21 @@ export async function saveStaff(emp: Employee): Promise<Employee> {
   return emp;
 }
 
+export async function deleteStaff(id: string): Promise<void> {
+  if (!isSupabaseEnabled()) {
+    const m = memory();
+    m.members.delete(id);
+    // 紐づくアカウントも削除
+    for (const [key, acc] of m.accounts) {
+      if (acc.employeeId === id) m.accounts.delete(key);
+    }
+    return;
+  }
+  const supabase = getSupabaseAdmin();
+  await ensureBucket(supabase);
+  await supabase.storage.from(BUCKET).remove([memberPath(id), accountPath(`acc_${id}`)]);
+}
+
 // ---- Accounts ----
 export async function listStoredAccounts(): Promise<Account[]> {
   if (!isSupabaseEnabled()) return Array.from(memory().accounts.values());

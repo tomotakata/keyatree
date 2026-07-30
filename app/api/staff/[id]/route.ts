@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getStaff, saveStaff } from "@/lib/staffServerStore";
+import { getStaff, saveStaff, deleteStaff } from "@/lib/staffServerStore";
 import type { Employee } from "@/lib/mockData";
 
 export async function GET(
@@ -31,6 +31,19 @@ export async function PUT(
     const patch = (await request.json()) as Partial<Employee>;
     const updated = await saveStaff({ ...existing, ...patch, id });
     return NextResponse.json({ staff: updated });
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    await deleteStaff(id);
+    return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
