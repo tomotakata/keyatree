@@ -8,6 +8,7 @@ import html2canvas from "html2canvas";
 import { saveNavigatorRecord } from "@/lib/goalNavigatorActions";
 import { QUANT_DRAFT_BASE, nsKey } from "@/lib/goalStorage";
 import AiAssist from "@/components/goal-navigator/AiAssist";
+import ChatNavigator from "@/components/goal-navigator/ChatNavigator";
 
 const sampleAnswers: Record<string, string> = {
   name: "鈴木 一郎",
@@ -119,6 +120,7 @@ const steps: { key: StepKey; title: string; prompt: string; placeholder?: string
 export default function GoalNavigatorPage() {
   const reportRef = useRef<HTMLDivElement>(null);
   const [stepIndex, setStepIndex] = useState(0);
+  const [uiMode, setUiMode] = useState<"step" | "chat">("step");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [notice, setNotice] = useState("");
@@ -301,17 +303,55 @@ export default function GoalNavigatorPage() {
             <p className="text-emerald-100 text-xs font-semibold tracking-wide uppercase">Goal Navigator</p>
             <h1 className="text-white text-2xl font-black mt-1">目標設定ナビゲーター</h1>
             <p className="text-emerald-100 text-sm mt-2">1問ずつ進みながら、目標から具体行動まで整理できます。</p>
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-3">
               <button
                 onClick={fillSample}
                 className="rounded-xl bg-white/15 px-4 py-2 text-sm font-bold text-white backdrop-blur transition hover:bg-white/25"
               >
                 サンプル回答を入れる
               </button>
+              <div className="inline-flex rounded-xl bg-white/15 p-1 backdrop-blur">
+                <button
+                  onClick={() => setUiMode("step")}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                    uiMode === "step" ? "bg-white text-emerald-700" : "text-white hover:bg-white/10"
+                  }`}
+                >
+                  ステップ入力
+                </button>
+                <button
+                  onClick={() => setUiMode("chat")}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                    uiMode === "chat" ? "bg-white text-emerald-700" : "text-white hover:bg-white/10"
+                  }`}
+                >
+                  チャットで進める
+                </button>
+              </div>
             </div>
           </div>
 
-          {!submitted ? (
+          {uiMode === "chat" && !submitted ? (
+            <ChatNavigator
+              kind="quantitative"
+              steps={steps.map((s) => ({
+                key: s.key,
+                title: s.title,
+                prompt: s.prompt,
+                kind: s.kind === "select" ? "select" : s.kind === "text" ? "text" : "textarea",
+                placeholder: s.placeholder,
+                section: s.section,
+              }))}
+              answers={answers}
+              setAnswer={(key, val) => setAnswers((prev) => ({ ...prev, [key]: val }))}
+              optionsFor={(key) => (key === "department" ? departmentOptions : [])}
+              autoValueFor={(key) => (key === "purpose" ? autoPurpose : "")}
+              accent="emerald"
+              onComplete={() => setSubmitted(true)}
+              onSaveDraft={saveDraft}
+              isSaving={isPending}
+            />
+          ) : !submitted ? (
             <div className="p-6 space-y-6">
               <div>
                 <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
