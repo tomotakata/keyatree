@@ -4,6 +4,15 @@ import { getSupabaseAdmin, isSupabaseEnabled } from "@/lib/supabaseServer";
 export type NavigatorKind = "quantitative" | "qualitative";
 export type RecordStatus = "draft" | "submitted" | "approved" | "rejected";
 
+export type ProgressReply = {
+  id: string;
+  at: string;
+  authorId?: string;
+  authorName: string;
+  isApprover?: boolean;
+  body: string;
+};
+
 export type ProgressUpdate = {
   id: string;
   at: string;
@@ -11,6 +20,7 @@ export type ProgressUpdate = {
   authorName: string;
   body: string;
   percent?: number;
+  replies?: ProgressReply[];
 };
 
 export type NavigatorSession = {
@@ -420,6 +430,60 @@ export async function addProgressUpdate(
   const record = records.find((item) => item.id === recordId);
   if (!record) return null;
   record.progressUpdates = [...(record.progressUpdates ?? []), entry];
+  record.updatedAt = now;
+  return record;
+}
+
+// ---- Progress reply（進捗へのコメント返信）----
+export async function addProgressReply(
+  recordId: string,
+  updateId: string,
+  reply: { authorId?: string; authorName: string; isApprover?: boolean; body: string }
+) {
+  const now = new Date().toISOString();
+  const entry: ProgressReply = {
+    id: crypto.randomUUID(),
+    at: now,
+    authorId: reply.authorId,
+    authorName: reply.authorName,
+    isApprover: reply.isApprover,
+    body: reply.body,
+  };
+
+  const applyReply = (record: NavigatorRecord): NavigatorRecord => ({
+    ...record,
+    progressUpdates: (record.progressUpdates ?? []).map((u) =>
+      u.id === updateId ? { ...u, replies: [...(u.replies ?? []), entry] } : u
+    ),
+    updatedAt: now,
+  });
+
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseAdmin();
+    await ensureBucket(supabase);
+    const before = await getJson<NavigatorRecord>(supabase, recordPath(recordId));
+    if (!before) return null;
+    if (!(before.progressUpdates ?? []).some((u) => u.id === updateId)) return null;
+
+    const record = applyReply(before);
+    await putJson(supabase, recordPath(record.id), record);
+    await writeAuditLog(supabase, {
+      entityId: record.id,
+      operation: "progress",
+      beforeData: before,
+      afterData: record,
+      actor: { actorId: reply.authorId, actorName: reply.authorName },
+    });
+    return record;
+  }
+
+  const records = getStore();
+  const record = records.find((item) => item.id === recordId);
+  if (!record) return null;
+  if (!(record.progressUpdates ?? []).some((u) => u.id === updateId)) return null;
+  record.progressUpdates = (record.progressUpdates ?? []).map((u) =>
+    u.id === updateId ? { ...u, replies: [...(u.replies ?? []), entry] } : u
+  );
   record.updatedAt = now;
   return record;
 }

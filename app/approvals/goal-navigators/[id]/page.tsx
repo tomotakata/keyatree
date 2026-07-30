@@ -128,6 +128,7 @@ export default async function GoalNavigatorApprovalDetailPage({
           recordId={record.id}
           updates={record.progressUpdates ?? []}
           canWrite={isOwner || canApprove}
+          canReply={isOwner || canApprove}
         />
       </main>
     </div>

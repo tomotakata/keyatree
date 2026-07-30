@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  addProgressReply,
   addProgressUpdate,
   approveNavigatorRecord,
   canApprove,
@@ -154,6 +155,35 @@ export async function addProgressUpdateAction(recordId: string, body: string, pe
   revalidatePath(`/approvals/goal-navigators/${recordId}`);
   revalidatePath("/goal-navigator/history");
   revalidatePath("/qualitative-goal-navigator/history");
+
+  return { ok: true as const, record };
+}
+
+/** 進捗へのコメント返信：本人または承認者のみ */
+export async function addProgressReplyAction(recordId: string, updateId: string, body: string) {
+  const session = await getServerSession();
+  if (!session) return { ok: false as const, message: "ログイン情報を確認できませんでした" };
+  if (!body.trim()) return { ok: false as const, message: "コメントを入力してください" };
+
+  const target = await getNavigatorRecordById(recordId);
+  if (!target) return { ok: false as const, message: "対象レコードが見つかりません" };
+
+  const ownerId = session.employeeId || session.id || session.email;
+  const isOwner = Boolean(ownerId && target.ownerId === ownerId);
+  const approver = canApprove(session);
+  if (!isOwner && !approver) {
+    return { ok: false as const, message: "コメントを入力する権限がありません" };
+  }
+
+  const record = await addProgressReply(recordId, updateId, {
+    authorId: session.id || session.employeeId,
+    authorName: session.name,
+    isApprover: approver,
+    body: body.trim(),
+  });
+  if (!record) return { ok: false as const, message: "コメントの保存に失敗しました" };
+
+  revalidatePath(`/approvals/goal-navigators/${recordId}`);
 
   return { ok: true as const, record };
 }
