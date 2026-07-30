@@ -2,7 +2,16 @@ import { cookies } from "next/headers";
 import { getSupabaseAdmin, isSupabaseEnabled } from "@/lib/supabaseServer";
 
 export type NavigatorKind = "quantitative" | "qualitative";
-export type RecordStatus = "draft" | "submitted" | "approved";
+export type RecordStatus = "draft" | "submitted" | "approved" | "rejected";
+
+export type ProgressUpdate = {
+  id: string;
+  at: string;
+  authorId?: string;
+  authorName: string;
+  body: string;
+  percent?: number;
+};
 
 export type NavigatorSession = {
   id?: string;
@@ -28,6 +37,10 @@ export type NavigatorRecord = {
   submittedAt?: string;
   approvedAt?: string;
   approvedBy?: string;
+  reviewComment?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  progressUpdates?: ProgressUpdate[];
 };
 
 type AuditActor = {
@@ -125,7 +138,7 @@ async function writeAuditLog(
   supabase: Admin,
   input: {
     entityId: string;
-    operation: "create" | "update" | "approve";
+    operation: "create" | "update" | "approve" | "reject" | "progress";
     beforeData?: NavigatorRecord | null;
     afterData?: NavigatorRecord | null;
     actor?: AuditActor;
@@ -272,7 +285,7 @@ export async function upsertNavigatorRecord(input: {
   return created;
 }
 
-export async function approveNavigatorRecord(recordId: string, approverName: string, actorId?: string) {
+export async function approveNavigatorRecord(recordId: string, approverName: string, actorId?: string, comment?: string) {
   const now = new Date().toISOString();
 
   if (isSupabaseEnabled()) {
@@ -287,6 +300,9 @@ export async function approveNavigatorRecord(recordId: string, approverName: str
       approvedAt: now,
       updatedAt: now,
       approvedBy: approverName,
+      reviewComment: comment || before.reviewComment,
+      reviewedAt: now,
+      reviewedBy: approverName,
     };
     await putJson(supabase, recordPath(record.id), record);
     await writeAuditLog(supabase, {
@@ -306,5 +322,103 @@ export async function approveNavigatorRecord(recordId: string, approverName: str
   record.approvedAt = now;
   record.updatedAt = now;
   record.approvedBy = approverName;
+  record.reviewComment = comment || record.reviewComment;
+  record.reviewedAt = now;
+  record.reviewedBy = approverName;
+  return record;
+}
+
+// ---- Single record fetch ----
+export async function getNavigatorRecordById(recordId: string): Promise<NavigatorRecord | null> {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseAdmin();
+    await ensureBucket(supabase);
+    return await getJson<NavigatorRecord>(supabase, recordPath(recordId));
+  }
+  return getStore().find((item) => item.id === recordId) ?? null;
+}
+
+// ---- Reject（やり直し依頼）----
+export async function rejectNavigatorRecord(recordId: string, reviewerName: string, comment: string, actorId?: string) {
+  const now = new Date().toISOString();
+
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseAdmin();
+    await ensureBucket(supabase);
+    const before = await getJson<NavigatorRecord>(supabase, recordPath(recordId));
+    if (!before) return null;
+
+    const record: NavigatorRecord = {
+      ...before,
+      status: "rejected",
+      updatedAt: now,
+      reviewComment: comment,
+      reviewedAt: now,
+      reviewedBy: reviewerName,
+    };
+    await putJson(supabase, recordPath(record.id), record);
+    await writeAuditLog(supabase, {
+      entityId: record.id,
+      operation: "reject",
+      beforeData: before,
+      afterData: record,
+      actor: { actorId, actorName: reviewerName },
+    });
+    return record;
+  }
+
+  const records = getStore();
+  const record = records.find((item) => item.id === recordId);
+  if (!record) return null;
+  record.status = "rejected";
+  record.updatedAt = now;
+  record.reviewComment = comment;
+  record.reviewedAt = now;
+  record.reviewedBy = reviewerName;
+  return record;
+}
+
+// ---- Progress（進捗報告）----
+export async function addProgressUpdate(
+  recordId: string,
+  update: { authorId?: string; authorName: string; body: string; percent?: number }
+) {
+  const now = new Date().toISOString();
+  const entry: ProgressUpdate = {
+    id: crypto.randomUUID(),
+    at: now,
+    authorId: update.authorId,
+    authorName: update.authorName,
+    body: update.body,
+    percent: update.percent,
+  };
+
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseAdmin();
+    await ensureBucket(supabase);
+    const before = await getJson<NavigatorRecord>(supabase, recordPath(recordId));
+    if (!before) return null;
+
+    const record: NavigatorRecord = {
+      ...before,
+      progressUpdates: [...(before.progressUpdates ?? []), entry],
+      updatedAt: now,
+    };
+    await putJson(supabase, recordPath(record.id), record);
+    await writeAuditLog(supabase, {
+      entityId: record.id,
+      operation: "progress",
+      beforeData: before,
+      afterData: record,
+      actor: { actorId: update.authorId, actorName: update.authorName },
+    });
+    return record;
+  }
+
+  const records = getStore();
+  const record = records.find((item) => item.id === recordId);
+  if (!record) return null;
+  record.progressUpdates = [...(record.progressUpdates ?? []), entry];
+  record.updatedAt = now;
   return record;
 }

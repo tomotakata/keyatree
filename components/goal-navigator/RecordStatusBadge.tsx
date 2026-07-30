@@ -13,6 +13,10 @@ const statusMap: Record<RecordStatus, { label: string; className: string }> = {
     label: "承認済み",
     className: "bg-emerald-100 text-emerald-700 border-emerald-200",
   },
+  rejected: {
+    label: "やり直し依頼",
+    className: "bg-rose-100 text-rose-700 border-rose-200",
+  },
 };
 
 export default function RecordStatusBadge({ status }: { status: RecordStatus }) {

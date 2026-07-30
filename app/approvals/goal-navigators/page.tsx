@@ -1,9 +1,6 @@
 import HeaderNav from "@/components/HeaderNav";
-import ApprovalButton from "@/components/goal-navigator/ApprovalButton";
-import RecordActions from "@/components/goal-navigator/RecordActions";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
-import ClientPendingApprovals from "./_components/ClientPendingApprovals";
-import { getApprovalNavigatorRecords } from "@/lib/goalNavigatorActions";
+import { getApprovalAccess, getApprovalNavigatorRecords } from "@/lib/goalNavigatorActions";
 import Link from "next/link";
 
 function formatDate(iso?: string) {
@@ -13,6 +10,30 @@ function formatDate(iso?: string) {
 }
 
 export default async function GoalNavigatorApprovalPage() {
+  const isApprover = await getApprovalAccess();
+
+  if (!isApprover) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <HeaderNav currentLabel="目標設定承認" />
+        <main className="mx-auto max-w-3xl px-4 py-10">
+          <div className="rounded-2xl border bg-white p-10 text-center shadow-sm">
+            <p className="text-base font-bold text-gray-700">アクセス権限がありません</p>
+            <p className="mt-2 text-sm text-gray-500">
+              承認申請一覧は管理者・人事管理者のアカウントのみ閲覧できます。
+            </p>
+            <Link
+              href="/employees"
+              className="mt-4 inline-flex rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
+            >
+              ホームへ戻る
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   const records = await getApprovalNavigatorRecords();
 
   return (
@@ -20,8 +41,10 @@ export default async function GoalNavigatorApprovalPage() {
       <HeaderNav currentLabel="目標設定承認" />
       <main className="mx-auto max-w-6xl space-y-5 px-4 py-6">
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <h1 className="text-lg font-bold text-gray-800">目標設定・定性目標 承認一覧</h1>
-          <p className="mt-1 text-sm text-gray-500">上長・人事管理者向けの承認待ち一覧です。</p>
+          <h1 className="text-lg font-bold text-gray-800">目標設定・定性目標 承認申請一覧</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            管理者・人事管理者向けの承認待ち一覧です。各申請の「詳細を確認」から内容確認・承認・やり直し依頼・進捗確認ができます。
+          </p>
           <div className="mt-4">
             <Link
               href="/approvals/goal-navigators/approved"
@@ -33,7 +56,6 @@ export default async function GoalNavigatorApprovalPage() {
         </div>
 
         <div className="space-y-4">
-          <ClientPendingApprovals />
           {records.length === 0 ? (
             <div className="rounded-2xl border bg-white p-10 text-center text-sm text-gray-400 shadow-sm">
               承認待ちのレコードはありません
@@ -54,8 +76,12 @@ export default async function GoalNavigatorApprovalPage() {
                     <p className="text-xs text-gray-400">提出日 {formatDate(record.submittedAt || record.updatedAt)}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <ApprovalButton recordId={record.id} />
-                    <RecordActions record={record} />
+                    <Link
+                      href={`/approvals/goal-navigators/${record.id}`}
+                      className="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-600"
+                    >
+                      詳細を確認・決裁する
+                    </Link>
                   </div>
                 </div>
               </div>

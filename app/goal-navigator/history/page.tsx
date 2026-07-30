@@ -57,6 +57,12 @@ export default async function GoalNavigatorHistoryPage() {
                       {record.approvedAt ? `承認日 ${formatDate(record.approvedAt)}` : record.submittedAt ? `提出日 ${formatDate(record.submittedAt)}` : "下書き保存"}
                     </div>
                     <Link
+                      href={`/approvals/goal-navigators/${record.id}`}
+                      className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-600"
+                    >
+                      詳細・進捗入力
+                    </Link>
+                    <Link
                       href="/goal-navigator"
                       className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-600 transition hover:bg-gray-50"
                     >
