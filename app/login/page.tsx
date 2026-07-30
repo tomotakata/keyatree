@@ -70,14 +70,16 @@ function LoginPageContent() {
       }
 
       const account = data.account;
-      document.cookie = `kt_session=${JSON.stringify({
-        id: account.id,
-        name: account.name,
-        email: account.email,
-        permissionId: account.permissionId,
-        permissionName: account.permissionName,
-        employeeId: account.employeeId,
-      })}; path=/; max-age=${60 * 60 * 8}`;
+      document.cookie = `kt_session=${encodeURIComponent(
+        JSON.stringify({
+          id: account.id,
+          name: account.name,
+          email: account.email,
+          permissionId: account.permissionId,
+          permissionName: account.permissionName,
+          employeeId: account.employeeId,
+        })
+      )}; path=/; max-age=${60 * 60 * 8}`;
 
       // ログイン後は必ず本人のマイページを開く（未紐付けの場合のみ redirect 先へ）
       const myPage = account.employeeId

@@ -156,7 +156,14 @@ export async function getServerSession(): Promise<NavigatorSession | null> {
   const raw = cookieStore.get("kt_session")?.value;
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as NavigatorSession;
+    // Cookieは encodeURIComponent(JSON) で保存される。旧形式（未エンコード）も許容。
+    let text = raw;
+    try {
+      text = decodeURIComponent(raw);
+    } catch {
+      text = raw;
+    }
+    return JSON.parse(text) as NavigatorSession;
   } catch {
     return null;
   }
