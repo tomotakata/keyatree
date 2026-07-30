@@ -11,24 +11,31 @@ function getGreetingMessages(employee: Employee): string[] {
   const hour = new Date().getHours();
   const name = employee.name.split(" ")[0];
 
-  const topGoal = [...employee.goals].sort((a, b) => b.progress - a.progress)[0];
-  const lowGoal = [...employee.goals].sort((a, b) => a.progress - b.progress)[0];
-  const avgProgress = Math.round(
-    employee.goals.reduce((sum, g) => sum + g.progress, 0) / employee.goals.length
-  );
-  const thanksCount = employee.thanks.length;
+  const goals = employee.goals ?? [];
+  const topGoal = [...goals].sort((a, b) => b.progress - a.progress)[0];
+  const lowGoal = [...goals].sort((a, b) => a.progress - b.progress)[0];
+  const avgProgress = goals.length
+    ? Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length)
+    : 0;
+  const thanksCount = (employee.thanks ?? []).length;
 
-  // 目標関連メッセージ
-  const goalMessages = [
-    `「${topGoal.title}」の進捗が${topGoal.progress}%！この調子で行きましょう！`,
-    `目標の平均進捗は${avgProgress}%です。着実に前進していますね。`,
-    topGoal.progress >= 80
-      ? `「${topGoal.title}」はゴール目前の${topGoal.progress}%！あと一踏ん張りです！`
-      : `「${lowGoal.title}」、一緒に伸ばしていきましょう！`,
-    `今日の積み重ねが、明日の目標達成につながっています。`,
-    `小さな進歩も大きな成果への第一歩。焦らず着実に！`,
-    `目標に向かって動いているだけで、それはもう立派な成果です。`,
-  ];
+  // 目標関連メッセージ（目標が登録されている場合のみ）
+  const goalMessages = topGoal
+    ? [
+        `「${topGoal.title}」の進捗が${topGoal.progress}%！この調子で行きましょう！`,
+        `目標の平均進捗は${avgProgress}%です。着実に前進していますね。`,
+        topGoal.progress >= 80
+          ? `「${topGoal.title}」はゴール目前の${topGoal.progress}%！あと一踏ん張りです！`
+          : `「${lowGoal.title}」、一緒に伸ばしていきましょう！`,
+        `今日の積み重ねが、明日の目標達成につながっています。`,
+        `小さな進歩も大きな成果への第一歩。焦らず着実に！`,
+        `目標に向かって動いているだけで、それはもう立派な成果です。`,
+      ]
+    : [
+        `まずは今月の目標を設定してみましょう！`,
+        `小さな一歩から。目標を立てることが成長のスタートです。`,
+        `今日の積み重ねが、明日の目標達成につながっています。`,
+      ];
 
   // サンクス関連メッセージ
   const thanksMessages = [
