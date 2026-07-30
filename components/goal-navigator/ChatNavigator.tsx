@@ -150,6 +150,21 @@ export default function ChatNavigator({
     setInput(auto);
   };
 
+  const canGoBack = !loading && (done || cursor > 0);
+
+  const goBack = () => {
+    if (!canGoBack) return;
+    // 1ステップ = [質問, ユーザー回答, AIコメント] の3メッセージ単位。
+    // 直近ブロックを取り除き、ひとつ前の質問を再表示して回答し直せるようにする。
+    const targetIndex = done ? steps.length - 1 : cursor - 1;
+    if (targetIndex < 0) return;
+    setMessages((prev) => prev.slice(0, Math.max(0, prev.length - 3)));
+    setDone(false);
+    setCursor(targetIndex);
+    const targetStep = steps[targetIndex];
+    setInput(answers[targetStep.key] ?? "");
+  };
+
   const submitValue = async (rawValue: string) => {
     if (!current || loading) return;
     const value = rawValue.trim();
@@ -282,6 +297,21 @@ export default function ChatNavigator({
 
       {/* 入力エリア */}
       <div className="border-t bg-white px-6 py-4">
+        <div className="mb-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={goBack}
+            disabled={!canGoBack}
+            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <span aria-hidden>←</span> 1つ前に戻る
+          </button>
+          {!done && cursor > 0 ? (
+            <span className="text-[11px] text-gray-400">
+              間違えたら「1つ前に戻る」で修正できます
+            </span>
+          ) : null}
+        </div>
         {done ? (
           <div className="flex flex-wrap gap-3">
             <button
