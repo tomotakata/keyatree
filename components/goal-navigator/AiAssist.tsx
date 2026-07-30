@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type AssistMode = "suggest" | "refine" | "generate";
+type AssistMode = "suggest" | "refine" | "generate" | "coach";
 
 type Props = {
   kind: "quantitative" | "qualitative";
@@ -19,6 +19,7 @@ const MODE_LABEL: Record<AssistMode, string> = {
   suggest: "AIに提案してもらう",
   refine: "AIで添削",
   generate: "自動生成",
+  coach: "AIに相談（確認・アドバイス）",
 };
 
 export default function AiAssist({
@@ -33,12 +34,17 @@ export default function AiAssist({
 }: Props) {
   const [loading, setLoading] = useState<AssistMode | null>(null);
   const [result, setResult] = useState("");
+  const [coach, setCoach] = useState("");
   const [error, setError] = useState("");
 
   const run = async (mode: AssistMode) => {
     setLoading(mode);
     setError("");
-    setResult("");
+    if (mode === "coach") {
+      setCoach("");
+    } else {
+      setResult("");
+    }
     try {
       const res = await fetch("/api/goal-assist", {
         method: "POST",
@@ -62,7 +68,11 @@ export default function AiAssist({
         );
         return;
       }
-      setResult(json.text ?? "");
+      if (mode === "coach") {
+        setCoach(json.text ?? "");
+      } else {
+        setResult(json.text ?? "");
+      }
     } catch {
       setError("通信エラーが発生しました。");
     } finally {
@@ -98,10 +108,39 @@ export default function AiAssist({
         >
           {loading === "generate" ? "生成中..." : MODE_LABEL.generate}
         </button>
+        <button
+          type="button"
+          onClick={() => run("coach")}
+          disabled={loading !== null}
+          className="rounded-lg border border-teal-300 bg-teal-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-teal-600 disabled:opacity-50"
+        >
+          {loading === "coach" ? "確認中..." : MODE_LABEL.coach}
+        </button>
       </div>
 
       {error ? (
         <p className="mt-2 whitespace-pre-line text-xs font-medium text-red-600">{error}</p>
+      ) : null}
+
+      {coach ? (
+        <div className="mt-3 rounded-xl border border-teal-200 bg-white p-3">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-teal-500 text-[11px] font-bold text-white">
+              AI
+            </span>
+            <span className="text-[11px] font-bold text-teal-700">目標設定ナビゲーターより</span>
+          </div>
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{coach}</p>
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setCoach("")}
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 transition hover:bg-gray-50"
+            >
+              閉じる
+            </button>
+          </div>
+        </div>
       ) : null}
 
       {result ? (

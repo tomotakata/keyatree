@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-type AssistMode = "suggest" | "refine" | "generate";
+type AssistMode = "suggest" | "refine" | "generate" | "coach";
 
 type AssistBody = {
   kind?: "quantitative" | "qualitative";
@@ -80,6 +80,26 @@ const QUAL_SYSTEM = `あなたは不動産会社「KeyaTree（けやき不動産
 - 見出し・前置き・接頭辞・カギ括弧での囲みは付けない。そのまま入力欄へ貼れる本文だけを返す。
 - これまでの回答（文脈）や選択したコンピテンシーと矛盾しない内容にする。`;
 
+// ─────────────────────────────────────────────────────────────
+// マイGPTの「対話での確認・サポート」を再現するシステムプロンプト（coachモード共通）
+// 入力欄用の本文ではなく、伴走コーチとしての受け止め・承認・一言アドバイスを返す
+// ─────────────────────────────────────────────────────────────
+const COACH_SYSTEM = `あなたは不動産会社「KeyaTree（けやき不動産）」の社員専用の目標設定コーチAI「目標設定ナビゲーター」です。
+これはOpenAIのGPTとして設計された対話型コーチをそのまま社内ツールに移植したもので、語り口・伴走スタンスを元のGPTと完全に一致させます。
+
+# この応答の役割（重要）
+いま社員が「現在の項目」に入力した回答に対して、対話コーチとして声をかけます。入力欄に貼るための本文ではなく、"コーチのひとこと"を返します。
+
+# 応答の型（毎回この流れ・全体で2〜4文・自然な日本語）
+1. 受け止め・承認: 相手の入力を一度きちんと受け止め、良い点を具体的に1つ認める（例:「なるほど、〜という思いなんですね。とても良い視点です。」）。
+2. 確認/深掘り or 磨き込みの提案: この項目の狙いに照らして、あと一歩良くするための具体的な観点を1つだけ、やわらかく提案するか、次の一歩へつなぐ問いを1つ投げる（例:「もう一歩だけ、〜を数値で表すとさらに伝わりますよ。」）。
+3. 押しつけない: 断定・説教・長い列挙はしない。あくまで伴走者として、相手の言葉を活かす。
+
+# 禁止事項
+- 箇条書きや見出しは使わず、話し言葉の短い段落で返す。
+- 相手の入力を丸ごと書き直して提示しない（それは別機能）。ヒントや方向性だけを示す。
+- 入力が空のときは、責めずに、この項目で何を書くとよいかを1つの問いかけで促す。`;
+
 // 定量ナビ: ステップ別の追加ガイド
 function quantStepGuide(stepKey: string): string {
   if (stepKey === "goal")
@@ -142,6 +162,9 @@ function buildUserPrompt(body: AssistBody): string {
 
   const header = `【これまでの回答（文脈）】\n${context}\n\n【現在の項目】\nセクション: ${section ?? ""}\nステップ: ${stepTitle ?? ""}\n質問: ${prompt ?? ""}\n\n【この項目のコーチング方針】\n${guide}`;
 
+  if (mode === "coach") {
+    return `${header}\n\n【ユーザーが今この項目に入力した内容】\n${currentValue?.trim() ? currentValue : "(まだ空欄です)"}\n\n上記の入力に対して、目標設定ナビゲーターとして"コーチのひとこと"を返してください。受け止め・承認から入り、この項目をあと一歩良くするための観点を1つだけ、やわらかく伝えてください。話し言葉で2〜4文にまとめてください。`;
+  }
   if (mode === "refine") {
     return `${header}\n\n【ユーザーの現在の入力】\n${currentValue ?? "(空)"}\n\nこの入力を、上記の方針に沿って、より具体的で伝わりやすい表現に添削してください。本人の意図を保ったまま、1つの完成された本文として出力してください。`;
   }
@@ -167,7 +190,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
   }
 
-  const system = body.kind === "qualitative" ? QUAL_SYSTEM : QUANT_SYSTEM;
+  const system =
+    body.mode === "coach"
+      ? COACH_SYSTEM
+      : body.kind === "qualitative"
+        ? QUAL_SYSTEM
+        : QUANT_SYSTEM;
 
   try {
     const res = await fetch(`${KIE_BASE}/${MODEL}/v1/chat/completions`, {
