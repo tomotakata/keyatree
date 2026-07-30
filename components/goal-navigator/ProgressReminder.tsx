@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useState, useTransition } from "react";
+import { addProgressUpdateAction, addProgressReplyAction } from "@/lib/goalNavigatorActions";
 
 type ProgressReply = {
   id: string;
@@ -79,8 +79,21 @@ function urgencyLevel(record: NavigatorRecord): "high" | "medium" | "low" {
   return "low";
 }
 
-function ProgressCard({ record }: { record: NavigatorRecord }) {
+function ProgressCard({
+  record,
+  onUpdated,
+}: {
+  record: NavigatorRecord;
+  onUpdated: (record: NavigatorRecord) => void;
+}) {
   const [showHistory, setShowHistory] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [body, setBody] = useState("");
+  const [error, setError] = useState("");
+  const [pending, startTransition] = useTransition();
+  const [replyFor, setReplyFor] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState("");
+
   const logs = record.progressUpdates ?? [];
   const a = record.answers || {};
   const krs = [a.kr1, a.kr2, a.kr3].filter(Boolean) as string[];
@@ -94,6 +107,37 @@ function ProgressCard({ record }: { record: NavigatorRecord }) {
     low: { bar: "bg-emerald-400", badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   };
   const style = urgencyStyles[urgency];
+
+  function submitProgress() {
+    setError("");
+    if (!body.trim()) {
+      setError("進捗の内容を入力してください");
+      return;
+    }
+    startTransition(async () => {
+      const res = await addProgressUpdateAction(record.id, body.trim());
+      if (res.ok && res.record) {
+        onUpdated(res.record as NavigatorRecord);
+        setBody("");
+        setShowForm(false);
+        setShowHistory(true);
+      } else {
+        setError(res.message || "進捗の保存に失敗しました");
+      }
+    });
+  }
+
+  function submitReply(updateId: string) {
+    if (!replyBody.trim()) return;
+    startTransition(async () => {
+      const res = await addProgressReplyAction(record.id, updateId, replyBody.trim());
+      if (res.ok && res.record) {
+        onUpdated(res.record as NavigatorRecord);
+        setReplyBody("");
+        setReplyFor(null);
+      }
+    });
+  }
 
   return (
     <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
@@ -144,14 +188,51 @@ function ProgressCard({ record }: { record: NavigatorRecord }) {
                 履歴 ({logs.length}件)
               </button>
             )}
-            <Link
-              href={`/approvals/goal-navigators/${record.id}`}
+            <button
+              onClick={() => {
+                setShowForm((v) => !v);
+                setError("");
+              }}
               className="rounded-xl bg-emerald-500 hover:bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition"
             >
-              進捗を入力
-            </Link>
+              {showForm ? "閉じる" : "進捗を入力"}
+            </button>
           </div>
         </div>
+
+        {/* インライン進捗入力フォーム（マイページ内で完結） */}
+        {showForm && (
+          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 space-y-2">
+            <p className="text-xs font-bold text-emerald-700">進捗・課題を記録する</p>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={4}
+              placeholder="今週の進捗、達成したこと、課題や次のアクションなどを記入してください。"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            />
+            {error && <p className="text-xs font-bold text-red-500">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setBody("");
+                  setError("");
+                }}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={submitProgress}
+                disabled={pending}
+                className="rounded-lg bg-emerald-500 hover:bg-emerald-600 px-4 py-2 text-xs font-bold text-white transition disabled:opacity-60"
+              >
+                {pending ? "保存中..." : "進捗を記録する"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {showHistory && logs.length > 0 && (
           <div className="mt-4 space-y-2 border-t pt-4">
@@ -169,6 +250,47 @@ function ProgressCard({ record }: { record: NavigatorRecord }) {
                     <p className="text-sm text-gray-700">{rep.body}</p>
                   </div>
                 ))}
+
+                {/* 管理者コメントへの返信（本人がマイページから返信可能） */}
+                {replyFor === log.id ? (
+                  <div className="mt-2 space-y-2">
+                    <textarea
+                      value={replyBody}
+                      onChange={(e) => setReplyBody(e.target.value)}
+                      rows={2}
+                      placeholder="返信を入力..."
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setReplyFor(null);
+                          setReplyBody("");
+                        }}
+                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
+                      >
+                        キャンセル
+                      </button>
+                      <button
+                        onClick={() => submitReply(log.id)}
+                        disabled={pending}
+                        className="rounded-lg bg-indigo-500 hover:bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition disabled:opacity-60"
+                      >
+                        {pending ? "送信中..." : "返信する"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setReplyFor(log.id);
+                      setReplyBody("");
+                    }}
+                    className="mt-1 text-xs font-bold text-indigo-500 hover:text-indigo-600 transition"
+                  >
+                    ＋ 返信する
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -233,7 +355,13 @@ export default function ProgressReminder({ employeeId }: { employeeId: string })
       </div>
       <p className="text-xs text-gray-500">承認済みの目標に対して、定期的に進捗・課題を記録することで振り返りができます。記録はどの端末からでも確認できます。</p>
       {records.map((record) => (
-        <ProgressCard key={record.id} record={record} />
+        <ProgressCard
+          key={record.id}
+          record={record}
+          onUpdated={(updated) =>
+            setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+          }
+        />
       ))}
     </div>
   );
