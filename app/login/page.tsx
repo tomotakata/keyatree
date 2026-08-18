@@ -70,6 +70,10 @@ function LoginPageContent() {
       }
 
       const account = data.account;
+      // 旧バージョンで残った壊れたCookieを確実に削除してから書き直す。
+      // （残存すると通常ウィンドウでのみログイン不能になる不具合の原因になる）
+      document.cookie = "kt_session=; path=/; max-age=0";
+      const secure = window.location.protocol === "https:" ? "; Secure" : "";
       document.cookie = `kt_session=${encodeURIComponent(
         JSON.stringify({
           id: account.id,
@@ -79,7 +83,7 @@ function LoginPageContent() {
           permissionName: account.permissionName,
           employeeId: account.employeeId,
         })
-      )}; path=/; max-age=${60 * 60 * 8}`;
+      )}; path=/; max-age=${60 * 60 * 8}; SameSite=Lax${secure}`;
 
       // ログイン後は必ず本人のマイページを開く（未紐付けの場合のみ redirect 先へ）
       const myPage = account.employeeId
