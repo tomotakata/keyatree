@@ -76,7 +76,7 @@ function CategoryModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-4 flex items-center justify-between">
-          <h2 className="text-white font-bold text-base">カテゴリの管理</h2>
+          <h2 className="text-white font-bold text-base">チャンネルの管理</h2>
           <button onClick={onClose} className="text-white/70 hover:text-white text-lg leading-none">×</button>
         </div>
         <div className="p-5 space-y-3">
@@ -89,12 +89,12 @@ function CategoryModal({
                   className="text-gray-300 hover:text-rose-500 transition text-sm px-2">削除</button>
               </div>
             ))}
-            {cats.length === 0 && <p className="text-xs text-gray-400 text-center py-4">カテゴリがありません</p>}
+            {cats.length === 0 && <p className="text-xs text-gray-400 text-center py-4">チャンネルがありません</p>}
           </div>
           <div className="flex items-center gap-2 pt-2 border-t">
             <input value={input} onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") add(); }}
-              placeholder="新しいカテゴリ名"
+              placeholder="新しいチャンネル名"
               className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             <button onClick={add}
               className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition">追加</button>
@@ -220,9 +220,9 @@ export default function TasksPage() {
           })}
         </div>
 
-        {/* カテゴリー別フィルター */}
+        {/* チャンネル別フィルター */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold text-gray-400">カテゴリ:</span>
+          <span className="text-xs font-bold text-gray-400">チャンネル:</span>
           <button onClick={() => setCategoryFilter("all")}
             className={`text-xs font-bold px-3 py-1 rounded-full border transition ${categoryFilter === "all" ? "bg-gray-700 text-white border-gray-700" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"}`}>
             すべて
@@ -235,7 +235,7 @@ export default function TasksPage() {
           ))}
           <button onClick={() => setShowCatModal(true)}
             className="text-xs font-bold px-3 py-1 rounded-full border border-dashed border-emerald-300 text-emerald-600 hover:bg-emerald-50 transition">
-            + カテゴリ管理
+            + チャンネル管理
           </button>
         </div>
 

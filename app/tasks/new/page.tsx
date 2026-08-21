@@ -118,9 +118,9 @@ export default function NewTaskPage() {
               />
             </div>
 
-            {/* カテゴリ */}
+            {/* チャンネル */}
             <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">カテゴリ</label>
+              <label className="block text-xs font-bold text-gray-600 mb-1">チャンネル</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}

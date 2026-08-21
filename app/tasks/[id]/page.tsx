@@ -313,7 +313,7 @@ function TaskEditModal({
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">カテゴリ</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1">チャンネル</label>
               <select value={category} onChange={e => setCategory(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -656,7 +656,7 @@ export default function TaskWorkspacePage() {
             {detailOpen && (
               <div className="px-4 pb-4 border-t pt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div><p className="text-xs text-gray-400 mb-0.5">期日</p><p className="text-sm font-semibold text-gray-700">{formatDeadline(task.deadline)}</p></div>
-                <div><p className="text-xs text-gray-400 mb-0.5">カテゴリ</p><span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{task.category}</span></div>
+                <div><p className="text-xs text-gray-400 mb-0.5">チャンネル</p><span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{task.category}</span></div>
                 <div><p className="text-xs text-gray-400 mb-0.5">作成者</p><p className="text-sm text-gray-700">{task.ownerName}</p></div>
                 <div><p className="text-xs text-gray-400 mb-0.5">作成日</p><p className="text-xs text-gray-600">{fmtD(task.createdAt)}</p></div>
                 {task.description && (
