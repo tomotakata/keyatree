@@ -55,3 +55,45 @@ export function setSortPref(scope: string, value: string): void {
     /* ignore */
   }
 }
+
+/** 手動並べ替え（ドラッグ）の順序をID配列で保存・取得する。 */
+export function getOrder(scope: string): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(userKey(`order_${scope}`));
+    const arr = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(arr) ? (arr as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function setOrder(scope: string, ids: string[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(userKey(`order_${scope}`), JSON.stringify(ids));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** items を保存済みの手動順に並べ替える（順序に無いものは末尾へ）。 */
+export function applyManualOrder<T extends { id: string }>(items: T[], order: string[]): T[] {
+  const idx = new Map(order.map((id, i) => [id, i]));
+  return [...items].sort((a, b) => {
+    const ai = idx.has(a.id) ? (idx.get(a.id) as number) : Number.MAX_SAFE_INTEGER;
+    const bi = idx.has(b.id) ? (idx.get(b.id) as number) : Number.MAX_SAFE_INTEGER;
+    return ai - bi;
+  });
+}
+
+/** ドラッグ結果: dragId を targetId の位置へ移動した新しいID配列を返す。 */
+export function moveInOrder(ids: string[], dragId: string, targetId: string): string[] {
+  if (dragId === targetId) return ids;
+  const next = ids.filter((x) => x !== dragId);
+  const targetIndex = next.indexOf(targetId);
+  if (targetIndex === -1) return ids;
+  next.splice(targetIndex, 0, dragId);
+  return next;
+}
+

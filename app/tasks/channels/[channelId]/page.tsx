@@ -6,9 +6,9 @@ import BackButton from "@/components/BackButton";
 import MemberPicker from "@/components/tasks/MemberPicker";
 import AddMembersModal from "@/components/tasks/AddMembersModal";
 import { getClientSession, isAdminSession, sessionMemberId, type SessionInfo } from "@/lib/clientSession";
-import { getHiddenIds, toggleHiddenId, getSortPref, setSortPref } from "@/lib/uiPrefs";
+import { getHiddenIds, toggleHiddenId, getSortPref, setSortPref, getOrder, setOrder, applyManualOrder, moveInOrder } from "@/lib/uiPrefs";
 
-type TalkSort = "updated" | "name" | "members";
+type TalkSort = "updated" | "name" | "members" | "manual";
 
 type ChannelMember = { id: string; name: string; role: "admin" | "member"; joinedAt: string };
 type Channel = { id: string; name: string; description?: string; members: ChannelMember[]; createdAt: string; updatedAt: string };
@@ -33,6 +33,9 @@ export default function ChannelDetailPage({ params }: { params: Promise<{ channe
   const [sort, setSort] = useState<TalkSort>("updated");
   const [hiddenTalks, setHiddenTalks] = useState<string[]>([]);
   const [showHidden, setShowHidden] = useState(false);
+  const [order, setOrderState] = useState<string[]>([]);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const isAdmin = isAdminSession(session);
   const meId = sessionMemberId(session);
@@ -54,6 +57,7 @@ export default function ChannelDetailPage({ params }: { params: Promise<{ channe
     setSession(getClientSession());
     setHiddenTalks(getHiddenIds(`talks_${channelId}`));
     setSort(getSortPref(`talks`, "updated") as TalkSort);
+    setOrderState(getOrder(`talks_${channelId}`));
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelId]);
@@ -67,13 +71,29 @@ export default function ChannelDetailPage({ params }: { params: Promise<{ channe
     setHiddenTalks(toggleHiddenId(`talks_${channelId}`, id));
   };
 
-  const sortedTalks = [...talks].sort((a, b) => {
-    if (sort === "name") return a.name.localeCompare(b.name, "ja");
-    if (sort === "members") return b.members.length - a.members.length;
-    return b.updatedAt.localeCompare(a.updatedAt);
-  });
+  const sortedTalks = sort === "manual"
+    ? applyManualOrder(talks, order)
+    : [...talks].sort((a, b) => {
+        if (sort === "name") return a.name.localeCompare(b.name, "ja");
+        if (sort === "members") return b.members.length - a.members.length;
+        return b.updatedAt.localeCompare(a.updatedAt);
+      });
   const visibleTalks = showHidden ? sortedTalks : sortedTalks.filter((t) => !hiddenTalks.includes(t.id));
   const hiddenCount = talks.filter((t) => hiddenTalks.includes(t.id)).length;
+
+  const handleDrop = (targetId: string) => {
+    if (!dragId || dragId === targetId) {
+      setDragId(null);
+      setDragOverId(null);
+      return;
+    }
+    const moved = moveInOrder(sortedTalks.map((t) => t.id), dragId, targetId);
+    setOrderState(moved);
+    setOrder(`talks_${channelId}`, moved);
+    changeSort("manual");
+    setDragId(null);
+    setDragOverId(null);
+  };
 
   const removeChannelMember = async (id: string) => {
     if (!confirm("このメンバーをチャンネルから削除しますか？")) return;
@@ -154,6 +174,7 @@ export default function ChannelDetailPage({ params }: { params: Promise<{ channe
                   <option value="updated">並べ替え: 最終更新順</option>
                   <option value="name">並べ替え: 名前順（あ→ん）</option>
                   <option value="members">並べ替え: 招待人数が多い順</option>
+                  <option value="manual">並べ替え: 手動（ドラッグ）</option>
                 </select>
                 {hiddenCount > 0 && (
                   <button
@@ -191,11 +212,31 @@ export default function ChannelDetailPage({ params }: { params: Promise<{ channe
                   return (
                     <div
                       key={t.id}
-                      className={`flex items-center gap-2 bg-white rounded-2xl border border-gray-200 pr-3 transition hover:shadow-md hover:border-emerald-200 ${hidden ? "opacity-60" : ""}`}
+                      draggable
+                      onDragStart={() => setDragId(t.id)}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (dragOverId !== t.id) setDragOverId(t.id);
+                      }}
+                      onDragLeave={() => setDragOverId((cur) => (cur === t.id ? null : cur))}
+                      onDrop={() => handleDrop(t.id)}
+                      onDragEnd={() => {
+                        setDragId(null);
+                        setDragOverId(null);
+                      }}
+                      className={`flex items-center gap-2 bg-white rounded-2xl border pr-3 transition hover:shadow-md ${
+                        dragOverId === t.id && dragId !== t.id ? "border-emerald-400 ring-2 ring-emerald-200" : "border-gray-200 hover:border-emerald-200"
+                      } ${dragId === t.id ? "opacity-40" : ""} ${hidden ? "opacity-60" : ""}`}
                     >
+                      <span
+                        className="text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing select-none pl-3 flex-shrink-0"
+                        title="ドラッグで並べ替え"
+                      >
+                        ⠿
+                      </span>
                       <Link
                         href={`/tasks/channels/${channelId}/talks/${t.id}`}
-                        className="flex-1 min-w-0 flex items-center gap-3 px-4 py-3 group"
+                        className="flex-1 min-w-0 flex items-center gap-3 py-3 group"
                       >
                         <span className="text-gray-400 text-lg font-bold flex-shrink-0">#</span>
                         <div className="flex-1 min-w-0">

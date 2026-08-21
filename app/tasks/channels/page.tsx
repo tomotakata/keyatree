@@ -7,9 +7,9 @@ import BackButton from "@/components/BackButton";
 import MemberPicker from "@/components/tasks/MemberPicker";
 import { MOCK_EMPLOYEES } from "@/lib/taskStore";
 import { getClientSession, isAdminSession, type SessionInfo } from "@/lib/clientSession";
-import { getHiddenIds, toggleHiddenId, getSortPref, setSortPref } from "@/lib/uiPrefs";
+import { getHiddenIds, toggleHiddenId, getSortPref, setSortPref, getOrder, setOrder, applyManualOrder, moveInOrder } from "@/lib/uiPrefs";
 
-type ChannelSort = "name" | "created" | "members";
+type ChannelSort = "manual" | "name" | "created" | "members";
 
 type ChannelMember = { id: string; name: string; role: "admin" | "member"; joinedAt: string };
 type Channel = {
@@ -36,6 +36,9 @@ export default function ChannelsPage() {
   const [sort, setSort] = useState<ChannelSort>("name");
   const [hidden, setHidden] = useState<string[]>([]);
   const [showHidden, setShowHidden] = useState(false);
+  const [order, setOrderState] = useState<string[]>([]);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const isAdmin = isAdminSession(session);
 
@@ -52,6 +55,7 @@ export default function ChannelsPage() {
     setSession(getClientSession());
     setHidden(getHiddenIds("channels"));
     setSort(getSortPref("channels", "name") as ChannelSort);
+    setOrderState(getOrder("channels"));
     load();
   }, []);
 
@@ -61,13 +65,29 @@ export default function ChannelsPage() {
   };
   const toggleHide = (id: string) => setHidden(toggleHiddenId("channels", id));
 
-  const sorted = [...channels].sort((a, b) => {
-    if (sort === "created") return b.createdAt.localeCompare(a.createdAt);
-    if (sort === "members") return b.members.length - a.members.length;
-    return a.name.localeCompare(b.name, "ja");
-  });
+  const sorted = sort === "manual"
+    ? applyManualOrder(channels, order)
+    : [...channels].sort((a, b) => {
+        if (sort === "created") return b.createdAt.localeCompare(a.createdAt);
+        if (sort === "members") return b.members.length - a.members.length;
+        return a.name.localeCompare(b.name, "ja");
+      });
   const visible = showHidden ? sorted : sorted.filter((c) => !hidden.includes(c.id));
   const hiddenCount = channels.filter((c) => hidden.includes(c.id)).length;
+
+  const handleDrop = (targetId: string) => {
+    if (!dragId || dragId === targetId) {
+      setDragId(null);
+      setDragOverId(null);
+      return;
+    }
+    const moved = moveInOrder(sorted.map((c) => c.id), dragId, targetId);
+    setOrderState(moved);
+    setOrder("channels", moved);
+    changeSort("manual");
+    setDragId(null);
+    setDragOverId(null);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -114,7 +134,9 @@ export default function ChannelsPage() {
               <option value="name">並べ替え: 名前順（あ→ん）</option>
               <option value="created">並べ替え: 作成が新しい順</option>
               <option value="members">並べ替え: メンバーが多い順</option>
+              <option value="manual">並べ替え: 手動（ドラッグ）</option>
             </select>
+            <span className="text-[11px] text-gray-400">行をドラッグで自由に並べ替えできます</span>
             {hiddenCount > 0 && (
               <button
                 onClick={() => setShowHidden((v) => !v)}
@@ -144,9 +166,29 @@ export default function ChannelsPage() {
               return (
                 <div
                   key={c.id}
-                  className={`bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-md hover:border-emerald-200 transition ${isHidden ? "opacity-60" : ""}`}
+                  draggable
+                  onDragStart={() => setDragId(c.id)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (dragOverId !== c.id) setDragOverId(c.id);
+                  }}
+                  onDragLeave={() => setDragOverId((cur) => (cur === c.id ? null : cur))}
+                  onDrop={() => handleDrop(c.id)}
+                  onDragEnd={() => {
+                    setDragId(null);
+                    setDragOverId(null);
+                  }}
+                  className={`bg-white rounded-2xl border p-4 transition hover:shadow-md ${
+                    dragOverId === c.id && dragId !== c.id ? "border-emerald-400 ring-2 ring-emerald-200" : "border-gray-200 hover:border-emerald-200"
+                  } ${dragId === c.id ? "opacity-40" : ""} ${isHidden ? "opacity-60" : ""}`}
                 >
                   <div className="flex items-start gap-3">
+                    <span
+                      className="text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing select-none pt-1 flex-shrink-0"
+                      title="ドラッグで並べ替え"
+                    >
+                      ⠿
+                    </span>
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-bold flex-shrink-0">
                       {c.name.charAt(0)}
                     </div>
