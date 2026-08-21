@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import BackButton from "@/components/BackButton";
 import {
-  getAllTasks, seedTasks, getCategories, saveCategories, formatDeadline,
+  getAllTasks, seedTasks, getCategories, formatDeadline,
   STATUS_CONFIG, PRIORITY_CONFIG,
   type FullTask, type TaskStatus, type TaskType,
 } from "@/lib/taskStore";
@@ -53,75 +53,25 @@ function TaskCard({ task }: { task: FullTask }) {
   );
 }
 
-function CategoryModal({
-  initial, onSave, onClose,
-}: {
-  initial: string[];
-  onSave: (cats: string[]) => void;
-  onClose: () => void;
-}) {
-  const [cats, setCats] = useState<string[]>(initial);
-  const [input, setInput] = useState("");
-
-  const add = () => {
-    const v = input.trim();
-    if (!v || cats.includes(v)) return;
-    setCats([...cats, v]);
-    setInput("");
-  };
-  const rename = (i: number, v: string) => setCats(cats.map((c, idx) => (idx === i ? v : c)));
-  const remove = (i: number) => setCats(cats.filter((_, idx) => idx !== i));
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-4 flex items-center justify-between">
-          <h2 className="text-white font-bold text-base">チャンネルの管理</h2>
-          <button onClick={onClose} className="text-white/70 hover:text-white text-lg leading-none">×</button>
-        </div>
-        <div className="p-5 space-y-3">
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {cats.map((c, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input value={c} onChange={(e) => rename(i, e.target.value)}
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-                <button onClick={() => remove(i)}
-                  className="text-gray-300 hover:text-rose-500 transition text-sm px-2">削除</button>
-              </div>
-            ))}
-            {cats.length === 0 && <p className="text-xs text-gray-400 text-center py-4">チャンネルがありません</p>}
-          </div>
-          <div className="flex items-center gap-2 pt-2 border-t">
-            <input value={input} onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") add(); }}
-              placeholder="新しいチャンネル名"
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-            <button onClick={add}
-              className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition">追加</button>
-          </div>
-        </div>
-        <div className="px-5 pb-5 flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition">キャンセル</button>
-          <button onClick={() => onSave(cats.map((c) => c.trim()).filter((c, i, a) => c && a.indexOf(c) === i))}
-            className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition">保存する</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function TasksPage() {
   const [tasks, setTasks] = useState<FullTask[]>([]);
   const [tab, setTab] = useState<"all" | TaskType>("all");
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [categories, setCategories] = useState<string[]>([]);
-  const [showCatModal, setShowCatModal] = useState(false);
 
   useEffect(() => {
     seedTasks();
     setTasks(getAllTasks());
-    setCategories(getCategories());
+    // チャンネル（旧カテゴリ）は新チャンネル管理と統合。APIから名称を取得。
+    fetch("/api/task-channels")
+      .then((r) => r.json())
+      .then((d) => {
+        const names = (d?.channels ?? []).map((c: { name: string }) => c.name);
+        if (Array.isArray(names) && names.length > 0) setCategories(names);
+        else setCategories(getCategories());
+      })
+      .catch(() => setCategories(getCategories()));
   }, []);
 
   const filtered = tasks.filter((t) => {
@@ -233,10 +183,10 @@ export default function TasksPage() {
               {c}
             </button>
           ))}
-          <button onClick={() => setShowCatModal(true)}
+          <Link href="/tasks/channels"
             className="text-xs font-bold px-3 py-1 rounded-full border border-dashed border-emerald-300 text-emerald-600 hover:bg-emerald-50 transition">
             + チャンネル管理
-          </button>
+          </Link>
         </div>
 
         {/* タスクリスト */}
@@ -251,19 +201,6 @@ export default function TasksPage() {
           </div>
         )}
       </main>
-
-      {showCatModal && (
-        <CategoryModal
-          initial={categories}
-          onClose={() => setShowCatModal(false)}
-          onSave={(cats) => {
-            saveCategories(cats);
-            setCategories(cats);
-            if (categoryFilter !== "all" && !cats.includes(categoryFilter)) setCategoryFilter("all");
-            setShowCatModal(false);
-          }}
-        />
-      )}
     </div>
   );
 }

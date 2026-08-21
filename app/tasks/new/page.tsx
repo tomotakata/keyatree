@@ -20,9 +20,20 @@ export default function NewTaskPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const cats = getCategories();
-    setCategories(cats);
-    setCategory(cats[0] ?? "営業");
+    // チャンネル（旧カテゴリ）はチャンネル管理と統合。APIから名称を取得。
+    fetch("/api/task-channels")
+      .then((r) => r.json())
+      .then((d) => {
+        const names = (d?.channels ?? []).map((c: { name: string }) => c.name) as string[];
+        const list = Array.isArray(names) && names.length > 0 ? names : getCategories();
+        setCategories(list);
+        setCategory(list[0] ?? "営業");
+      })
+      .catch(() => {
+        const cats = getCategories();
+        setCategories(cats);
+        setCategory(cats[0] ?? "営業");
+      });
   }, []);
 
   const toggleMember = (id: string) => {

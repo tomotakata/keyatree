@@ -280,7 +280,21 @@ function TaskEditModal({
   const [category, setCategory] = useState(task.category);
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
   const [type, setType] = useState<TaskType>(task.type);
-  const categories = getCategories();
+  const [categories, setCategories] = useState<string[]>(() => {
+    const base = getCategories();
+    return task.category && !base.includes(task.category) ? [task.category, ...base] : base;
+  });
+
+  useEffect(() => {
+    fetch("/api/task-channels")
+      .then((r) => r.json())
+      .then((d) => {
+        const names = (d?.channels ?? []).map((c: { name: string }) => c.name) as string[];
+        if (!Array.isArray(names) || names.length === 0) return;
+        setCategories(task.category && !names.includes(task.category) ? [task.category, ...names] : names);
+      })
+      .catch(() => {});
+  }, [task.category]);
 
   const handleSave = () => {
     if (!title.trim()) return;
