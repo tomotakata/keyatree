@@ -6,6 +6,9 @@ import BackButton from "@/components/BackButton";
 import MemberPicker from "@/components/tasks/MemberPicker";
 import AddMembersModal from "@/components/tasks/AddMembersModal";
 import { getClientSession, isAdminSession, sessionMemberId, type SessionInfo } from "@/lib/clientSession";
+import { getHiddenIds, toggleHiddenId, getSortPref, setSortPref } from "@/lib/uiPrefs";
+
+type TalkSort = "updated" | "name" | "members";
 
 type ChannelMember = { id: string; name: string; role: "admin" | "member"; joinedAt: string };
 type Channel = { id: string; name: string; description?: string; members: ChannelMember[]; createdAt: string; updatedAt: string };
@@ -24,9 +27,12 @@ export default function ChannelDetailPage({ params }: { params: Promise<{ channe
   const [channel, setChannel] = useState<Channel | null>(null);
   const [talks, setTalks] = useState<Talk[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"talks" | "members">("talks");
+  const [tab, setTab] = useState<"talks" | "members" | "analytics">("talks");
   const [showTalkModal, setShowTalkModal] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [sort, setSort] = useState<TalkSort>("updated");
+  const [hiddenTalks, setHiddenTalks] = useState<string[]>([]);
+  const [showHidden, setShowHidden] = useState(false);
 
   const isAdmin = isAdminSession(session);
   const meId = sessionMemberId(session);
@@ -46,9 +52,28 @@ export default function ChannelDetailPage({ params }: { params: Promise<{ channe
 
   useEffect(() => {
     setSession(getClientSession());
+    setHiddenTalks(getHiddenIds(`talks_${channelId}`));
+    setSort(getSortPref(`talks`, "updated") as TalkSort);
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelId]);
+
+  const changeSort = (s: TalkSort) => {
+    setSort(s);
+    setSortPref("talks", s);
+  };
+
+  const toggleHide = (id: string) => {
+    setHiddenTalks(toggleHiddenId(`talks_${channelId}`, id));
+  };
+
+  const sortedTalks = [...talks].sort((a, b) => {
+    if (sort === "name") return a.name.localeCompare(b.name, "ja");
+    if (sort === "members") return b.members.length - a.members.length;
+    return b.updatedAt.localeCompare(a.updatedAt);
+  });
+  const visibleTalks = showHidden ? sortedTalks : sortedTalks.filter((t) => !hiddenTalks.includes(t.id));
+  const hiddenCount = talks.filter((t) => hiddenTalks.includes(t.id)).length;
 
   const removeChannelMember = async (id: string) => {
     if (!confirm("このメンバーをチャンネルから削除しますか？")) return;
@@ -105,67 +130,102 @@ export default function ChannelDetailPage({ params }: { params: Promise<{ channe
 
         {/* タブ */}
         <div className="flex border-b">
-          {(["talks", "members"] as const).map((t) => (
+          {(["talks", "members", "analytics"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${tab === t ? "border-emerald-500 text-emerald-600" : "border-transparent text-gray-400 hover:text-gray-600"}`}
             >
-              {t === "talks" ? "トーク" : "メンバー"}
+              {t === "talks" ? "トーク" : t === "members" ? "メンバー" : "分析"}
             </button>
           ))}
         </div>
 
         {tab === "talks" ? (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-sm font-bold text-gray-700">トーク一覧</span>
-              {canCreateTalk ? (
-                <button
-                  onClick={() => setShowTalkModal(true)}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition"
+              <div className="flex items-center gap-2">
+                <select
+                  value={sort}
+                  onChange={(e) => changeSort(e.target.value as TalkSort)}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 >
-                  + 新規トーク
-                </button>
-              ) : (
-                <span className="text-xs text-gray-400">トーク作成は参加メンバーのみ</span>
-              )}
+                  <option value="updated">並べ替え: 最終更新順</option>
+                  <option value="name">並べ替え: 名前順（あ→ん）</option>
+                  <option value="members">並べ替え: 招待人数が多い順</option>
+                </select>
+                {hiddenCount > 0 && (
+                  <button
+                    onClick={() => setShowHidden((v) => !v)}
+                    className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    {showHidden ? "非表示を隠す" : `非表示を表示 (${hiddenCount})`}
+                  </button>
+                )}
+                {canCreateTalk && (
+                  <button
+                    onClick={() => setShowTalkModal(true)}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition"
+                  >
+                    + 新規トーク
+                  </button>
+                )}
+              </div>
             </div>
+            {!canCreateTalk && <p className="text-xs text-gray-400">トーク作成は参加メンバーのみ</p>}
 
             {talks.length === 0 ? (
               <div className="text-center py-14 text-gray-400 bg-white rounded-2xl border border-dashed">
                 <p className="text-base font-bold">トークがありません</p>
                 {canCreateTalk && <p className="text-sm mt-1">「+ 新規トーク」から作成してください</p>}
               </div>
+            ) : visibleTalks.length === 0 ? (
+              <div className="text-center py-10 text-gray-400 bg-white rounded-2xl border border-dashed">
+                <p className="text-sm">表示中のトークはありません（すべて非表示）</p>
+              </div>
             ) : (
               <div className="space-y-2">
-                {talks.map((t) => (
-                  <Link
-                    key={t.id}
-                    href={`/tasks/channels/${channelId}/talks/${t.id}`}
-                    className="block bg-white rounded-2xl border border-gray-200 px-4 py-3 hover:shadow-md hover:border-emerald-200 transition group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-400 text-lg font-bold flex-shrink-0">#</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-gray-800 truncate group-hover:text-emerald-700 transition">{t.name}</p>
-                        {t.description && <p className="text-xs text-gray-400 truncate">{t.description}</p>}
-                        <p className="text-[11px] text-gray-400 mt-0.5">招待 {t.members.length}名 ・ 最終更新 {fmt(t.updatedAt)}</p>
-                      </div>
-                      <span className="text-gray-300 group-hover:text-emerald-500 transition text-sm self-center">›</span>
+                {visibleTalks.map((t) => {
+                  const hidden = hiddenTalks.includes(t.id);
+                  return (
+                    <div
+                      key={t.id}
+                      className={`flex items-center gap-2 bg-white rounded-2xl border border-gray-200 pr-3 transition hover:shadow-md hover:border-emerald-200 ${hidden ? "opacity-60" : ""}`}
+                    >
+                      <Link
+                        href={`/tasks/channels/${channelId}/talks/${t.id}`}
+                        className="flex-1 min-w-0 flex items-center gap-3 px-4 py-3 group"
+                      >
+                        <span className="text-gray-400 text-lg font-bold flex-shrink-0">#</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-800 truncate group-hover:text-emerald-700 transition">{t.name}</p>
+                          {t.description && <p className="text-xs text-gray-400 truncate">{t.description}</p>}
+                          <p className="text-[11px] text-gray-400 mt-0.5">招待 {t.members.length}名 ・ 最終更新 {fmt(t.updatedAt)}</p>
+                        </div>
+                        <span className="text-gray-300 group-hover:text-emerald-500 transition text-sm">›</span>
+                      </Link>
+                      <button
+                        onClick={() => toggleHide(t.id)}
+                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition flex-shrink-0"
+                      >
+                        {hidden ? "表示する" : "非表示にする"}
+                      </button>
                     </div>
-                  </Link>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
-        ) : (
+        ) : tab === "members" ? (
           <ChannelMembers
             channel={channel}
             isAdmin={isAdmin}
             onRemove={removeChannelMember}
             onAdded={(c) => setChannel(c)}
           />
+        ) : (
+          <ChannelAnalytics channel={channel} talks={talks} />
         )}
       </main>
 
@@ -257,6 +317,99 @@ function ChannelMembers({
           }}
         />
       )}
+    </div>
+  );
+}
+
+function ChannelAnalytics({ channel, talks }: { channel: Channel; talks: Talk[] }) {
+  // 参加ベースの分析（メッセージ活動ログは今後追加予定）
+  const activeUserIds = new Set<string>();
+  channel.members.forEach((m) => activeUserIds.add(m.id));
+  talks.forEach((t) => t.members.forEach((m) => activeUserIds.add(m.id)));
+
+  const avgInvites = talks.length > 0 ? talks.reduce((s, t) => s + t.members.length, 0) / talks.length : 0;
+
+  const talkBars = [...talks]
+    .map((t) => ({ id: t.id, name: t.name, count: t.members.length }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+  const talkMax = Math.max(1, ...talkBars.map((b) => b.count));
+
+  const memberTalkCount = new Map<string, { name: string; count: number }>();
+  channel.members.forEach((m) => memberTalkCount.set(m.id, { name: m.name, count: 0 }));
+  talks.forEach((t) =>
+    t.members.forEach((m) => {
+      const cur = memberTalkCount.get(m.id) ?? { name: m.name, count: 0 };
+      cur.count += 1;
+      memberTalkCount.set(m.id, cur);
+    })
+  );
+  const memberBars = Array.from(memberTalkCount.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+  const memberMax = Math.max(1, ...memberBars.map((b) => b.count));
+
+  const cards = [
+    { label: "アクティブユーザー", value: activeUserIds.size, hint: "チャンネル・トーク参加者の合計（ユニーク）" },
+    { label: "チャンネルメンバー", value: channel.members.length, hint: "" },
+    { label: "トーク数", value: talks.length, hint: "" },
+    { label: "平均招待人数 / トーク", value: avgInvites.toFixed(1), hint: "" },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {cards.map((c) => (
+          <div key={c.label} className="bg-white rounded-2xl border p-4">
+            <p className="text-2xl font-black text-gray-800">{c.value}</p>
+            <p className="text-xs font-bold text-gray-500 mt-1">{c.label}</p>
+            {c.hint && <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{c.hint}</p>}
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl border p-5">
+        <p className="text-sm font-bold text-gray-700 mb-3">トーク別 参加人数</p>
+        {talkBars.length === 0 ? (
+          <p className="text-xs text-gray-400">トークがありません</p>
+        ) : (
+          <div className="space-y-2">
+            {talkBars.map((b) => (
+              <div key={b.id} className="flex items-center gap-3">
+                <span className="text-xs text-gray-600 w-28 truncate flex-shrink-0"># {b.name}</span>
+                <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+                  <div className="bg-gradient-to-r from-emerald-500 to-teal-500 h-3 rounded-full" style={{ width: `${(b.count / talkMax) * 100}%` }} />
+                </div>
+                <span className="text-xs font-bold text-gray-700 w-10 text-right flex-shrink-0">{b.count}名</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl border p-5">
+        <p className="text-sm font-bold text-gray-700 mb-1">メンバー別 参加トーク数</p>
+        <p className="text-[11px] text-gray-400 mb-3">各メンバーが招待されているトークの数（アクティブ度の目安）</p>
+        {memberBars.length === 0 ? (
+          <p className="text-xs text-gray-400">メンバーがいません</p>
+        ) : (
+          <div className="space-y-2">
+            {memberBars.map((b, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="text-xs text-gray-600 w-28 truncate flex-shrink-0">{b.name}</span>
+                <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-500 to-violet-500 h-3 rounded-full" style={{ width: `${(b.count / memberMax) * 100}%` }} />
+                </div>
+                <span className="text-xs font-bold text-gray-700 w-14 text-right flex-shrink-0">{b.count}トーク</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <p className="text-[11px] text-gray-400">
+        ※ 現在の分析は参加状況ベースです。投稿・返信・リアクションなどメッセージ活動の分析は、トーク内チャット機能の追加後に対応予定です。
+      </p>
     </div>
   );
 }
