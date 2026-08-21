@@ -15,6 +15,20 @@ type ChannelMember = { id: string; name: string; role: "admin" | "member"; joine
 type Channel = { id: string; name: string; description?: string; members: ChannelMember[]; createdAt: string; updatedAt: string };
 type TalkMember = { id: string; name: string; joinedAt: string };
 type Talk = { id: string; channelId: string; name: string; description?: string; members: TalkMember[]; updatedAt: string };
+type TalkMessageReaction = { emoji: string; userIds: string[] };
+type TalkMessage = {
+  id: string;
+  talkId: string;
+  channelId: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  createdAt: string;
+  reactions?: TalkMessageReaction[];
+  taskId?: string;
+  taskTitle?: string;
+  kind?: "message" | "system";
+};
 
 type Selection = { type: "channel"; channelId: string } | { type: "talk"; channelId: string; talkId: string } | null;
 
@@ -586,14 +600,20 @@ function TalkView({
   meId: string;
   onTalkUpdated: (t: Talk) => void;
 }) {
-  const [tab, setTab] = useState<"posts" | "members">("posts");
+  const [tab, setTab] = useState<"chat" | "tasks" | "members">("chat");
   const [showAdd, setShowAdd] = useState(false);
   const [showCreateTask, setShowCreateTask] = useState(false);
+  const [taskPrefill, setTaskPrefill] = useState<{ title: string; description: string }>({ title: "", description: "" });
   const [tasks, setTasks] = useState<FullTask[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(talk.name);
   const [savingName, setSavingName] = useState(false);
+  // チャット
+  const [messages, setMessages] = useState<TalkMessage[]>([]);
+  const [msgLoading, setMsgLoading] = useState(true);
+  const [composer, setComposer] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     setTasksLoading(true);
@@ -602,6 +622,63 @@ function TalkView({
       .catch(() => setTasks([]))
       .finally(() => setTasksLoading(false));
   }, [talk.id]);
+
+  useEffect(() => {
+    setMsgLoading(true);
+    fetch(`/api/task-channels/${channel.id}/talks/${talk.id}/messages`)
+      .then((r) => r.json())
+      .then((d) => setMessages(d?.messages ?? []))
+      .catch(() => setMessages([]))
+      .finally(() => setMsgLoading(false));
+  }, [channel.id, talk.id]);
+
+  const sendMessage = async () => {
+    const text = composer.trim();
+    if (!text || sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const d = await res.json();
+      if (res.ok && d.message) {
+        setMessages((prev) => [...prev, d.message]);
+        setComposer("");
+      } else {
+        alert(d?.error ?? "送信に失敗しました");
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const deleteMessage = async (id: string) => {
+    if (!confirm("このメッセージを削除しますか？")) return;
+    const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}/messages/${id}`, { method: "DELETE" });
+    if (res.ok) setMessages((prev) => prev.filter((m) => m.id !== id));
+    else alert("削除に失敗しました");
+  };
+
+  const toggleReaction = async (id: string, emoji: string) => {
+    const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reactionMessageId: id, emoji }),
+    });
+    const d = await res.json();
+    if (res.ok && d.messages) setMessages(d.messages);
+  };
+
+  const openTaskFromMessage = (m: TalkMessage) => {
+    setTaskPrefill({ title: m.text.slice(0, 60), description: `依頼元メッセージ（${m.authorName}）:\n${m.text}` });
+    setShowCreateTask(true);
+  };
+  const openTaskBlank = () => {
+    setTaskPrefill({ title: "", description: "" });
+    setShowCreateTask(true);
+  };
 
   useEffect(() => {
     setNameInput(talk.name);
@@ -696,7 +773,7 @@ function TalkView({
           </div>
         </div>
         <div className="flex items-center gap-1 mt-2">
-          {(["posts", "members"] as const).map((t) => (
+          {(["chat", "tasks", "members"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -704,15 +781,119 @@ function TalkView({
                 tab === t ? "border-emerald-500 text-white" : "border-transparent text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              {t === "posts" ? "投稿（依頼・タスク）" : "メンバー"}
+              {t === "chat" ? "チャット" : t === "tasks" ? `依頼（タスク）${tasks.length > 0 ? ` ${tasks.length}` : ""}` : `メンバー ${talk.members.length}`}
             </button>
           ))}
-          <span className="px-3 py-2 text-sm text-zinc-600 cursor-default">共有済み</span>
-          <span className="px-3 py-2 text-sm text-zinc-600 cursor-default">Notes</span>
         </div>
       </div>
 
-      {tab === "posts" ? (
+      {tab === "chat" ? (
+        <>
+          {/* チャット（会話） */}
+          <div className="flex-1 overflow-y-auto px-5 py-5">
+            <div className="max-w-2xl mx-auto space-y-4">
+              {msgLoading ? (
+                <p className="text-sm text-zinc-500 py-10 text-center">読み込み中...</p>
+              ) : messages.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="w-14 h-14 rounded-2xl bg-zinc-800 mx-auto flex items-center justify-center text-2xl mb-3">💬</div>
+                  <p className="text-base font-bold text-white">「{talk.name}」の会話をはじめましょう</p>
+                  <p className="text-sm text-zinc-400 mt-1">メッセージを投稿し、依頼が発生したら各メッセージから「依頼（タスク）にする」で起票できます。</p>
+                </div>
+              ) : (
+                messages.map((m) => {
+                  const mine = m.authorId === meId;
+                  if (m.kind === "system") {
+                    return (
+                      <div key={m.id} className="flex justify-center">
+                        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5 text-[12px] text-emerald-300 flex items-center gap-2">
+                          <span>📋 {m.text}</span>
+                          {m.taskId && (
+                            <Link href={`/tasks/${m.taskId}`} className="underline font-bold hover:text-emerald-200">
+                              依頼を開く
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  const reactions = m.reactions ?? [];
+                  return (
+                    <div key={m.id} className="flex gap-3 group">
+                      <span className={`w-9 h-9 rounded-full ${colorFor(m.authorId)} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>
+                        {m.authorName.charAt(0)}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-white">{m.authorName}</span>
+                          <span className="text-[11px] text-zinc-500">{fmt(m.createdAt)}</span>
+                        </div>
+                        <div className="mt-0.5 rounded-lg bg-zinc-800/70 px-3 py-2 text-sm text-zinc-100 whitespace-pre-wrap break-words">{m.text}</div>
+                        <div className="mt-1 flex items-center gap-2 flex-wrap">
+                          {reactions.map((r) => (
+                            <button
+                              key={r.emoji}
+                              onClick={() => toggleReaction(m.id, r.emoji)}
+                              className={`text-[12px] px-2 py-0.5 rounded-full border transition ${
+                                r.userIds.includes(meId)
+                                  ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-200"
+                                  : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500"
+                              }`}
+                            >
+                              {r.emoji} {r.userIds.length}
+                            </button>
+                          ))}
+                          <span className="opacity-0 group-hover:opacity-100 transition flex items-center gap-2">
+                            <button onClick={() => toggleReaction(m.id, "👍")} className="text-[12px] text-zinc-500 hover:text-emerald-400" title="いいね">👍</button>
+                            {canManage && (
+                              <button onClick={() => openTaskFromMessage(m)} className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300">
+                                依頼（タスク）にする
+                              </button>
+                            )}
+                            {(mine || canManage) && (
+                              <button onClick={() => deleteMessage(m.id)} className="text-[11px] text-zinc-500 hover:text-rose-400">削除</button>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          {/* コンポーザ */}
+          <div className="flex-shrink-0 border-t border-zinc-800 p-3">
+            <div className="max-w-2xl mx-auto">
+              {canManage ? (
+                <div className="flex items-end gap-2">
+                  <textarea
+                    value={composer}
+                    onChange={(e) => setComposer(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        sendMessage();
+                      }
+                    }}
+                    rows={1}
+                    placeholder="メッセージを入力（⌘/Ctrl+Enterで送信）"
+                    className="flex-1 resize-none bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-32"
+                  />
+                  <button onClick={openTaskBlank} title="依頼（タスク）を作成" className="flex-shrink-0 border border-zinc-700 hover:border-emerald-500 text-zinc-300 hover:text-emerald-300 text-xs font-bold px-3 py-2 rounded-xl transition">
+                    ＋依頼
+                  </button>
+                  <button onClick={sendMessage} disabled={sending || !composer.trim()} className="flex-shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition disabled:opacity-50">
+                    {sending ? "送信中" : "送信"}
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-500 text-center py-2">投稿はチャンネル参加メンバーのみ可能です。</p>
+              )}
+            </div>
+          </div>
+        </>
+      ) : tab === "tasks" ? (
         <>
           {/* 依頼（タスク）一覧 */}
           <div className="flex-1 overflow-y-auto px-5 py-5">
@@ -725,7 +906,7 @@ function TalkView({
                   <p className="text-base font-bold text-white">「{talk.name}」の依頼はまだありません</p>
                   <p className="text-sm text-zinc-400 mt-1">このトークルームで発生した依頼をタスクとして登録し、担当者に追いかけ（リマインド）を発生させましょう。</p>
                   {canManage && (
-                    <button onClick={() => setShowCreateTask(true)} className="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-2 rounded-xl transition">
+                    <button onClick={openTaskBlank} className="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-2 rounded-xl transition">
                       + 依頼（タスク）を作成
                     </button>
                   )}
@@ -768,7 +949,7 @@ function TalkView({
                 {canManage ? "依頼をタスク化すると、担当者のマイページ・タスク一覧に反映されます。" : "依頼の作成はチャンネル参加メンバーのみ可能です。"}
               </p>
               {canManage && (
-                <button onClick={() => setShowCreateTask(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-1.5 rounded-lg transition flex-shrink-0">
+                <button onClick={openTaskBlank} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-1.5 rounded-lg transition flex-shrink-0">
                   + 依頼（タスク）を作成
                 </button>
               )}
@@ -814,10 +995,29 @@ function TalkView({
           talkId={talk.id}
           talkName={talk.name}
           candidates={taskCandidates.length > 0 ? taskCandidates : [{ id: meId, name: "自分" }]}
+          initialTitle={taskPrefill.title}
+          initialDescription={taskPrefill.description}
           onClose={() => setShowCreateTask(false)}
-          onCreated={(task) => {
+          onCreated={async (task) => {
             setTasks((prev) => [task, ...prev]);
             setShowCreateTask(false);
+            // チャットに起票を告知（依頼へのリンク付き）
+            try {
+              const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}/messages`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  text: `依頼（タスク）を作成しました: ${task.title}`,
+                  taskId: task.id,
+                  taskTitle: task.title,
+                  kind: "system",
+                }),
+              });
+              const d = await res.json();
+              if (res.ok && d.message) setMessages((prev) => [...prev, d.message]);
+            } catch {
+              /* ignore */
+            }
           }}
         />
       )}

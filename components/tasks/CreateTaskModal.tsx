@@ -12,6 +12,8 @@ export default function CreateTaskModal({
   talkId,
   talkName,
   candidates,
+  initialTitle = "",
+  initialDescription = "",
   onClose,
   onCreated,
 }: {
@@ -20,11 +22,13 @@ export default function CreateTaskModal({
   talkId: string;
   talkName: string;
   candidates: { id: string; name: string }[];
+  initialTitle?: string;
+  initialDescription?: string;
   onClose: () => void;
   onCreated: (task: FullTask) => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState(initialTitle);
+  const [description, setDescription] = useState(initialDescription);
   const [deadline, setDeadline] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [type, setType] = useState<TaskType>("org");

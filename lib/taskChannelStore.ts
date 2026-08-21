@@ -11,6 +11,7 @@ import { getSupabaseAdmin, isSupabaseEnabled } from "@/lib/supabaseServer";
 const BUCKET = "task-channels";
 const CHANNEL_PREFIX = "channels";
 const TALK_PREFIX = "talks";
+const MESSAGE_PREFIX = "messages";
 
 export type ChannelMemberRole = "admin" | "member";
 
@@ -50,15 +51,38 @@ export type Talk = {
   archived?: boolean;
 };
 
+export type TalkMessageReaction = { emoji: string; userIds: string[] };
+
+export type TalkMessage = {
+  id: string;
+  talkId: string;
+  channelId: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  createdAt: string;
+  reactions?: TalkMessageReaction[];
+  // このメッセージから起票された依頼（タスク）へのリンク
+  taskId?: string;
+  taskTitle?: string;
+  // 種別: 通常投稿 or システム（依頼起票の告知など）
+  kind?: "message" | "system";
+};
+
 // 初期チャンネル（既存カテゴリと整合）
 const DEFAULT_CHANNEL_NAMES = ["営業", "管理", "報告", "契約", "物件管理", "研修", "総務", "経営", "その他"];
 
 // ---- In-memory fallback ----
-type GlobalStore = { channels: Map<string, Channel>; talks: Map<string, Talk>; seeded: boolean };
+type GlobalStore = {
+  channels: Map<string, Channel>;
+  talks: Map<string, Talk>;
+  messages: Map<string, TalkMessage[]>;
+  seeded: boolean;
+};
 const g = globalThis as unknown as { __keyatreeTaskChannelStore?: GlobalStore };
 function memory(): GlobalStore {
   if (!g.__keyatreeTaskChannelStore) {
-    g.__keyatreeTaskChannelStore = { channels: new Map(), talks: new Map(), seeded: false };
+    g.__keyatreeTaskChannelStore = { channels: new Map(), talks: new Map(), messages: new Map(), seeded: false };
   }
   return g.__keyatreeTaskChannelStore;
 }
@@ -82,6 +106,9 @@ function channelPath(id: string) {
 }
 function talkPath(id: string) {
   return `${TALK_PREFIX}/${encodeURIComponent(id)}.json`;
+}
+function messagePath(talkId: string) {
+  return `${MESSAGE_PREFIX}/${encodeURIComponent(talkId)}.json`;
 }
 
 async function putJson(supabase: ReturnType<typeof getSupabaseAdmin>, path: string, value: unknown) {
@@ -281,11 +308,110 @@ export async function createTalk(input: {
 export async function deleteTalk(id: string): Promise<void> {
   if (!isSupabaseEnabled()) {
     memory().talks.delete(id);
+    memory().messages.delete(id);
     return;
   }
   const supabase = getSupabaseAdmin();
   await ensureBucket(supabase);
-  await supabase.storage.from(BUCKET).remove([talkPath(id)]);
+  await supabase.storage.from(BUCKET).remove([talkPath(id), messagePath(id)]);
+}
+
+// ---- Talk messages (chat) ----
+export async function listTalkMessages(talkId: string): Promise<TalkMessage[]> {
+  if (!isSupabaseEnabled()) {
+    return [...(memory().messages.get(talkId) ?? [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+  const supabase = getSupabaseAdmin();
+  await ensureBucket(supabase);
+  const list = (await getJson<TalkMessage[]>(supabase, messagePath(talkId))) ?? [];
+  return list.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export async function addTalkMessage(input: {
+  talkId: string;
+  channelId: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  taskId?: string;
+  taskTitle?: string;
+  kind?: "message" | "system";
+}): Promise<TalkMessage> {
+  const now = new Date().toISOString();
+  const msg: TalkMessage = {
+    id: newId(),
+    talkId: input.talkId,
+    channelId: input.channelId,
+    authorId: input.authorId,
+    authorName: input.authorName,
+    text: input.text,
+    createdAt: now,
+    reactions: [],
+    taskId: input.taskId,
+    taskTitle: input.taskTitle,
+    kind: input.kind ?? "message",
+  };
+  if (!isSupabaseEnabled()) {
+    const m = memory();
+    const arr = m.messages.get(input.talkId) ?? [];
+    arr.push(msg);
+    m.messages.set(input.talkId, arr);
+    return msg;
+  }
+  const supabase = getSupabaseAdmin();
+  await ensureBucket(supabase);
+  const list = (await getJson<TalkMessage[]>(supabase, messagePath(input.talkId))) ?? [];
+  list.push(msg);
+  await putJson(supabase, messagePath(input.talkId), list);
+  return msg;
+}
+
+export async function deleteTalkMessage(talkId: string, messageId: string): Promise<void> {
+  if (!isSupabaseEnabled()) {
+    const m = memory();
+    m.messages.set(talkId, (m.messages.get(talkId) ?? []).filter((x) => x.id !== messageId));
+    return;
+  }
+  const supabase = getSupabaseAdmin();
+  await ensureBucket(supabase);
+  const list = (await getJson<TalkMessage[]>(supabase, messagePath(talkId))) ?? [];
+  await putJson(supabase, messagePath(talkId), list.filter((x) => x.id !== messageId));
+}
+
+export async function toggleTalkReaction(
+  talkId: string,
+  messageId: string,
+  emoji: string,
+  userId: string
+): Promise<TalkMessage[]> {
+  const apply = (list: TalkMessage[]) =>
+    list.map((m) => {
+      if (m.id !== messageId) return m;
+      const reactions = m.reactions ? [...m.reactions] : [];
+      const idx = reactions.findIndex((r) => r.emoji === emoji);
+      if (idx === -1) {
+        reactions.push({ emoji, userIds: [userId] });
+      } else {
+        const users = reactions[idx].userIds;
+        reactions[idx] = users.includes(userId)
+          ? { emoji, userIds: users.filter((u) => u !== userId) }
+          : { emoji, userIds: [...users, userId] };
+        if (reactions[idx].userIds.length === 0) reactions.splice(idx, 1);
+      }
+      return { ...m, reactions };
+    });
+  if (!isSupabaseEnabled()) {
+    const m = memory();
+    const next = apply(m.messages.get(talkId) ?? []);
+    m.messages.set(talkId, next);
+    return next.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+  const supabase = getSupabaseAdmin();
+  await ensureBucket(supabase);
+  const list = (await getJson<TalkMessage[]>(supabase, messagePath(talkId))) ?? [];
+  const next = apply(list);
+  await putJson(supabase, messagePath(talkId), next);
+  return next.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
 // ---- 権限ヘルパー ----
