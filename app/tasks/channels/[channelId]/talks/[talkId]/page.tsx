@@ -4,7 +4,11 @@ import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import BackButton from "@/components/BackButton";
 import AddMembersModal from "@/components/tasks/AddMembersModal";
+import CreateTaskModal from "@/components/tasks/CreateTaskModal";
 import { getClientSession, isAdminSession, sessionMemberId, type SessionInfo } from "@/lib/clientSession";
+import { apiListTasks } from "@/lib/taskClient";
+import { reminderLevel, REMINDER_STYLE } from "@/lib/taskReminder";
+import { STATUS_CONFIG, formatDeadline, type FullTask } from "@/lib/taskStore";
 
 type ChannelMember = { id: string; name: string; role: "admin" | "member"; joinedAt: string };
 type Channel = { id: string; name: string; members: ChannelMember[] };
@@ -19,6 +23,8 @@ export default function TalkDetailPage({ params }: { params: Promise<{ channelId
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [tasks, setTasks] = useState<FullTask[]>([]);
 
   const isAdmin = isAdminSession(session);
   const meId = sessionMemberId(session);
@@ -35,6 +41,7 @@ export default function TalkDetailPage({ params }: { params: Promise<{ channelId
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
+    apiListTasks({ talkId }).then(setTasks).catch(() => setTasks([]));
   }, [channelId, talkId]);
 
   const removeMember = async (id: string) => {
@@ -114,12 +121,65 @@ export default function TalkDetailPage({ params }: { params: Promise<{ channelId
           )}
         </div>
 
-        {/* チャット/タスク（次回追加予定） */}
-        <div className="bg-white rounded-2xl border border-dashed p-6 text-center">
-          <p className="text-sm font-bold text-gray-500">チャット / タスク</p>
-          <p className="text-xs text-gray-400 mt-1">このトーク内のチャット・タスク機能は今後追加予定です。</p>
+        {/* 依頼（タスク） */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold text-gray-700">依頼（タスク） {tasks.length}件</span>
+            {canManage && (
+              <button onClick={() => setShowCreateTask(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition">
+                + 依頼を作成
+              </button>
+            )}
+          </div>
+          {tasks.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-dashed p-6 text-center">
+              <p className="text-sm font-bold text-gray-500">このトークの依頼はまだありません</p>
+              <p className="text-xs text-gray-400 mt-1">依頼をタスク化すると、担当者のマイページ・タスク一覧に反映されます。</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {tasks.map((t) => {
+                const rem = reminderLevel(t);
+                const rs = REMINDER_STYLE[rem];
+                const cfg = STATUS_CONFIG[t.status];
+                return (
+                  <Link key={t.id} href={`/tasks/${t.id}`} className="block bg-white rounded-2xl border px-4 py-3 hover:shadow-md transition group">
+                    <div className="flex items-center gap-3">
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold truncate ${t.status === "completed" ? "line-through text-gray-400" : "text-gray-800"}`}>{t.title}</p>
+                        <p className="text-xs text-gray-400 truncate">
+                          期日 {formatDeadline(t.deadline)} ・ 担当 {t.members.filter((m) => m.role !== "owner").map((m) => m.name).join("、") || "未割当"}
+                        </p>
+                      </div>
+                      {(rem === "overdue" || rem === "today" || rem === "soon") && (
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${rs.badge}`}>{rs.label}</span>
+                      )}
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.badge}`}>{cfg.label}</span>
+                      <span className="text-gray-300 group-hover:text-emerald-500 transition flex-shrink-0">›</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </main>
+
+      {showCreateTask && (
+        <CreateTaskModal
+          channelId={channelId}
+          channelName={channel.name}
+          talkId={talkId}
+          talkName={talk.name}
+          candidates={talk.members.length > 0 ? talk.members.map((m) => ({ id: m.id, name: m.name })) : [{ id: meId, name: "自分" }]}
+          onClose={() => setShowCreateTask(false)}
+          onCreated={(task) => {
+            setTasks((prev) => [task, ...prev]);
+            setShowCreateTask(false);
+          }}
+        />
+      )}
 
       {showAdd && (
         <AddMembersModal

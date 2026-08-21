@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/BackButton";
 import {
-  getArchivedTasks, restoreTask, deleteTask, formatDeadline,
+  formatDeadline,
   STATUS_CONFIG, PRIORITY_CONFIG,
   type FullTask,
 } from "@/lib/taskStore";
+import { apiListTasks, apiRestoreTask, apiDeleteTask } from "@/lib/taskClient";
 
 function fmtDT(iso?: string) {
   if (!iso) return "-";
@@ -73,24 +74,26 @@ export default function ArchivePage() {
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    setTasks(getArchivedTasks());
+    apiListTasks({ archived: true }).then(setTasks).catch(() => setTasks([]));
   }, []);
+
+  const reload = () => apiListTasks({ archived: true }).then(setTasks).catch(() => {});
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
   };
 
-  const handleRestore = (task: FullTask) => {
-    restoreTask(task.id);
-    setTasks(getArchivedTasks());
+  const handleRestore = async (task: FullTask) => {
+    await apiRestoreTask(task.id);
+    await reload();
     showToast(`「${task.title}」を復旧しました`);
   };
 
-  const handleDelete = (task: FullTask) => {
+  const handleDelete = async (task: FullTask) => {
     if (!confirm(`「${task.title}」を完全に削除しますか？この操作は取り消せません。`)) return;
-    deleteTask(task.id);
-    setTasks(getArchivedTasks());
+    await apiDeleteTask(task.id);
+    await reload();
     showToast("タスクを完全に削除しました");
   };
 

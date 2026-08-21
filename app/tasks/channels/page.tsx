@@ -4,7 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import MemberPicker from "@/components/tasks/MemberPicker";
 import AddMembersModal from "@/components/tasks/AddMembersModal";
-import { MOCK_EMPLOYEES } from "@/lib/taskStore";
+import CreateTaskModal from "@/components/tasks/CreateTaskModal";
+import { MOCK_EMPLOYEES, STATUS_CONFIG, formatDeadline, type FullTask } from "@/lib/taskStore";
+import { apiListTasks } from "@/lib/taskClient";
+import { reminderLevel, REMINDER_STYLE } from "@/lib/taskReminder";
 import { getClientSession, isAdminSession, sessionMemberId, type SessionInfo } from "@/lib/clientSession";
 import { getOrder, setOrder, applyManualOrder, moveInOrder, getHiddenIds, toggleHiddenId } from "@/lib/uiPrefs";
 
@@ -351,6 +354,7 @@ export default function ChannelsWorkspacePage() {
               channel={selectedChannel}
               talk={selectedTalk}
               canManage={isAdmin || selectedChannel.members.some((m) => m.id === meId)}
+              meId={meId}
               onTalkUpdated={(t) =>
                 setTalksByChannel((prev) => ({
                   ...prev,
@@ -439,15 +443,28 @@ function TalkView({
   channel,
   talk,
   canManage,
+  meId,
   onTalkUpdated,
 }: {
   channel: Channel;
   talk: Talk;
   canManage: boolean;
+  meId: string;
   onTalkUpdated: (t: Talk) => void;
 }) {
   const [tab, setTab] = useState<"posts" | "members">("posts");
   const [showAdd, setShowAdd] = useState(false);
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [tasks, setTasks] = useState<FullTask[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+
+  useEffect(() => {
+    setTasksLoading(true);
+    apiListTasks({ talkId: talk.id })
+      .then(setTasks)
+      .catch(() => setTasks([]))
+      .finally(() => setTasksLoading(false));
+  }, [talk.id]);
 
   const removeMember = async (id: string) => {
     if (!confirm("このメンバーをトークから外しますか？")) return;
@@ -461,6 +478,9 @@ function TalkView({
     else alert(d?.error ?? "削除に失敗しました");
   };
 
+  // トークの参加メンバーを担当候補にする（自分も含める）
+  const taskCandidates = talk.members.map((m) => ({ id: m.id, name: m.name }));
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* ヘッダー */}
@@ -471,7 +491,7 @@ function TalkView({
           </span>
           <div className="min-w-0">
             <h1 className="text-base font-bold text-white truncate">{talk.name}</h1>
-            <p className="text-[11px] text-zinc-500 truncate">{channel.name} ・ 招待 {talk.members.length}名</p>
+            <p className="text-[11px] text-zinc-500 truncate">{channel.name} ・ 招待 {talk.members.length}名 ・ 依頼 {tasks.length}件</p>
           </div>
         </div>
         <div className="flex items-center gap-1 mt-2">
@@ -483,7 +503,7 @@ function TalkView({
                 tab === t ? "border-emerald-500 text-white" : "border-transparent text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              {t === "posts" ? "投稿" : "メンバー"}
+              {t === "posts" ? "投稿（依頼・タスク）" : "メンバー"}
             </button>
           ))}
           <span className="px-3 py-2 text-sm text-zinc-600 cursor-default">共有済み</span>
@@ -493,28 +513,64 @@ function TalkView({
 
       {tab === "posts" ? (
         <>
-          {/* 投稿エリア（プレースホルダ） */}
-          <div className="flex-1 overflow-y-auto px-5 py-6">
-            <div className="max-w-2xl mx-auto">
-              <div className="text-center py-10">
-                <div className="w-14 h-14 rounded-2xl bg-zinc-800 mx-auto flex items-center justify-center text-2xl mb-3">#</div>
-                <p className="text-base font-bold text-white">「{talk.name}」トークの始まり</p>
-                <p className="text-sm text-zinc-400 mt-1">ここにチャット・タスクの投稿が表示されます。</p>
-                <p className="text-xs text-zinc-500 mt-3">※ 投稿（チャット/タスク）機能は現在準備中です。招待メンバーの管理は「メンバー」タブから行えます。</p>
-              </div>
+          {/* 依頼（タスク）一覧 */}
+          <div className="flex-1 overflow-y-auto px-5 py-5">
+            <div className="max-w-2xl mx-auto space-y-2">
+              {tasksLoading ? (
+                <p className="text-sm text-zinc-500 py-10 text-center">読み込み中...</p>
+              ) : tasks.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="w-14 h-14 rounded-2xl bg-zinc-800 mx-auto flex items-center justify-center text-2xl mb-3">#</div>
+                  <p className="text-base font-bold text-white">「{talk.name}」の依頼はまだありません</p>
+                  <p className="text-sm text-zinc-400 mt-1">このトークで発生した依頼をタスクとして登録し、担当者に追いかけ（リマインド）を発生させましょう。</p>
+                  {canManage && (
+                    <button onClick={() => setShowCreateTask(true)} className="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-2 rounded-xl transition">
+                      + 依頼（タスク）を作成
+                    </button>
+                  )}
+                </div>
+              ) : (
+                tasks.map((t) => {
+                  const rem = reminderLevel(t);
+                  const rs = REMINDER_STYLE[rem];
+                  const cfg = STATUS_CONFIG[t.status];
+                  return (
+                    <Link
+                      key={t.id}
+                      href={`/tasks/${t.id}`}
+                      className="block rounded-xl border border-zinc-800 bg-zinc-800/50 hover:bg-zinc-800 px-4 py-3 transition group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-semibold truncate ${t.status === "completed" ? "line-through text-zinc-500" : "text-zinc-100 group-hover:text-white"}`}>{t.title}</p>
+                          <p className="text-[11px] text-zinc-500 truncate">
+                            期日 {formatDeadline(t.deadline)} ・ 担当 {t.members.filter((m) => m.role !== "owner").map((m) => m.name).join("、") || "未割当"}
+                          </p>
+                        </div>
+                        {(rem === "overdue" || rem === "today" || rem === "soon") && (
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${rs.badge}`}>{rs.label}</span>
+                        )}
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.badge}`}>{cfg.label}</span>
+                        <span className="text-zinc-600 group-hover:text-emerald-400 transition flex-shrink-0">›</span>
+                      </div>
+                    </Link>
+                  );
+                })
+              )}
             </div>
           </div>
-          {/* 投稿コンポーザ（無効・準備中） */}
+          {/* 作成ボタン（コンポーザ位置） */}
           <div className="flex-shrink-0 border-t border-zinc-800 p-3">
-            <div className="max-w-2xl mx-auto flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2">
-              <input
-                disabled
-                placeholder="新しい投稿を入力（準備中）"
-                className="flex-1 bg-transparent text-sm text-zinc-400 placeholder-zinc-500 focus:outline-none cursor-not-allowed"
-              />
-              <button disabled className="bg-emerald-700/50 text-white/70 text-sm font-bold px-4 py-1.5 rounded-lg cursor-not-allowed flex items-center gap-1.5">
-                チャネルで投稿
-              </button>
+            <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
+              <p className="text-xs text-zinc-500">
+                {canManage ? "依頼をタスク化すると、担当者のマイページ・タスク一覧に反映されます。" : "依頼の作成はチャンネル参加メンバーのみ可能です。"}
+              </p>
+              {canManage && (
+                <button onClick={() => setShowCreateTask(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-1.5 rounded-lg transition flex-shrink-0">
+                  + 依頼（タスク）を作成
+                </button>
+              )}
             </div>
           </div>
         </>
@@ -548,6 +604,21 @@ function TalkView({
             )}
           </div>
         </div>
+      )}
+
+      {showCreateTask && (
+        <CreateTaskModal
+          channelId={channel.id}
+          channelName={channel.name}
+          talkId={talk.id}
+          talkName={talk.name}
+          candidates={taskCandidates.length > 0 ? taskCandidates : [{ id: meId, name: "自分" }]}
+          onClose={() => setShowCreateTask(false)}
+          onCreated={(task) => {
+            setTasks((prev) => [task, ...prev]);
+            setShowCreateTask(false);
+          }}
+        />
       )}
 
       {showAdd && (

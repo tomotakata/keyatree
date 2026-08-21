@@ -5,11 +5,17 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import BackButton from "@/components/BackButton";
 import {
-  getTask, addMessage, updateTask, updateTaskStatus, addMember, removeMember, toggleReaction,
-  archiveTask, deleteMessage, getCategories, formatDeadline, toDateTimeLocal,
+  getCategories, formatDeadline, toDateTimeLocal,
   MOCK_EMPLOYEES, STATUS_CONFIG, PRIORITY_CONFIG,
   type FullTask, type TaskStatus, type TaskMember, type TaskMessage, type TaskPriority, type TaskType,
 } from "@/lib/taskStore";
+import {
+  apiGetTask, apiAddMessage, apiEditTask, apiSetStatus, apiAddMember,
+  apiRemoveMember, apiToggleReaction, apiArchiveTask, apiDeleteMessage,
+} from "@/lib/taskClient";
+import { getClientSession, sessionMemberId } from "@/lib/clientSession";
+
+type Me = { id: string; name: string };
 
 /* ── ユーティリティ ── */
 function fmtDT(iso: string) {
@@ -21,7 +27,6 @@ function fmtD(iso: string) {
   return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
 }
 
-/** テキストにハイライトを適用 */
 function Highlight({ text, query }: { text: string; query: string }) {
   if (!query.trim()) return <>{text}</>;
   const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
@@ -43,10 +48,8 @@ const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: "completed",   label: "完了" },
 ];
 
-const CURRENT_USER = { id: "001", name: "鈴木 一郎" };
 const EMOJI_LIST = ["👍","✅","🙏","💪","🔥","😊","👏","❤️"];
 
-/* ── 絵文字ピッカー ── */
 function EmojiPicker({ onSelect }: { onSelect: (e: string) => void }) {
   return (
     <div className="absolute z-30 bottom-full mb-1 bg-white border border-gray-200 rounded-2xl shadow-lg px-2 py-1.5 flex gap-1 whitespace-nowrap">
@@ -58,7 +61,6 @@ function EmojiPicker({ onSelect }: { onSelect: (e: string) => void }) {
   );
 }
 
-/* ── 宛先バッジ ── */
 function ToBadges({ toIds, toNames }: { toIds: string[]; toNames: string[] }) {
   if (!toIds || toIds[0] === "all") {
     return <span className="inline-flex items-center text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200 px-2 py-0.5 rounded-full">全員</span>;
@@ -72,19 +74,18 @@ function ToBadges({ toIds, toNames }: { toIds: string[]; toNames: string[] }) {
   );
 }
 
-/* ── 1件のメッセージバブル ── */
 function MessageBubble({
-  msg, allMessages, taskId, query, onReaction, onReply,
+  msg, allMessages, me, query, onToggleReaction, onReply,
 }: {
   msg: TaskMessage;
   allMessages: TaskMessage[];
-  taskId: string;
+  me: Me;
   query: string;
-  onReaction: (t: FullTask) => void;
+  onToggleReaction: (msgId: string, emoji: string) => void;
   onReply: (msg: TaskMessage) => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
-  const isMe = msg.senderId === CURRENT_USER.id;
+  const isMe = msg.senderId === me.id;
   const isSystem = msg.senderId === "system";
   const parentMsg = msg.replyToId ? allMessages.find(m => m.id === msg.replyToId) : null;
 
@@ -105,7 +106,6 @@ function MessageBubble({
         {msg.senderName.charAt(0)}
       </div>
       <div className={`flex flex-col gap-0.5 max-w-xs lg:max-w-md ${isMe ? "items-end" : "items-start"}`}>
-        {/* 件名 + 宛先 */}
         <div className={`flex flex-wrap items-center gap-1.5 ${isMe ? "justify-end" : "justify-start"}`}>
           <span className="text-xs font-bold text-gray-600">
             <Highlight text={msg.subject || "（件名なし）"} query={query} />
@@ -113,13 +113,11 @@ function MessageBubble({
           <span className="text-xs text-gray-400">→</span>
           <ToBadges toIds={msg.toIds ?? ["all"]} toNames={msg.toNames ?? ["全員"]} />
         </div>
-        {/* 返信元プレビュー */}
         {parentMsg && (
           <div className={`w-full border-l-2 border-gray-300 pl-2 mb-0.5 ${isMe ? "text-right" : "text-left"}`}>
             <p className="text-xs text-gray-400 truncate">{parentMsg.senderName}: {parentMsg.text}</p>
           </div>
         )}
-        {/* バブル + アクション */}
         <div className={`flex items-end gap-1.5 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
           <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${isMe ? "bg-emerald-500 text-white rounded-tr-sm" : "bg-gray-100 text-gray-800 rounded-tl-sm"}`}>
             <Highlight text={msg.text} query={query} />
@@ -142,20 +140,16 @@ function MessageBubble({
                 <circle cx="12.5" cy="8.5" r="0.75" fill="currentColor" stroke="none"/>
               </svg>
             </button>
-            {showPicker && <EmojiPicker onSelect={emoji => {
-              const u = toggleReaction(taskId, msg.id, emoji, CURRENT_USER.id);
-              if (u) onReaction(u);
-              setShowPicker(false);
-            }} />}
+            {showPicker && <EmojiPicker onSelect={emoji => { onToggleReaction(msg.id, emoji); setShowPicker(false); }} />}
           </div>
         </div>
         {hasReactions && (
           <div className={`flex flex-wrap gap-1 mt-0.5 ${isMe ? "justify-end" : "justify-start"}`}>
             {Object.entries(reactions).map(([emoji, users]) => {
-              const reacted = users.includes(CURRENT_USER.id);
+              const reacted = users.includes(me.id);
               return (
                 <button key={emoji}
-                  onClick={() => { const u = toggleReaction(taskId, msg.id, emoji, CURRENT_USER.id); if (u) onReaction(u); }}
+                  onClick={() => onToggleReaction(msg.id, emoji)}
                   className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-xs transition ${reacted ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
                   {emoji}<span className="font-bold">{users.length}</span>
                 </button>
@@ -169,17 +163,16 @@ function MessageBubble({
   );
 }
 
-/* ── スレッドカード（折りたたみ＋スライド） ── */
 type Thread = { root: TaskMessage; replies: TaskMessage[] };
 
 function ThreadCard({
-  thread, allMessages, taskId, query, onReaction, onReply, onDelete, defaultOpen,
+  thread, allMessages, me, query, onToggleReaction, onReply, onDelete, defaultOpen,
 }: {
   thread: Thread;
   allMessages: TaskMessage[];
-  taskId: string;
+  me: Me;
   query: string;
-  onReaction: (t: FullTask) => void;
+  onToggleReaction: (msgId: string, emoji: string) => void;
   onReply: (msg: TaskMessage) => void;
   onDelete: (msg: TaskMessage) => void;
   defaultOpen: boolean;
@@ -199,10 +192,9 @@ function ThreadCard({
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-      {/* スレッドヘッダー（常時表示） */}
       <div className="px-3 py-2.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <div className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${root.senderId === CURRENT_USER.id ? "bg-emerald-500" : "bg-indigo-400"}`}>
+          <div className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${root.senderId === me.id ? "bg-emerald-500" : "bg-indigo-400"}`}>
             {root.senderName.charAt(0)}
           </div>
           <div className="min-w-0 flex-1">
@@ -224,10 +216,7 @@ function ThreadCard({
             </span>
           )}
           <span className="text-xs text-gray-400">{fmtDT(root.sentAt).slice(5)}</span>
-          <button
-            onClick={() => setOpen(v => !v)}
-            className="text-xs text-gray-400 hover:text-emerald-600 transition px-1"
-          >
+          <button onClick={() => setOpen(v => !v)} className="text-xs text-gray-400 hover:text-emerald-600 transition px-1">
             {open ? "▲" : "▼"}
           </button>
           <button
@@ -240,23 +229,18 @@ function ThreadCard({
         </div>
       </div>
 
-      {/* 展開部分（スライドアニメーション） */}
       <div className={`transition-all duration-300 overflow-hidden ${open ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}>
         <div className="border-t bg-gray-50 px-4 py-4 space-y-4">
-          <MessageBubble msg={root} allMessages={allMessages} taskId={taskId} query={query} onReaction={onReaction} onReply={onReply} />
+          <MessageBubble msg={root} allMessages={allMessages} me={me} query={query} onToggleReaction={onToggleReaction} onReply={onReply} />
           {replies.length > 0 && (
             <div className="border-l-2 border-emerald-200 pl-4 space-y-4">
               {replies.map(reply => (
-                <MessageBubble key={reply.id} msg={reply} allMessages={allMessages} taskId={taskId} query={query} onReaction={onReaction} onReply={onReply} />
+                <MessageBubble key={reply.id} msg={reply} allMessages={allMessages} me={me} query={query} onToggleReaction={onToggleReaction} onReply={onReply} />
               ))}
             </div>
           )}
-          {/* 返信ボタン */}
           <div className="pt-1">
-            <button
-              onClick={() => onReply(root)}
-              className="text-xs text-emerald-600 font-bold hover:underline"
-            >
+            <button onClick={() => onReply(root)} className="text-xs text-emerald-600 font-bold hover:underline">
               このスレッドに返信する
             </button>
           </div>
@@ -266,7 +250,6 @@ function ThreadCard({
   );
 }
 
-/* ── タスク編集モーダル ── */
 function TaskEditModal({
   task, onSave, onClose,
 }: {
@@ -280,6 +263,7 @@ function TaskEditModal({
   const [category, setCategory] = useState(task.category);
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
   const [type, setType] = useState<TaskType>(task.type);
+  const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<string[]>(() => {
     const base = getCategories();
     return task.category && !base.includes(task.category) ? [task.category, ...base] : base;
@@ -296,10 +280,12 @@ function TaskEditModal({
       .catch(() => {});
   }, [task.category]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim()) return;
-    const updated = updateTask(task.id, { title: title.trim(), description: description.trim(), deadline, category, priority, type });
+    setSaving(true);
+    const updated = await apiEditTask(task.id, { title: title.trim(), description: description.trim(), deadline, category, priority, type });
     if (updated) onSave(updated);
+    else setSaving(false);
   };
 
   return (
@@ -354,9 +340,9 @@ function TaskEditModal({
         </div>
         <div className="px-5 pb-5 flex gap-2 justify-end">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition">キャンセル</button>
-          <button onClick={handleSave} disabled={!title.trim()}
+          <button onClick={handleSave} disabled={!title.trim() || saving}
             className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 text-white text-sm font-bold transition">
-            保存する
+            {saving ? "保存中..." : "保存する"}
           </button>
         </div>
       </div>
@@ -364,11 +350,11 @@ function TaskEditModal({
   );
 }
 
-/* ── メッセージ作成フォーム ── */
 function ComposePanel({
-  members, replyTo, onSend, onCancelReply,
+  members, me, replyTo, onSend, onCancelReply,
 }: {
   members: TaskMember[];
+  me: Me;
   replyTo: TaskMessage | null;
   onSend: (subject: string, toIds: string[], toNames: string[], text: string, replyToId?: string) => void;
   onCancelReply: () => void;
@@ -385,9 +371,10 @@ function ComposePanel({
       setSubject(`Re: ${replyTo.subject || ""}`);
       setToAll(false);
       const sid = replyTo.senderId;
-      if (sid !== CURRENT_USER.id && sid !== "system") setSelectedIds([sid]);
+      if (sid !== me.id && sid !== "system") setSelectedIds([sid]);
       bodyRef.current?.focus();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [replyTo?.id]);
 
   const toggleId = (id: string) => {
@@ -409,7 +396,7 @@ function ComposePanel({
     setSubject(""); setToAll(false); setSelectedIds([]); setBody("");
   };
 
-  const otherMembers = members.filter(m => m.id !== CURRENT_USER.id);
+  const otherMembers = members.filter(m => m.id !== me.id);
 
   return (
     <div className="border-t bg-white">
@@ -423,14 +410,12 @@ function ComposePanel({
         </div>
       )}
       <div className="p-3 space-y-2">
-        {/* 件名 */}
         <div className="flex items-center gap-2">
           <label className="text-xs font-bold text-gray-500 w-10 flex-shrink-0">件名</label>
           <input type="text" value={subject} onChange={e => setSubject(e.target.value)}
             placeholder="メッセージの件名を入力"
             className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
         </div>
-        {/* 宛先 */}
         <div className="flex items-start gap-2">
           <label className="text-xs font-bold text-gray-500 w-10 flex-shrink-0 mt-1.5">宛先</label>
           <div className="flex-1">
@@ -474,7 +459,6 @@ function ComposePanel({
             )}
           </div>
         </div>
-        {/* 本文 + 送信 */}
         <div className="flex gap-2 items-end">
           <textarea ref={bodyRef} value={body} onChange={e => setBody(e.target.value)} rows={2}
             placeholder="メッセージ本文を入力"
@@ -484,7 +468,6 @@ function ComposePanel({
             送信
           </button>
         </div>
-        {/* ファイル添付（Supabase Storage接続後に対応） */}
         <div className="flex items-center gap-2 pt-1">
           <button disabled className="flex items-center gap-1.5 text-xs text-gray-300 cursor-not-allowed border border-dashed border-gray-200 rounded-lg px-3 py-1.5">
             <svg viewBox="0 0 20 20" fill="none" className="w-3.5 h-3.5" stroke="currentColor" strokeWidth="1.5">
@@ -506,7 +489,9 @@ function ComposePanel({
 export default function TaskWorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const [me, setMe] = useState<Me>({ id: "", name: "" });
   const [task, setTask] = useState<FullTask | null>(null);
+  const [loading, setLoading] = useState(true);
   const [replyTo, setReplyTo] = useState<TaskMessage | null>(null);
   const [showInvite, setShowInvite] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -518,9 +503,19 @@ export default function TaskWorkspacePage() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const t = getTask(id);
-    if (!t) { router.push("/tasks"); return; }
-    setTask(t);
+    const s = getClientSession();
+    setMe({ id: sessionMemberId(s) || "", name: s?.name || "" });
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    apiGetTask(id).then((t) => {
+      if (!alive) return;
+      if (!t) { router.push("/tasks"); return; }
+      setTask(t);
+      setLoading(false);
+    });
+    return () => { alive = false; };
   }, [id, router]);
 
   useEffect(() => {
@@ -536,18 +531,13 @@ export default function TaskWorkspacePage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  /* スレッドをグループ化 */
   const threads = useMemo<Thread[]>(() => {
     if (!task) return [];
     const msgs = task.messages;
     const rootMsgs = msgs.filter(m => !m.replyToId);
-    return rootMsgs.map(root => ({
-      root,
-      replies: msgs.filter(m => m.replyToId === root.id),
-    }));
-  }, [task?.messages]);
+    return rootMsgs.map(root => ({ root, replies: msgs.filter(m => m.replyToId === root.id) }));
+  }, [task]);
 
-  /* 検索フィルター */
   const filteredThreads = useMemo(() => {
     if (!searchQuery.trim()) return threads;
     const q = searchQuery.toLowerCase();
@@ -560,34 +550,39 @@ export default function TaskWorkspacePage() {
     );
   }, [threads, searchQuery]);
 
-  const handleSend = (subject: string, toIds: string[], toNames: string[], text: string, replyToId?: string) => {
+  const handleSend = async (subject: string, toIds: string[], toNames: string[], text: string, replyToId?: string) => {
     if (!task) return;
-    const updated = addMessage(task.id, { senderId: CURRENT_USER.id, senderName: CURRENT_USER.name, subject, toIds, toNames, text, replyToId });
+    const updated = await apiAddMessage(task.id, { subject, toIds, toNames, text, replyToId });
     if (updated) setTask(updated);
     setReplyTo(null);
   };
 
-  const handleStatusChange = (status: TaskStatus) => {
+  const handleToggleReaction = async (msgId: string, emoji: string) => {
     if (!task) return;
-    const updated = updateTaskStatus(task.id, status);
+    const updated = await apiToggleReaction(task.id, msgId, emoji);
+    if (updated) setTask(updated);
+  };
+
+  const handleStatusChange = async (status: TaskStatus) => {
+    if (!task) return;
+    const updated = await apiSetStatus(task.id, status);
     if (updated) { setTask(updated); showToast(`ステータスを「${STATUS_CONFIG[status].label}」に変更しました`); }
   };
 
-  const handleInvite = (emp: typeof MOCK_EMPLOYEES[number]) => {
+  const handleInvite = async (emp: typeof MOCK_EMPLOYEES[number]) => {
     if (!task) return;
     const member: TaskMember = { id: emp.id, name: emp.name, role: "assignee", joinedAt: new Date().toISOString() };
-    const updated = addMember(task.id, member);
+    const updated = await apiAddMember(task.id, member);
     if (updated) {
-      setTask(updated);
       showToast(`${emp.name} をメンバーに追加しました`);
-      const withMsg = addMessage(task.id, { senderId: "system", senderName: "システム", subject: "メンバー追加", toIds: ["all"], toNames: ["全員"], text: `${emp.name} がメンバーに追加されました。` });
-      if (withMsg) setTask(withMsg);
+      const withMsg = await apiAddMessage(task.id, { subject: "__system__", toIds: ["all"], toNames: ["全員"], text: `${emp.name} がメンバーに追加されました。` });
+      setTask(withMsg ?? updated);
     }
   };
 
-  const handleRemoveMember = (memberId: string, memberName: string) => {
+  const handleRemoveMember = async (memberId: string, memberName: string) => {
     if (!task) return;
-    const updated = removeMember(task.id, memberId);
+    const updated = await apiRemoveMember(task.id, memberId);
     if (updated) { setTask(updated); showToast(`${memberName} をメンバーから除外しました`); }
   };
 
@@ -597,28 +592,30 @@ export default function TaskWorkspacePage() {
     showToast("タスクを更新しました");
   };
 
-  const handleDeleteThread = (msg: TaskMessage) => {
+  const handleDeleteThread = async (msg: TaskMessage) => {
     if (!task) return;
-    const updated = deleteMessage(task.id, msg.id);
+    const updated = await apiDeleteMessage(task.id, msg.id);
     if (updated) { setTask(updated); showToast("スレッドを削除しました"); }
   };
 
-  const handleDeleteTask = () => {
+  const handleDeleteTask = async () => {
     if (!task) return;
     if (!confirm("このタスクをアーカイブに移動しますか？アーカイブからいつでも復旧・完全削除できます。")) return;
-    archiveTask(task.id);
+    await apiArchiveTask(task.id);
     router.push("/tasks");
   };
 
-  if (!task) return null;
+  if (loading || !task) {
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400 text-sm">読み込み中...</div>;
+  }
 
   const cfg = STATUS_CONFIG[task.status];
   const pri = PRIORITY_CONFIG[task.priority];
   const notInvited = MOCK_EMPLOYEES.filter(e => !task.members.some(m => m.id === e.id));
+  const talkHref = task.channelId && task.talkId ? `/tasks/channels/${task.channelId}/talks/${task.talkId}` : null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* ヘッダー */}
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm flex-shrink-0">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
           <BackButton />
@@ -634,6 +631,14 @@ export default function TaskWorkspacePage() {
             <span className="text-white text-xs font-bold">K</span>
           </div>
           <Link href="/tasks" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">タスク管理</Link>
+          {talkHref && (
+            <>
+              <span className="text-gray-300 mx-1">›</span>
+              <Link href={talkHref} className="text-emerald-600 text-sm font-medium hover:underline truncate max-w-[8rem]">
+                # {task.talkName}
+              </Link>
+            </>
+          )}
           <span className="text-gray-300 mx-1">›</span>
           <span className="text-gray-700 text-sm font-medium truncate max-w-xs">{task.title}</span>
           <div className="ml-auto">
@@ -645,7 +650,6 @@ export default function TaskWorkspacePage() {
       <div className="max-w-5xl mx-auto w-full px-4 py-4 flex flex-col lg:flex-row gap-4 flex-1">
         <div className="flex-1 flex flex-col min-h-0 gap-3">
 
-          {/* タスク詳細バー */}
           <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
             <button onClick={() => setDetailOpen(v => !v)}
               className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition">
@@ -658,10 +662,8 @@ export default function TaskWorkspacePage() {
                 </span>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                <button
-                  onClick={e => { e.stopPropagation(); setShowEdit(true); }}
-                  className="text-xs text-gray-400 hover:text-emerald-600 transition px-2 py-1 rounded-lg hover:bg-emerald-50 border border-transparent hover:border-emerald-200"
-                >
+                <button onClick={e => { e.stopPropagation(); setShowEdit(true); }}
+                  className="text-xs text-gray-400 hover:text-emerald-600 transition px-2 py-1 rounded-lg hover:bg-emerald-50 border border-transparent hover:border-emerald-200">
                   編集
                 </button>
                 <span className="text-gray-400 text-xs">{detailOpen ? "▲ 閉じる" : "▼ 詳細"}</span>
@@ -673,6 +675,16 @@ export default function TaskWorkspacePage() {
                 <div><p className="text-xs text-gray-400 mb-0.5">チャンネル</p><span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{task.category}</span></div>
                 <div><p className="text-xs text-gray-400 mb-0.5">作成者</p><p className="text-sm text-gray-700">{task.ownerName}</p></div>
                 <div><p className="text-xs text-gray-400 mb-0.5">作成日</p><p className="text-xs text-gray-600">{fmtD(task.createdAt)}</p></div>
+                {task.talkName && (
+                  <div className="col-span-2 sm:col-span-4">
+                    <p className="text-xs text-gray-400 mb-0.5">発生元トーク</p>
+                    {talkHref ? (
+                      <Link href={talkHref} className="text-sm text-emerald-600 font-medium hover:underline"># {task.talkName}</Link>
+                    ) : (
+                      <span className="text-sm text-gray-600"># {task.talkName}</span>
+                    )}
+                  </div>
+                )}
                 {task.description && (
                   <div className="col-span-2 sm:col-span-4">
                     <p className="text-xs text-gray-400 mb-0.5">詳細</p>
@@ -683,10 +695,7 @@ export default function TaskWorkspacePage() {
             )}
           </div>
 
-          {/* スレッドエリア（固定高さ・スクロール） */}
           <div className="flex flex-col bg-white rounded-2xl border shadow-sm overflow-hidden" style={{ height: "540px" }}>
-
-            {/* スレッドヘッダー */}
             <div className="border-b px-4 py-2.5 flex items-center gap-2 flex-shrink-0">
               <span className="text-sm font-bold text-gray-700">スレッド</span>
               {task.messages.length > 0 && (
@@ -696,7 +705,6 @@ export default function TaskWorkspacePage() {
                 <span className="text-xs text-amber-600 font-bold">{filteredThreads.length}件ヒット</span>
               )}
               <div className="ml-auto flex items-center gap-2">
-                {/* 検索 */}
                 {showSearch ? (
                   <div className="flex items-center gap-1">
                     <input ref={searchRef} type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
@@ -718,7 +726,6 @@ export default function TaskWorkspacePage() {
               </div>
             </div>
 
-            {/* スレッドリスト（スクロール可能） */}
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {filteredThreads.length === 0 && (
                 <div className="text-center py-16 text-gray-400">
@@ -733,9 +740,9 @@ export default function TaskWorkspacePage() {
                   key={thread.root.id}
                   thread={thread}
                   allMessages={task.messages}
-                  taskId={task.id}
+                  me={me}
                   query={searchQuery}
-                  onReaction={setTask}
+                  onToggleReaction={handleToggleReaction}
                   onReply={setReplyTo}
                   onDelete={handleDeleteThread}
                   defaultOpen={i === filteredThreads.length - 1}
@@ -744,14 +751,11 @@ export default function TaskWorkspacePage() {
               <div ref={bottomRef} />
             </div>
 
-            {/* 作成フォーム */}
-            <ComposePanel members={task.members} replyTo={replyTo} onSend={handleSend} onCancelReply={() => setReplyTo(null)} />
+            <ComposePanel members={task.members} me={me} replyTo={replyTo} onSend={handleSend} onCancelReply={() => setReplyTo(null)} />
           </div>
         </div>
 
-        {/* 右サイドバー */}
         <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
-          {/* ステータス */}
           <div className="bg-white rounded-2xl border shadow-sm p-4">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">ステータス変更</p>
             <div className="space-y-2">
@@ -769,7 +773,6 @@ export default function TaskWorkspacePage() {
               })}
             </div>
           </div>
-          {/* メンバー */}
           <div className="bg-white rounded-2xl border shadow-sm p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">メンバー ({task.members.length})</p>
@@ -807,7 +810,6 @@ export default function TaskWorkspacePage() {
               </div>
             )}
           </div>
-          {/* クイックアクション */}
           <div className="bg-white rounded-2xl border shadow-sm p-4 space-y-2">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">クイックアクション</p>
             {[
@@ -816,9 +818,9 @@ export default function TaskWorkspacePage() {
               { label: "完了として報告する", subject: "完了報告",   text: "タスクが完了しました。ご確認をお願いします。", style: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" },
             ].map(action => (
               <button key={action.label}
-                onClick={() => {
-                  if (action.label === "完了として報告する") handleStatusChange("completed");
-                  const u = addMessage(task.id, { senderId: CURRENT_USER.id, senderName: CURRENT_USER.name, subject: action.subject, toIds: ["all"], toNames: ["全員"], text: action.text });
+                onClick={async () => {
+                  if (action.label === "完了として報告する") await handleStatusChange("completed");
+                  const u = await apiAddMessage(task.id, { subject: action.subject, toIds: ["all"], toNames: ["全員"], text: action.text });
                   if (u) { setTask(u); showToast(`${action.label}を送信しました`); }
                 }}
                 className={`w-full text-left px-3 py-2.5 rounded-xl border text-xs font-semibold transition ${action.style}`}>
@@ -826,7 +828,6 @@ export default function TaskWorkspacePage() {
               </button>
             ))}
           </div>
-          {/* アーカイブ */}
           <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-4">
             <p className="text-xs font-bold text-amber-500 uppercase tracking-wide mb-3">タスクのアーカイブ</p>
             <button onClick={handleDeleteTask}

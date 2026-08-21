@@ -41,6 +41,10 @@ export type FullTask = {
   completedAt?: string;
   archived?: boolean;
   archivedAt?: string;
+  // トーク連携（チャンネル→トーク発の依頼）
+  channelId?: string;
+  talkId?: string;
+  talkName?: string;
 };
 
 const STORAGE_KEY = "keyatree_tasks_v1";

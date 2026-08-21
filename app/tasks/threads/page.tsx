@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { getAllTasks, seedTasks, STATUS_CONFIG, PRIORITY_CONFIG, type FullTask, type TaskMessage } from "@/lib/taskStore";
+import { STATUS_CONFIG, PRIORITY_CONFIG, type FullTask, type TaskMessage } from "@/lib/taskStore";
+import { apiListTasks } from "@/lib/taskClient";
 import BackButton from "@/components/BackButton";
 
 function fmtDT(iso: string) {
@@ -23,8 +24,7 @@ export default function ThreadListPage() {
   const [taskFilter, setTaskFilter] = useState<"all" | "personal" | "org">("all");
 
   useEffect(() => {
-    seedTasks();
-    setTasks(getAllTasks());
+    apiListTasks().then(setTasks).catch(() => setTasks([]));
   }, []);
 
   /* 全タスクからスレッド（rootメッセージ）を抽出 */
@@ -74,8 +74,8 @@ export default function ThreadListPage() {
           <span className="text-gray-700 text-sm font-medium">スレッド一覧</span>
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-gray-400">{filtered.length}件のスレッド / {totalReplies}件の返信</span>
-            <Link href="/tasks/new" className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition">
-              + 新規タスク
+            <Link href="/tasks/channels" className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition">
+              + トークから作成
             </Link>
           </div>
         </div>

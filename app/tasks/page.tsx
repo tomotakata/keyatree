@@ -3,14 +3,18 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  getAllTasks, seedTasks, getCategories, formatDeadline,
+  getCategories, formatDeadline,
   STATUS_CONFIG, PRIORITY_CONFIG,
   type FullTask, type TaskStatus, type TaskType,
 } from "@/lib/taskStore";
+import { apiListTasks } from "@/lib/taskClient";
+import { reminderLevel, REMINDER_STYLE } from "@/lib/taskReminder";
 
 function TaskCard({ task }: { task: FullTask }) {
   const cfg = STATUS_CONFIG[task.status];
   const pri = PRIORITY_CONFIG[task.priority];
+  const rem = reminderLevel(task);
+  const remStyle = REMINDER_STYLE[rem];
   return (
     <Link
       href={`/tasks/${task.id}`}
@@ -27,6 +31,9 @@ function TaskCard({ task }: { task: FullTask }) {
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${pri.color}`}>{pri.label}優先</span>
               <span className="text-xs text-zinc-300 bg-zinc-700/60 border border-zinc-700 px-2 py-0.5 rounded-full">{task.category}</span>
+              {task.talkName && (
+                <span className="text-xs text-sky-300 bg-sky-500/15 border border-sky-500/30 px-2 py-0.5 rounded-full"># {task.talkName}</span>
+              )}
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${task.type === "personal" ? "bg-indigo-500/20 text-indigo-300" : "bg-teal-500/20 text-teal-300"}`}>
                 {task.type === "personal" ? "個人" : "組織"}
               </span>
@@ -34,6 +41,9 @@ function TaskCard({ task }: { task: FullTask }) {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 pl-5 sm:pl-0">
+          {(rem === "overdue" || rem === "today" || rem === "soon") && (
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${remStyle.badge}`}>{remStyle.label}</span>
+          )}
           <span className="text-xs text-zinc-500">期日 {formatDeadline(task.deadline)}</span>
           <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${cfg.badge}`}>{cfg.label}</span>
           <div className="flex -space-x-1">
@@ -60,11 +70,11 @@ export default function TasksPage() {
   const [tab, setTab] = useState<"all" | TaskType>("all");
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [talkFilter, setTalkFilter] = useState<string>("all");
   const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
-    seedTasks();
-    setTasks(getAllTasks());
+    apiListTasks().then(setTasks).catch(() => setTasks([]));
     fetch("/api/task-channels")
       .then((r) => r.json())
       .then((d) => {
@@ -79,8 +89,19 @@ export default function TasksPage() {
     if (tab !== "all" && t.type !== tab) return false;
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     if (categoryFilter !== "all" && t.category !== categoryFilter) return false;
+    if (talkFilter !== "all" && t.talkName !== talkFilter) return false;
     return true;
   });
+
+  // 選択中チャンネルに属するタスクのトーク名一覧（サブフィルター用）
+  const talkNames = Array.from(
+    new Set(
+      tasks
+        .filter((t) => categoryFilter === "all" || t.category === categoryFilter)
+        .map((t) => t.talkName)
+        .filter((n): n is string => !!n),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "ja"));
 
   const counts = {
     all: tasks.length,
@@ -127,8 +148,8 @@ export default function TasksPage() {
           <div className="px-3 pt-3 pb-2 flex items-center justify-between">
             <h2 className="text-lg font-bold text-white">タスク</h2>
             <Link
-              href="/tasks/new"
-              title="新規タスク"
+              href="/tasks/channels"
+              title="トークからタスクを作成"
               className="w-7 h-7 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-lg leading-none flex items-center justify-center transition"
             >
               +
@@ -191,7 +212,7 @@ export default function TasksPage() {
               </div>
               <div className="space-y-0.5">
                 <button
-                  onClick={() => setCategoryFilter("all")}
+                  onClick={() => { setCategoryFilter("all"); setTalkFilter("all"); }}
                   className={`w-full text-left rounded-lg px-3 py-1.5 text-sm transition ${
                     categoryFilter === "all" ? "bg-zinc-800 text-white font-semibold" : "text-zinc-300 hover:bg-zinc-800/60"
                   }`}
@@ -203,7 +224,7 @@ export default function TasksPage() {
                   return (
                     <button
                       key={c}
-                      onClick={() => setCategoryFilter(active ? "all" : c)}
+                      onClick={() => { setCategoryFilter(active ? "all" : c); setTalkFilter("all"); }}
                       className={`w-full flex items-center gap-2 text-left rounded-lg px-3 py-1.5 text-sm transition ${
                         active ? "bg-emerald-600/20 text-white font-semibold" : "text-zinc-300 hover:bg-zinc-800/60"
                       }`}
@@ -215,6 +236,37 @@ export default function TasksPage() {
                 })}
               </div>
             </div>
+
+            {/* トーク（サブフィルター） */}
+            {talkNames.length > 0 && (
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-500 mb-1.5">トーク</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setTalkFilter("all")}
+                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full border transition ${
+                      talkFilter === "all" ? "bg-emerald-500 text-white border-emerald-500" : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700"
+                    }`}
+                  >
+                    すべて
+                  </button>
+                  {talkNames.map((n) => {
+                    const active = talkFilter === n;
+                    return (
+                      <button
+                        key={n}
+                        onClick={() => setTalkFilter(active ? "all" : n)}
+                        className={`text-[11px] font-bold px-2.5 py-1 rounded-full border transition ${
+                          active ? "bg-emerald-500 text-white border-emerald-500" : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700"
+                        }`}
+                      >
+                        # {n}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* フッターリンク */}
@@ -232,19 +284,20 @@ export default function TasksPage() {
               <p className="text-[11px] text-zinc-500">{filtered.length}件のタスク</p>
             </div>
             <div className="flex items-center gap-2">
-              {(statusFilter !== "all" || categoryFilter !== "all") && (
+              {(statusFilter !== "all" || categoryFilter !== "all" || talkFilter !== "all") && (
                 <button
                   onClick={() => {
                     setStatusFilter("all");
                     setCategoryFilter("all");
+                    setTalkFilter("all");
                   }}
                   className="text-xs text-zinc-400 hover:text-white border border-zinc-700 rounded-lg px-3 py-1.5 transition"
                 >
                   フィルター解除
                 </button>
               )}
-              <Link href="/tasks/new" className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-1.5 rounded-lg transition">
-                + 新規タスク
+              <Link href="/tasks/channels" className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-1.5 rounded-lg transition">
+                + トークから作成
               </Link>
             </div>
           </div>
@@ -254,7 +307,7 @@ export default function TasksPage() {
               {filtered.length === 0 ? (
                 <div className="text-center py-16 text-zinc-500">
                   <p className="text-base font-bold">タスクがありません</p>
-                  <p className="text-sm mt-1">「+ 新規タスク」から作成してください</p>
+                  <p className="text-sm mt-1">タスクはトーク内から作成します（「+ トークから作成」）</p>
                 </div>
               ) : (
                 <div className="space-y-2">
