@@ -194,7 +194,7 @@ export default function ChannelsWorkspacePage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="チャンネル・トークを検索"
+              placeholder="チャンネル・トークルームを検索"
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
@@ -285,13 +285,13 @@ export default function ChannelsWorkspacePage() {
                       </span>
                     </div>
 
-                    {/* トーク */}
+                    {/* トークルーム */}
                     {isOpen && (
                       <div className="ml-6 mt-0.5 mb-1 space-y-0.5">
                         {(talksByChannel[c.id] === undefined) ? (
                           <p className="text-[11px] text-zinc-600 px-2 py-1">読み込み中...</p>
                         ) : talks.length === 0 ? (
-                          <p className="text-[11px] text-zinc-600 px-2 py-1">トークなし</p>
+                          <p className="text-[11px] text-zinc-600 px-2 py-1">トークルームなし</p>
                         ) : (
                           talks
                             .filter((t) => !q || t.name.toLowerCase().includes(q) || c.name.toLowerCase().includes(q))
@@ -418,7 +418,7 @@ function TalkCreateInline({ channel, canCreate, onClick }: { channel: Channel; c
       onClick={onClick}
       className="w-full flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-zinc-500 hover:text-emerald-400 hover:bg-zinc-800/60 transition"
     >
-      <span className="text-sm">+</span> トークを追加
+      <span className="text-sm">+</span> トークルームを追加
     </button>
   );
 }
@@ -427,8 +427,8 @@ function EmptyState({ isAdmin, onCreate }: { isAdmin: boolean; onCreate: () => v
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 px-6">
       <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center text-3xl">💬</div>
-      <p className="text-lg font-bold text-white">チャンネルまたはトークを選択</p>
-      <p className="text-sm text-zinc-400 max-w-sm">左のリストからチャンネルを開き、トークを選ぶと内容が表示されます。</p>
+      <p className="text-lg font-bold text-white">チャンネルまたはトークルームを選択</p>
+      <p className="text-sm text-zinc-400 max-w-sm">左のリストからチャンネルを開き、トークルームを選ぶと内容が表示されます。</p>
       {isAdmin && (
         <button onClick={onCreate} className="mt-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-2 rounded-xl transition">
           + 新規チャンネルを作成
@@ -438,7 +438,7 @@ function EmptyState({ isAdmin, onCreate }: { isAdmin: boolean; onCreate: () => v
   );
 }
 
-/* ------------ トーク投稿ビュー（Teams風） ------------ */
+/* ------------ トークルーム投稿ビュー（Teams風） ------------ */
 function TalkView({
   channel,
   talk,
@@ -457,6 +457,9 @@ function TalkView({
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [tasks, setTasks] = useState<FullTask[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(talk.name);
+  const [savingName, setSavingName] = useState(false);
 
   useEffect(() => {
     setTasksLoading(true);
@@ -466,8 +469,37 @@ function TalkView({
       .finally(() => setTasksLoading(false));
   }, [talk.id]);
 
+  useEffect(() => {
+    setNameInput(talk.name);
+    setEditingName(false);
+  }, [talk.id, talk.name]);
+
+  const saveName = async () => {
+    const name = nameInput.trim();
+    if (!name || name === talk.name) {
+      setEditingName(false);
+      setNameInput(talk.name);
+      return;
+    }
+    setSavingName(true);
+    try {
+      const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        onTalkUpdated(d.talk);
+        setEditingName(false);
+      } else alert(d?.error ?? "名称変更に失敗しました");
+    } finally {
+      setSavingName(false);
+    }
+  };
+
   const removeMember = async (id: string) => {
-    if (!confirm("このメンバーをトークから外しますか？")) return;
+    if (!confirm("このメンバーをトークルームから外しますか？")) return;
     const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -478,7 +510,7 @@ function TalkView({
     else alert(d?.error ?? "削除に失敗しました");
   };
 
-  // トークの参加メンバーを担当候補にする（自分も含める）
+  // トークルームの参加メンバーを担当候補にする（自分も含める）
   const taskCandidates = talk.members.map((m) => ({ id: m.id, name: m.name }));
 
   return (
@@ -489,8 +521,43 @@ function TalkView({
           <span className={`w-8 h-8 rounded ${colorFor(channel.id)} flex items-center justify-center text-white text-sm font-bold`}>
             {channel.name.charAt(0)}
           </span>
-          <div className="min-w-0">
-            <h1 className="text-base font-bold text-white truncate">{talk.name}</h1>
+          <div className="min-w-0 flex-1">
+            {editingName ? (
+              <div className="flex items-center gap-1.5">
+                <input
+                  autoFocus
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveName();
+                    if (e.key === "Escape") {
+                      setEditingName(false);
+                      setNameInput(talk.name);
+                    }
+                  }}
+                  className="bg-zinc-800 border border-emerald-500 rounded px-2 py-1 text-sm text-white w-56 focus:outline-none"
+                />
+                <button onClick={saveName} disabled={savingName} className="text-xs font-bold text-emerald-400 hover:text-emerald-300 px-1 disabled:opacity-50">
+                  {savingName ? "保存中" : "保存"}
+                </button>
+                <button onClick={() => { setEditingName(false); setNameInput(talk.name); }} className="text-xs text-zinc-500 hover:text-zinc-300 px-1">
+                  取消
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-base font-bold text-white truncate">{talk.name}</h1>
+                {canManage && (
+                  <button
+                    onClick={() => setEditingName(true)}
+                    title="トークルーム名を変更"
+                    className="text-zinc-500 hover:text-emerald-400 transition text-xs flex-shrink-0"
+                  >
+                    ✎
+                  </button>
+                )}
+              </div>
+            )}
             <p className="text-[11px] text-zinc-500 truncate">{channel.name} ・ 招待 {talk.members.length}名 ・ 依頼 {tasks.length}件</p>
           </div>
         </div>
@@ -522,7 +589,7 @@ function TalkView({
                 <div className="text-center py-10">
                   <div className="w-14 h-14 rounded-2xl bg-zinc-800 mx-auto flex items-center justify-center text-2xl mb-3">#</div>
                   <p className="text-base font-bold text-white">「{talk.name}」の依頼はまだありません</p>
-                  <p className="text-sm text-zinc-400 mt-1">このトークで発生した依頼をタスクとして登録し、担当者に追いかけ（リマインド）を発生させましょう。</p>
+                  <p className="text-sm text-zinc-400 mt-1">このトークルームで発生した依頼をタスクとして登録し、担当者に追いかけ（リマインド）を発生させましょう。</p>
                   {canManage && (
                     <button onClick={() => setShowCreateTask(true)} className="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-2 rounded-xl transition">
                       + 依頼（タスク）を作成
@@ -623,7 +690,7 @@ function TalkView({
 
       {showAdd && (
         <AddMembersModal
-          title="トークにメンバーを招待"
+          title="トークルームにメンバーを招待"
           existingIds={talk.members.map((m) => m.id)}
           candidates={channel.members.map((m) => ({ id: m.id, name: m.name }))}
           onClose={() => setShowAdd(false)}
@@ -667,6 +734,38 @@ function ChannelView({
 }) {
   const [tab, setTab] = useState<"talks" | "members" | "analytics">("talks");
   const [showAdd, setShowAdd] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(channel.name);
+  const [savingName, setSavingName] = useState(false);
+
+  useEffect(() => {
+    setNameInput(channel.name);
+    setEditingName(false);
+  }, [channel.id, channel.name]);
+
+  const saveName = async () => {
+    const name = nameInput.trim();
+    if (!name || name === channel.name) {
+      setEditingName(false);
+      setNameInput(channel.name);
+      return;
+    }
+    setSavingName(true);
+    try {
+      const res = await fetch(`/api/task-channels/${channel.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        onChannelUpdated(d.channel);
+        setEditingName(false);
+      } else alert(d?.error ?? "名称変更に失敗しました");
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   const removeChannelMember = async (id: string) => {
     if (!confirm("このメンバーをチャンネルから削除しますか？")) return;
@@ -687,10 +786,45 @@ function ChannelView({
           <span className={`w-10 h-10 rounded-lg ${colorFor(channel.id)} flex items-center justify-center text-white text-lg font-bold`}>
             {channel.name.charAt(0)}
           </span>
-          <div className="min-w-0">
-            <h1 className="text-lg font-bold text-white truncate">{channel.name}</h1>
+          <div className="min-w-0 flex-1">
+            {editingName ? (
+              <div className="flex items-center gap-1.5">
+                <input
+                  autoFocus
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveName();
+                    if (e.key === "Escape") {
+                      setEditingName(false);
+                      setNameInput(channel.name);
+                    }
+                  }}
+                  className="bg-zinc-800 border border-emerald-500 rounded px-2 py-1 text-base text-white w-64 focus:outline-none"
+                />
+                <button onClick={saveName} disabled={savingName} className="text-xs font-bold text-emerald-400 hover:text-emerald-300 px-1 disabled:opacity-50">
+                  {savingName ? "保存中" : "保存"}
+                </button>
+                <button onClick={() => { setEditingName(false); setNameInput(channel.name); }} className="text-xs text-zinc-500 hover:text-zinc-300 px-1">
+                  取消
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-lg font-bold text-white truncate">{channel.name}</h1>
+                {isAdmin && (
+                  <button
+                    onClick={() => setEditingName(true)}
+                    title="チャンネル名を変更"
+                    className="text-zinc-500 hover:text-emerald-400 transition text-sm flex-shrink-0"
+                  >
+                    ✎
+                  </button>
+                )}
+              </div>
+            )}
             <p className="text-[11px] text-zinc-500 truncate">
-              {channel.description ? `${channel.description} ・ ` : ""}メンバー {channel.members.length}名 ・ トーク {talks.length}件
+              {channel.description ? `${channel.description} ・ ` : ""}メンバー {channel.members.length}名 ・ トークルーム {talks.length}件
             </p>
           </div>
         </div>
@@ -703,7 +837,7 @@ function ChannelView({
                 tab === t ? "border-emerald-500 text-white" : "border-transparent text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              {t === "talks" ? "トーク" : t === "members" ? "メンバー" : "分析"}
+              {t === "talks" ? "トークルーム" : t === "members" ? "メンバー" : "分析"}
             </button>
           ))}
         </div>
@@ -714,17 +848,17 @@ function ChannelView({
           {tab === "talks" ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-white">トーク一覧</span>
+                <span className="text-sm font-bold text-white">トークルーム一覧</span>
                 {canCreateTalk && (
                   <button onClick={onCreateTalk} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-1.5 rounded-lg transition">
-                    + 新規トーク
+                    + 新規トークルーム
                   </button>
                 )}
               </div>
               {talks.length === 0 ? (
                 <div className="text-center py-12 text-zinc-500 bg-zinc-800/40 rounded-xl border border-dashed border-zinc-700">
-                  <p className="text-sm font-bold">トークがありません</p>
-                  {canCreateTalk && <p className="text-xs mt-1">「+ 新規トーク」から作成してください</p>}
+                  <p className="text-sm font-bold">トークルームがありません</p>
+                  {canCreateTalk && <p className="text-xs mt-1">「+ 新規トークルーム」から作成してください</p>}
                 </div>
               ) : (
                 <div className="space-y-1.5">
@@ -824,8 +958,8 @@ function ChannelAnalytics({ channel, talks }: { channel: Channel; talks: Talk[] 
   const cards = [
     { label: "アクティブユーザー", value: activeUserIds.size },
     { label: "チャンネルメンバー", value: channel.members.length },
-    { label: "トーク数", value: talks.length },
-    { label: "平均招待人数 / トーク", value: avgInvites.toFixed(1) },
+    { label: "トークルーム数", value: talks.length },
+    { label: "平均招待人数 / トークルーム", value: avgInvites.toFixed(1) },
   ];
 
   return (
@@ -839,9 +973,9 @@ function ChannelAnalytics({ channel, talks }: { channel: Channel; talks: Talk[] 
         ))}
       </div>
       <div className="bg-zinc-800/50 rounded-xl border border-zinc-800 p-5">
-        <p className="text-sm font-bold text-white mb-3">トーク別 参加人数</p>
+        <p className="text-sm font-bold text-white mb-3">トークルーム別 参加人数</p>
         {talkBars.length === 0 ? (
-          <p className="text-xs text-zinc-500">トークがありません</p>
+          <p className="text-xs text-zinc-500">トークルームがありません</p>
         ) : (
           <div className="space-y-2">
             {talkBars.map((b) => (
@@ -857,7 +991,7 @@ function ChannelAnalytics({ channel, talks }: { channel: Channel; talks: Talk[] 
         )}
       </div>
       <p className="text-[11px] text-zinc-500">
-        ※ 現在の分析は参加状況ベースです。投稿・返信などメッセージ活動の分析は、トーク内チャット機能の追加後に対応予定です。
+        ※ 現在の分析は参加状況ベースです。投稿・返信などメッセージ活動の分析は、トークルーム内チャット機能の追加後に対応予定です。
       </p>
     </div>
   );
@@ -974,7 +1108,7 @@ function CreateTalkModal({
 
   const submit = async () => {
     if (!name.trim()) {
-      setError("トーク名を入力してください");
+      setError("トークルーム名を入力してください");
       return;
     }
     setSaving(true);
@@ -1006,12 +1140,12 @@ function CreateTalkModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-4 flex items-center justify-between">
-          <h2 className="text-white font-bold text-base">新規トーク（{channel.name}）</h2>
+          <h2 className="text-white font-bold text-base">新規トークルーム（{channel.name}）</h2>
           <button onClick={onClose} className="text-white/70 hover:text-white text-lg leading-none">×</button>
         </div>
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1">トーク名</label>
+            <label className="block text-xs font-bold text-gray-600 mb-1">トークルーム名</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -1024,7 +1158,7 @@ function CreateTalkModal({
             <input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="トークの用途"
+              placeholder="トークルームの用途"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
             />
           </div>

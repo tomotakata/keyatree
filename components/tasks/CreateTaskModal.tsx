@@ -5,7 +5,7 @@ import MemberPicker from "@/components/tasks/MemberPicker";
 import { apiCreateTask } from "@/lib/taskClient";
 import type { FullTask, TaskPriority, TaskType } from "@/lib/taskStore";
 
-/** トーク内で依頼（タスク）を作成するモーダル。担当者はそのトークのメンバーから個別指定する。 */
+/** トークルーム内で依頼（タスク）を作成するモーダル。担当者はそのトークルームのメンバーから個別指定する。 */
 export default function CreateTaskModal({
   channelId,
   channelName,
@@ -132,7 +132,7 @@ export default function CreateTaskModal({
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1">依頼する担当者 <span className="text-rose-500">*</span></label>
-            <p className="text-[11px] text-gray-400 mb-1">このトークの参加メンバーから選択します。選んだ人に追いかけ（リマインド）が発生します。</p>
+            <p className="text-[11px] text-gray-400 mb-1">このトークルームの参加メンバーから選択します。選んだ人に追いかけ（リマインド）が発生します。</p>
             <MemberPicker selectedIds={assignees} onChange={setAssignees} candidates={candidates} />
           </div>
           {error && <p className="text-xs text-rose-600 font-medium">{error}</p>}

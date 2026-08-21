@@ -93,7 +93,7 @@ export default function TasksPage() {
     return true;
   });
 
-  // 選択中チャンネルに属するタスクのトーク名一覧（サブフィルター用）
+  // 選択中チャンネルに属するタスクのトークルーム名一覧（サブフィルター用）
   const talkNames = Array.from(
     new Set(
       tasks
@@ -149,7 +149,7 @@ export default function TasksPage() {
             <h2 className="text-lg font-bold text-white">タスク</h2>
             <Link
               href="/tasks/channels"
-              title="トークからタスクを作成"
+              title="トークルームからタスクを作成"
               className="w-7 h-7 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-lg leading-none flex items-center justify-center transition"
             >
               +
@@ -237,10 +237,10 @@ export default function TasksPage() {
               </div>
             </div>
 
-            {/* トーク（サブフィルター） */}
+            {/* トークルーム（サブフィルター） */}
             {talkNames.length > 0 && (
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-500 mb-1.5">トーク</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-500 mb-1.5">トークルーム</p>
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setTalkFilter("all")}
@@ -297,7 +297,7 @@ export default function TasksPage() {
                 </button>
               )}
               <Link href="/tasks/channels" className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-1.5 rounded-lg transition">
-                + トークから作成
+                + トークルームから作成
               </Link>
             </div>
           </div>
@@ -307,7 +307,7 @@ export default function TasksPage() {
               {filtered.length === 0 ? (
                 <div className="text-center py-16 text-zinc-500">
                   <p className="text-base font-bold">タスクがありません</p>
-                  <p className="text-sm mt-1">タスクはトーク内から作成します（「+ トークから作成」）</p>
+                  <p className="text-sm mt-1">タスクはトークルーム内から作成します（「+ トークルームから作成」）</p>
                 </div>
               ) : (
                 <div className="space-y-2">

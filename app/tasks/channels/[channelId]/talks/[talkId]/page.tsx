@@ -45,7 +45,7 @@ export default function TalkDetailPage({ params }: { params: Promise<{ channelId
   }, [channelId, talkId]);
 
   const removeMember = async (id: string) => {
-    if (!confirm("このメンバーをトークから外しますか？")) return;
+    if (!confirm("このメンバーをトークルームから外しますか？")) return;
     const res = await fetch(`/api/task-channels/${channelId}/talks/${talkId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -62,7 +62,7 @@ export default function TalkDetailPage({ params }: { params: Promise<{ channelId
   if (notFound || !talk || !channel) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-3">
-        <p className="text-gray-500">トークが見つかりません</p>
+        <p className="text-gray-500">トークルームが見つかりません</p>
         <Link href={`/tasks/channels/${channelId}`} className="text-emerald-600 text-sm font-bold hover:underline">チャンネルへ戻る</Link>
       </div>
     );
@@ -133,7 +133,7 @@ export default function TalkDetailPage({ params }: { params: Promise<{ channelId
           </div>
           {tasks.length === 0 ? (
             <div className="bg-white rounded-2xl border border-dashed p-6 text-center">
-              <p className="text-sm font-bold text-gray-500">このトークの依頼はまだありません</p>
+              <p className="text-sm font-bold text-gray-500">このトークルームの依頼はまだありません</p>
               <p className="text-xs text-gray-400 mt-1">依頼をタスク化すると、担当者のマイページ・タスク一覧に反映されます。</p>
             </div>
           ) : (
@@ -183,7 +183,7 @@ export default function TalkDetailPage({ params }: { params: Promise<{ channelId
 
       {showAdd && (
         <AddMembersModal
-          title="トークにメンバーを招待"
+          title="トークルームにメンバーを招待"
           existingIds={talk.members.map((m) => m.id)}
           candidates={channel.members.map((m) => ({ id: m.id, name: m.name }))}
           onClose={() => setShowAdd(false)}
