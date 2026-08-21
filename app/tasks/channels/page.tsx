@@ -25,6 +25,8 @@ type TalkMessage = {
   text: string;
   createdAt: string;
   reactions?: TalkMessageReaction[];
+  subject?: string;
+  parentId?: string;
   taskId?: string;
   taskTitle?: string;
   kind?: "message" | "system";
@@ -613,7 +615,13 @@ function TalkView({
   const [messages, setMessages] = useState<TalkMessage[]>([]);
   const [msgLoading, setMsgLoading] = useState(true);
   const [composer, setComposer] = useState("");
+  const [subject, setSubject] = useState("");
+  const [composerOpen, setComposerOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  // スレッド返信
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [replySending, setReplySending] = useState(false);
 
   useEffect(() => {
     setTasksLoading(true);
@@ -640,17 +648,42 @@ function TalkView({
       const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, subject: subject.trim() || undefined }),
       });
       const d = await res.json();
       if (res.ok && d.message) {
         setMessages((prev) => [...prev, d.message]);
         setComposer("");
+        setSubject("");
+        setComposerOpen(false);
       } else {
         alert(d?.error ?? "送信に失敗しました");
       }
     } finally {
       setSending(false);
+    }
+  };
+
+  const sendReply = async (parentId: string) => {
+    const text = replyText.trim();
+    if (!text || replySending) return;
+    setReplySending(true);
+    try {
+      const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, parentId }),
+      });
+      const d = await res.json();
+      if (res.ok && d.message) {
+        setMessages((prev) => [...prev, d.message]);
+        setReplyText("");
+        setReplyTo(null);
+      } else {
+        alert(d?.error ?? "返信に失敗しました");
+      }
+    } finally {
+      setReplySending(false);
     }
   };
 
@@ -794,99 +827,176 @@ function TalkView({
             <div className="max-w-2xl mx-auto space-y-4">
               {msgLoading ? (
                 <p className="text-sm text-zinc-500 py-10 text-center">読み込み中...</p>
-              ) : messages.length === 0 ? (
+              ) : messages.filter((m) => !m.parentId).length === 0 ? (
                 <div className="text-center py-10">
                   <div className="w-14 h-14 rounded-2xl bg-zinc-800 mx-auto flex items-center justify-center text-2xl mb-3">💬</div>
                   <p className="text-base font-bold text-white">「{talk.name}」の会話をはじめましょう</p>
-                  <p className="text-sm text-zinc-400 mt-1">メッセージを投稿し、依頼が発生したら各メッセージから「依頼（タスク）にする」で起票できます。</p>
+                  <p className="text-sm text-zinc-400 mt-1">下の「新しい投稿」から件名と本文で投稿できます。各投稿には「スレッドで返信」で会話を続けられ、メッセージから「依頼（タスク）にする」で起票できます。</p>
                 </div>
               ) : (
-                messages.map((m) => {
-                  const mine = m.authorId === meId;
-                  if (m.kind === "system") {
+                (() => {
+                  const posts = messages.filter((m) => !m.parentId);
+                  const repliesOf = (pid: string) =>
+                    messages.filter((m) => m.parentId === pid).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+                  const renderRow = (m: TalkMessage, isReply: boolean) => {
+                    const mine = m.authorId === meId;
+                    if (m.kind === "system") {
+                      return (
+                        <div key={m.id} className="flex justify-center py-1">
+                          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5 text-[12px] text-emerald-300 flex items-center gap-2">
+                            <span>📋 {m.text}</span>
+                            {m.taskId && (
+                              <Link href={`/tasks/${m.taskId}`} className="underline font-bold hover:text-emerald-200">
+                                依頼を開く
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                    const reactions = m.reactions ?? [];
                     return (
-                      <div key={m.id} className="flex justify-center">
-                        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5 text-[12px] text-emerald-300 flex items-center gap-2">
-                          <span>📋 {m.text}</span>
-                          {m.taskId && (
-                            <Link href={`/tasks/${m.taskId}`} className="underline font-bold hover:text-emerald-200">
-                              依頼を開く
-                            </Link>
-                          )}
+                      <div key={m.id} className="flex gap-3 group">
+                        <span className={`${isReply ? "w-7 h-7 text-xs" : "w-9 h-9 text-sm"} rounded-full ${colorFor(m.authorId)} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+                          {m.authorName.charAt(0)}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`${isReply ? "text-[13px]" : "text-sm"} font-bold text-white`}>{m.authorName}</span>
+                            <span className="text-[11px] text-zinc-500">{fmt(m.createdAt)}</span>
+                          </div>
+                          {!isReply && m.subject && <p className="text-[15px] font-bold text-white mt-0.5">{m.subject}</p>}
+                          <div className="mt-0.5 rounded-lg bg-zinc-800/70 px-3 py-2 text-sm text-zinc-100 whitespace-pre-wrap break-words">{m.text}</div>
+                          <div className="mt-1 flex items-center gap-2 flex-wrap">
+                            {reactions.map((r) => (
+                              <button
+                                key={r.emoji}
+                                onClick={() => toggleReaction(m.id, r.emoji)}
+                                className={`text-[12px] px-2 py-0.5 rounded-full border transition ${
+                                  r.userIds.includes(meId)
+                                    ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-200"
+                                    : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500"
+                                }`}
+                              >
+                                {r.emoji} {r.userIds.length}
+                              </button>
+                            ))}
+                            <span className="opacity-0 group-hover:opacity-100 transition flex items-center gap-2">
+                              <button onClick={() => toggleReaction(m.id, "👍")} className="text-[12px] text-zinc-500 hover:text-emerald-400" title="いいね">👍</button>
+                              {canManage && (
+                                <button onClick={() => openTaskFromMessage(m)} className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300">
+                                  依頼（タスク）にする
+                                </button>
+                              )}
+                              {(mine || canManage) && (
+                                <button onClick={() => deleteMessage(m.id)} className="text-[11px] text-zinc-500 hover:text-rose-400">削除</button>
+                              )}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );
-                  }
-                  const reactions = m.reactions ?? [];
-                  return (
-                    <div key={m.id} className="flex gap-3 group">
-                      <span className={`w-9 h-9 rounded-full ${colorFor(m.authorId)} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>
-                        {m.authorName.charAt(0)}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-white">{m.authorName}</span>
-                          <span className="text-[11px] text-zinc-500">{fmt(m.createdAt)}</span>
-                        </div>
-                        <div className="mt-0.5 rounded-lg bg-zinc-800/70 px-3 py-2 text-sm text-zinc-100 whitespace-pre-wrap break-words">{m.text}</div>
-                        <div className="mt-1 flex items-center gap-2 flex-wrap">
-                          {reactions.map((r) => (
-                            <button
-                              key={r.emoji}
-                              onClick={() => toggleReaction(m.id, r.emoji)}
-                              className={`text-[12px] px-2 py-0.5 rounded-full border transition ${
-                                r.userIds.includes(meId)
-                                  ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-200"
-                                  : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500"
-                              }`}
-                            >
-                              {r.emoji} {r.userIds.length}
-                            </button>
-                          ))}
-                          <span className="opacity-0 group-hover:opacity-100 transition flex items-center gap-2">
-                            <button onClick={() => toggleReaction(m.id, "👍")} className="text-[12px] text-zinc-500 hover:text-emerald-400" title="いいね">👍</button>
-                            {canManage && (
-                              <button onClick={() => openTaskFromMessage(m)} className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300">
-                                依頼（タスク）にする
+                  };
+                  return posts.map((p) => {
+                    const replies = repliesOf(p.id);
+                    return (
+                      <div key={p.id} className="rounded-xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
+                        <div className="p-4">{renderRow(p, false)}</div>
+                        {replies.length > 0 && (
+                          <div className="border-t border-zinc-800 px-4 py-3 space-y-3 bg-zinc-900/30">
+                            {replies.map((r) => renderRow(r, true))}
+                          </div>
+                        )}
+                        {p.kind !== "system" && (
+                          <div className="border-t border-zinc-800 px-4 py-2 bg-zinc-900/60">
+                            {replyTo === p.id ? (
+                              <div className="flex items-end gap-2">
+                                <textarea
+                                  autoFocus
+                                  value={replyText}
+                                  onChange={(e) => setReplyText(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                                      e.preventDefault();
+                                      sendReply(p.id);
+                                    }
+                                    if (e.key === "Escape") {
+                                      setReplyTo(null);
+                                      setReplyText("");
+                                    }
+                                  }}
+                                  rows={1}
+                                  placeholder="返信を入力（⌘/Ctrl+Enterで送信）"
+                                  className="flex-1 resize-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-24"
+                                />
+                                <button onClick={() => sendReply(p.id)} disabled={replySending || !replyText.trim()} className="flex-shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50">
+                                  {replySending ? "送信中" : "返信"}
+                                </button>
+                                <button onClick={() => { setReplyTo(null); setReplyText(""); }} className="flex-shrink-0 text-xs text-zinc-500 hover:text-zinc-300 px-1">取消</button>
+                              </div>
+                            ) : canManage ? (
+                              <button onClick={() => { setReplyTo(p.id); setReplyText(""); }} className="flex items-center gap-2 text-[13px] text-zinc-400 hover:text-emerald-400 transition">
+                                <span className="text-emerald-400">↩</span> スレッドで返信{replies.length > 0 ? `（${replies.length}）` : ""}
                               </button>
+                            ) : (
+                              <span className="text-[12px] text-zinc-600">返信はチャンネル参加メンバーのみ</span>
                             )}
-                            {(mine || canManage) && (
-                              <button onClick={() => deleteMessage(m.id)} className="text-[11px] text-zinc-500 hover:text-rose-400">削除</button>
-                            )}
-                          </span>
-                        </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  });
+                })()
               )}
             </div>
           </div>
-          {/* コンポーザ */}
+          {/* 新規投稿コンポーザ */}
           <div className="flex-shrink-0 border-t border-zinc-800 p-3">
             <div className="max-w-2xl mx-auto">
               {canManage ? (
-                <div className="flex items-end gap-2">
-                  <textarea
-                    value={composer}
-                    onChange={(e) => setComposer(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                        e.preventDefault();
-                        sendMessage();
-                      }
-                    }}
-                    rows={1}
-                    placeholder="メッセージを入力（⌘/Ctrl+Enterで送信）"
-                    className="flex-1 resize-none bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-32"
-                  />
-                  <button onClick={openTaskBlank} title="依頼（タスク）を作成" className="flex-shrink-0 border border-zinc-700 hover:border-emerald-500 text-zinc-300 hover:text-emerald-300 text-xs font-bold px-3 py-2 rounded-xl transition">
-                    ＋依頼
+                composerOpen ? (
+                  <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`w-7 h-7 rounded-full ${colorFor(meId)} flex items-center justify-center text-white text-xs font-bold`}>
+                        {(talk.members.find((m) => m.id === meId)?.name ?? "自").charAt(0)}
+                      </span>
+                      <span className="text-sm font-bold text-white">{talk.members.find((m) => m.id === meId)?.name ?? "自分"}</span>
+                      <button onClick={() => { setComposerOpen(false); setSubject(""); setComposer(""); }} className="ml-auto text-zinc-500 hover:text-zinc-300 text-sm">✕</button>
+                    </div>
+                    <input
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="件名を追加（任意）"
+                      className="w-full bg-transparent border-b border-zinc-700 focus:border-emerald-500 px-1 py-1.5 text-sm text-white placeholder-zinc-500 focus:outline-none mb-2"
+                    />
+                    <textarea
+                      autoFocus
+                      value={composer}
+                      onChange={(e) => setComposer(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                          e.preventDefault();
+                          sendMessage();
+                        }
+                      }}
+                      rows={3}
+                      placeholder="メッセージを入力（⌘/Ctrl+Enterで投稿）"
+                      className="w-full resize-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-48"
+                    />
+                    <div className="flex items-center justify-between mt-2">
+                      <button onClick={openTaskBlank} className="text-xs font-bold text-zinc-300 hover:text-emerald-300 border border-zinc-700 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
+                        ＋依頼（タスク）
+                      </button>
+                      <button onClick={sendMessage} disabled={sending || !composer.trim()} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-1.5 rounded-lg transition disabled:opacity-50">
+                        {sending ? "投稿中" : "投稿"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setComposerOpen(true)} className="w-full text-left rounded-xl border border-zinc-700 bg-zinc-900 hover:border-emerald-500 px-4 py-2.5 text-sm text-zinc-500 transition flex items-center gap-2">
+                    <span className="text-emerald-400">✎</span> 新しい投稿をはじめる…
                   </button>
-                  <button onClick={sendMessage} disabled={sending || !composer.trim()} className="flex-shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition disabled:opacity-50">
-                    {sending ? "送信中" : "送信"}
-                  </button>
-                </div>
+                )
               ) : (
                 <p className="text-xs text-zinc-500 text-center py-2">投稿はチャンネル参加メンバーのみ可能です。</p>
               )}

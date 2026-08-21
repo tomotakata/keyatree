@@ -62,6 +62,10 @@ export type TalkMessage = {
   text: string;
   createdAt: string;
   reactions?: TalkMessageReaction[];
+  // 投稿(トップレベル)の件名。返信では未使用
+  subject?: string;
+  // 返信の場合、親投稿のID（未指定＝トップレベル投稿）
+  parentId?: string;
   // このメッセージから起票された依頼（タスク）へのリンク
   taskId?: string;
   taskTitle?: string;
@@ -333,6 +337,8 @@ export async function addTalkMessage(input: {
   authorId: string;
   authorName: string;
   text: string;
+  subject?: string;
+  parentId?: string;
   taskId?: string;
   taskTitle?: string;
   kind?: "message" | "system";
@@ -347,6 +353,8 @@ export async function addTalkMessage(input: {
     text: input.text,
     createdAt: now,
     reactions: [],
+    subject: input.subject,
+    parentId: input.parentId,
     taskId: input.taskId,
     taskTitle: input.taskTitle,
     kind: input.kind ?? "message",

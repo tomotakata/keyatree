@@ -55,6 +55,8 @@ export async function POST(request: Request, ctx: Ctx) {
 
     const body = (await request.json()) as {
       text?: string;
+      subject?: string;
+      parentId?: string;
       // リアクション操作
       reactionMessageId?: string;
       emoji?: string;
@@ -82,6 +84,8 @@ export async function POST(request: Request, ctx: Ctx) {
       authorId,
       authorName,
       text,
+      subject: body.subject?.trim() || undefined,
+      parentId: body.parentId,
       taskId: body.taskId,
       taskTitle: body.taskTitle,
       kind: body.kind ?? "message",
