@@ -1192,7 +1192,7 @@ function CreateChannelModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="例: ネットアップ依頼"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
             />
           </div>
           <div>
@@ -1201,7 +1201,7 @@ function CreateChannelModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="チャンネルの用途"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
             />
           </div>
           <div>
@@ -1284,7 +1284,7 @@ function CreateTalkModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="例: 甲府店"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
             />
           </div>
           <div>
@@ -1293,7 +1293,7 @@ function CreateTalkModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="トークルームの用途"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
             />
           </div>
           <div>
