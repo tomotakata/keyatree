@@ -54,8 +54,71 @@ export default function ChannelsWorkspacePage() {
   const [dragTalk, setDragTalk] = useState<{ channelId: string; talkId: string } | null>(null);
   const [dragOverTalk, setDragOverTalk] = useState<string | null>(null);
 
+  // サイドバーからのリネーム
+  const [renameChannelId, setRenameChannelId] = useState<string | null>(null);
+  const [renameTalkId, setRenameTalkId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
+
   const isAdmin = isAdminSession(session);
   const meId = sessionMemberId(session);
+
+  const startRenameChannel = (c: Channel) => {
+    setRenameTalkId(null);
+    setRenameChannelId(c.id);
+    setRenameValue(c.name);
+  };
+  const startRenameTalk = (t: Talk) => {
+    setRenameChannelId(null);
+    setRenameTalkId(t.id);
+    setRenameValue(t.name);
+  };
+  const cancelRename = () => {
+    setRenameChannelId(null);
+    setRenameTalkId(null);
+    setRenameValue("");
+  };
+  const submitRenameChannel = async (c: Channel) => {
+    const name = renameValue.trim();
+    if (!name || name === c.name) return cancelRename();
+    setRenameSaving(true);
+    try {
+      const res = await fetch(`/api/task-channels/${c.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setChannels((prev) => prev.map((x) => (x.id === c.id ? d.channel : x)));
+        cancelRename();
+      } else alert(d?.error ?? "名称変更に失敗しました");
+    } finally {
+      setRenameSaving(false);
+    }
+  };
+  const submitRenameTalk = async (channelId: string, t: Talk) => {
+    const name = renameValue.trim();
+    if (!name || name === t.name) return cancelRename();
+    setRenameSaving(true);
+    try {
+      const res = await fetch(`/api/task-channels/${channelId}/talks/${t.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setTalksByChannel((prev) => ({
+          ...prev,
+          [channelId]: (prev[channelId] ?? []).map((x) => (x.id === t.id ? d.talk : x)),
+        }));
+        cancelRename();
+      } else alert(d?.error ?? "名称変更に失敗しました");
+    } finally {
+      setRenameSaving(false);
+    }
+  };
 
   const load = useCallback(() => {
     setLoading(true);
@@ -264,13 +327,46 @@ export default function ChannelsWorkspacePage() {
                       <span className={`w-6 h-6 rounded ${colorFor(c.id)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
                         {c.name.charAt(0)}
                       </span>
-                      <button
-                        onClick={() => selectChannel(c.id)}
-                        className="flex-1 min-w-0 text-left"
-                      >
-                        <span className={`text-sm truncate block ${active ? "text-white font-semibold" : "text-zinc-200"}`}>{c.name}</span>
-                      </button>
+                      {renameChannelId === c.id ? (
+                        <input
+                          autoFocus
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") submitRenameChannel(c);
+                            if (e.key === "Escape") cancelRename();
+                          }}
+                          onBlur={() => submitRenameChannel(c)}
+                          disabled={renameSaving}
+                          className="flex-1 min-w-0 bg-zinc-900 border border-emerald-500 rounded px-1.5 py-0.5 text-sm text-white focus:outline-none"
+                        />
+                      ) : (
+                        <button
+                          onClick={() => selectChannel(c.id)}
+                          onDoubleClick={(e) => {
+                            if (!isAdmin) return;
+                            e.stopPropagation();
+                            startRenameChannel(c);
+                          }}
+                          className="flex-1 min-w-0 text-left"
+                        >
+                          <span className={`text-sm truncate block ${active ? "text-white font-semibold" : "text-zinc-200"}`}>{c.name}</span>
+                        </button>
+                      )}
                       <span className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 flex-shrink-0 transition">
+                        {isAdmin && renameChannelId !== c.id && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startRenameChannel(c);
+                            }}
+                            title="名前を変更"
+                            className="text-zinc-500 hover:text-emerald-400 text-xs px-1"
+                          >
+                            ✎
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -297,6 +393,7 @@ export default function ChannelsWorkspacePage() {
                             .filter((t) => !q || t.name.toLowerCase().includes(q) || c.name.toLowerCase().includes(q))
                             .map((t) => {
                               const tActive = selection?.type === "talk" && selection.talkId === t.id;
+                              const canRenameTalk = isAdmin || c.members.some((m) => m.id === meId);
                               return (
                                 <div
                                   key={t.id}
@@ -312,7 +409,7 @@ export default function ChannelsWorkspacePage() {
                                     setDragTalk(null);
                                     setDragOverTalk(null);
                                   }}
-                                  onClick={() => selectTalk(c.id, t.id)}
+                                  onClick={() => { if (renameTalkId !== t.id) selectTalk(c.id, t.id); }}
                                   className={`flex items-center gap-1.5 rounded-md px-2 py-1 cursor-pointer transition group/talk ${
                                     tActive ? "bg-emerald-600/20 text-white" : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
                                   } ${dragOverTalk === t.id && dragTalk?.talkId !== t.id ? "ring-1 ring-emerald-500" : ""} ${
@@ -320,7 +417,44 @@ export default function ChannelsWorkspacePage() {
                                   }`}
                                 >
                                   <span className="text-zinc-500 text-xs flex-shrink-0">#</span>
-                                  <span className="text-[13px] truncate flex-1">{t.name}</span>
+                                  {renameTalkId === t.id ? (
+                                    <input
+                                      autoFocus
+                                      value={renameValue}
+                                      onChange={(e) => setRenameValue(e.target.value)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") submitRenameTalk(c.id, t);
+                                        if (e.key === "Escape") cancelRename();
+                                      }}
+                                      onBlur={() => submitRenameTalk(c.id, t)}
+                                      disabled={renameSaving}
+                                      className="flex-1 min-w-0 bg-zinc-900 border border-emerald-500 rounded px-1.5 py-0.5 text-[13px] text-white focus:outline-none"
+                                    />
+                                  ) : (
+                                    <span
+                                      className="text-[13px] truncate flex-1"
+                                      onDoubleClick={(e) => {
+                                        if (!canRenameTalk) return;
+                                        e.stopPropagation();
+                                        startRenameTalk(t);
+                                      }}
+                                    >
+                                      {t.name}
+                                    </span>
+                                  )}
+                                  {canRenameTalk && renameTalkId !== t.id && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        startRenameTalk(t);
+                                      }}
+                                      title="名前を変更"
+                                      className="opacity-0 group-hover/talk:opacity-100 text-zinc-500 hover:text-emerald-400 text-[11px] transition px-0.5"
+                                    >
+                                      ✎
+                                    </button>
+                                  )}
                                   <span className="opacity-0 group-hover/talk:opacity-100 text-zinc-600 cursor-grab active:cursor-grabbing text-[11px] transition" title="ドラッグで並べ替え">⠿</span>
                                 </div>
                               );
