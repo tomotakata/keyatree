@@ -7,6 +7,7 @@ import { makeNewEmployee } from "@/lib/staffStore";
 import BackButton from "@/components/BackButton";
 
 const departments = ["営業部 > 第一営業課", "営業部 > 第二営業課", "管理部 > 総務課", "物件管理部 > 物件課", "経営管理部"];
+const teams = ["", "クライアントマネジメントチーム", "リーシングチーム", "カスタマーサポートチーム", "マーケティングチーム"];
 const positions = ["代表取締役", "部長", "課長", "主任", "担当者"];
 const grades = ["E1", "E2", "J1", "J2", "J3", "S1", "S2", "S3", "M1", "M2", "M3"];
 const jobTypes = ["営業", "管理", "物件管理", "経営", "経理", "マーケティング"];
@@ -26,7 +27,7 @@ const permColorMap: Record<string, { badge: string; ring: string; border: string
 };
 
 type FormData = {
-  name: string; nameKana: string; department: string; position: string;
+  name: string; nameKana: string; department: string; team: string; position: string;
   grade: string; jobType: string; employmentType: string; joinedAt: string;
   enneagramType: string; bio: string;
   email: string; password: string; confirmPassword: string;
@@ -34,7 +35,7 @@ type FormData = {
 };
 
 const initial: FormData = {
-  name: "", nameKana: "", department: departments[0], position: positions[4],
+  name: "", nameKana: "", department: departments[0], team: teams[0], position: positions[4],
   grade: grades[2], jobType: jobTypes[0], employmentType: employmentTypes[0],
   joinedAt: new Date().toISOString().slice(0, 10), enneagramType: "3", bio: "",
   email: "", password: "", confirmPassword: "", permissionId: "staff",
@@ -100,6 +101,7 @@ export default function NewEmployeePage() {
       name: form.name,
       nameKana: form.nameKana,
       department: form.department,
+      team: form.team,
       position: form.position,
       grade: form.grade,
       jobType: form.jobType,
@@ -228,6 +230,11 @@ export default function NewEmployeePage() {
             <Field label="部署">
               <select value={form.department} onChange={(e) => set("department", e.target.value)} className={inputCls}>
                 {departments.map((d) => <option key={d}>{d}</option>)}
+              </select>
+            </Field>
+            <Field label="所属チーム">
+              <select value={form.team} onChange={(e) => set("team", e.target.value)} className={inputCls}>
+                {teams.map((t) => <option key={t} value={t}>{t || "未設定"}</option>)}
               </select>
             </Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

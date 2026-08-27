@@ -66,6 +66,7 @@ export type Employee = {
   nameKana: string;
   photo: string;
   department: string;
+  team: string;
   position: string;
   grade: string;
   jobType: string;
@@ -103,6 +104,7 @@ export function normalizeEmployee(raw: Partial<Employee> & { id: string }): Empl
     nameKana: raw.nameKana ?? "",
     photo: raw.photo ?? "",
     department: raw.department ?? "",
+    team: raw.team ?? "",
     position: raw.position ?? "",
     grade: raw.grade ?? "-",
     jobType: raw.jobType ?? "",
@@ -162,6 +164,7 @@ export const employees: Employee[] = [
     nameKana: "スズキ イチロウ",
     photo: "/avatars/suzuki_ichiro.png",
     department: "営業部 > 第一営業課",
+    team: "リーシングチーム",
     position: "主任",
     grade: "S3",
     jobType: "営業",
@@ -288,6 +291,7 @@ export const employees: Employee[] = [
     nameKana: "タナカ ハナコ",
     photo: "/avatars/tanaka_hanako.jpeg",
     department: "管理部 > 総務課",
+    team: "カスタマーサポートチーム",
     position: "課長",
     grade: "M1",
     jobType: "管理",

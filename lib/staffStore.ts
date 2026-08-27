@@ -85,6 +85,7 @@ export function makeNewEmployee(input: {
   name: string;
   nameKana: string;
   department: string;
+  team?: string;
   position: string;
   grade: string;
   jobType: string;
@@ -102,6 +103,7 @@ export function makeNewEmployee(input: {
     nameKana: input.nameKana,
     photo: "",
     department: input.department,
+    team: input.team ?? "",
     position: input.position,
     grade: input.grade,
     jobType: input.jobType,

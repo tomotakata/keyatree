@@ -131,6 +131,9 @@ export default function EmployeeListPage() {
                         </h3>
                         <p className="text-xs text-gray-500 mt-0.5 truncate">{emp.department}</p>
                         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                          {emp.team && (
+                            <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">{emp.team}</span>
+                          )}
                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{emp.position}</span>
                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{emp.grade}</span>
                         </div>
