@@ -154,7 +154,7 @@ export default function AccountsPage() {
             <Link href="/employees" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
               <span className="text-white text-xs font-bold">K</span>
             </Link>
-            <Link href="/employees" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">KeyaTree</Link>
+            <Link href="/employees" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">K.AI</Link>
             <span className="text-gray-300 mx-1">›</span>
             <span className="text-gray-500 text-sm">設定</span>
             <span className="text-gray-300 mx-1">›</span>

@@ -18,7 +18,7 @@ export default function PropertiesPage() {
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
           <BackButton />
-          <Link href="/employees" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">KeyaTree</Link>
+          <Link href="/employees" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">K.AI</Link>
           <span className="text-gray-300">›</span>
           <span className="text-gray-700 text-sm font-medium">物件一覧</span>
         </div>

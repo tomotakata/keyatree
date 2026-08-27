@@ -109,7 +109,7 @@ function LoginPageContent() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur mb-4">
             <span className="text-white text-3xl font-black">K</span>
           </div>
-          <h1 className="text-white text-2xl font-black tracking-wide">KeyaTree</h1>
+          <h1 className="text-white text-2xl font-black tracking-wide">K.AI</h1>
           <p className="text-emerald-100 text-sm mt-1">組織・人事管理システム</p>
         </div>
 

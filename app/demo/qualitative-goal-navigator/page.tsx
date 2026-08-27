@@ -107,7 +107,7 @@ export default function QualitativeGoalNavigatorDemoPage() {
           <Link href="/docs" className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center">
             <span className="text-white text-xs font-bold">K</span>
           </Link>
-          <Link href="/docs" className="font-bold text-gray-800 text-sm hover:text-indigo-600 transition">KeyaTree Docs</Link>
+          <Link href="/docs" className="font-bold text-gray-800 text-sm hover:text-indigo-600 transition">K.AI Docs</Link>
           <span className="text-gray-300">›</span>
           <span className="text-gray-700 text-sm font-medium">定性目標設定ナビゲーター デモ</span>
         </div>

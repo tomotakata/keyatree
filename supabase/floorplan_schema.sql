@@ -1,4 +1,4 @@
--- KeyaTree floorplan persistence schema
+-- K.AI floorplan persistence schema
 -- Run this once in the Supabase SQL Editor.
 
 create table if not exists public.floorplans (

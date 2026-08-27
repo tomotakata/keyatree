@@ -63,7 +63,7 @@ export default function HeaderNav({ currentLabel, extraRight }: { currentLabel?:
         <Link href="/employees" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
           <span className="text-white text-xs font-bold">K</span>
         </Link>
-        <Link href="/employees" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">KeyaTree</Link>
+        <Link href="/employees" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">K.AI</Link>
 
         {currentLabel && (
           <>
