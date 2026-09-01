@@ -12,6 +12,7 @@ import AiAssist from "@/components/goal-navigator/AiAssist";
 import ChatNavigator from "@/components/goal-navigator/ChatNavigator";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
 import BackButton from "@/components/BackButton";
+import UnderMaintenance from "@/components/UnderMaintenance";
 
 function formatDate(iso?: string) {
   if (!iso) return "-";
@@ -318,6 +319,7 @@ export default function QualitativeGoalNavigatorPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <UnderMaintenance title="定性目標設定ナビゲーター（定性目標管理）" />
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
           <BackButton />
