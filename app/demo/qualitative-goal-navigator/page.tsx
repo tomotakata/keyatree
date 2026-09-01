@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import AiAssist from "@/components/goal-navigator/AiAssist";
 import BackButton from "@/components/BackButton";
+import UnderMaintenance from "@/components/UnderMaintenance";
 
 const stageOptions = ["Stage 1 基礎遂行", "Stage 2 自律推進", "Stage 3 周囲牽引"];
 const departmentOptions = [
@@ -101,6 +102,7 @@ export default function QualitativeGoalNavigatorDemoPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <UnderMaintenance title="定性目標設定ナビゲーター（デモ）" />
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
           <BackButton />
