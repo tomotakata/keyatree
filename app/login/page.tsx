@@ -123,6 +123,10 @@ function LoginPageContent() {
               <input
                 type="email"
                 value={email}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                inputMode="email"
                 onChange={(e) => { setEmail(e.target.value); setEmailError(""); setFormError(""); }}
                 placeholder="example@keyaki-s.com"
                 className={`w-full text-sm border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 transition ${

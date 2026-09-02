@@ -94,5 +94,6 @@ export function findAccount(email: string, password: string): Account | null {
 }
 
 export function findAccountByEmail(email: string): Account | null {
-  return mockAccounts.find((a) => a.email === email) ?? null;
+  const key = email.trim().toLowerCase();
+  return mockAccounts.find((a) => a.email.trim().toLowerCase() === key) ?? null;
 }

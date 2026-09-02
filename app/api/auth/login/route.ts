@@ -9,17 +9,19 @@ export async function POST(request: Request) {
       password?: string;
     };
     const trimmed = (email ?? "").trim();
-    if (!trimmed || !password) {
+    const pass = (password ?? "").trim();
+    if (!trimmed || !pass) {
       return NextResponse.json({ error: "email and password required" }, { status: 400 });
     }
 
-    // 静的アカウント → Supabase保存アカウント の順で検索
+    // 静的アカウント → Supabase保存アカウント の順で検索（メールは大小/空白を無視）
     const account = findAccountByEmail(trimmed) ?? (await findStoredAccountByEmail(trimmed));
 
     if (!account) {
       return NextResponse.json({ field: "email", message: "このメールアドレスは登録されていません" });
     }
-    if (account.password !== password) {
+    // パスワードは前後空白を無視して比較（コピペ時の余分な空白対策）
+    if ((account.password ?? "").trim() !== pass) {
       return NextResponse.json({ field: "password", message: "パスワードが正しくありません" });
     }
     if (!account.isActive) {

@@ -133,5 +133,6 @@ export async function saveAccount(acc: Account): Promise<Account> {
 
 export async function findStoredAccountByEmail(email: string): Promise<Account | null> {
   const list = await listStoredAccounts();
-  return list.find((a) => a.email === email) ?? null;
+  const key = email.trim().toLowerCase();
+  return list.find((a) => (a.email ?? "").trim().toLowerCase() === key) ?? null;
 }
