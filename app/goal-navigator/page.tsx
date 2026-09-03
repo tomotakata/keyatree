@@ -530,12 +530,13 @@ export default function GoalNavigatorPage() {
                   シート入力
                 </button>
                 <button
-                  onClick={() => setUiMode("chat")}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                    uiMode === "chat" ? "bg-white text-emerald-700" : "text-white hover:bg-white/10"
-                  }`}
+                  type="button"
+                  disabled
+                  aria-disabled="true"
+                  title="AIアシスタント カミングスーン"
+                  className="cursor-not-allowed rounded-lg px-3 py-1.5 text-xs font-bold text-white/50"
                 >
-                  チャットで進める
+                  AIアシスタント カミングスーン
                 </button>
               </div>
               <button
