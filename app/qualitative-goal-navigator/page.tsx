@@ -12,6 +12,7 @@ import AiAssist from "@/components/goal-navigator/AiAssist";
 import ChatNavigator from "@/components/goal-navigator/ChatNavigator";
 import QualitativeFoundation from "@/components/goal-navigator/QualitativeFoundation";
 import QualitativeEvaluationGrid from "@/components/goal-navigator/QualitativeEvaluationGrid";
+import QualitativeMessageGrid from "@/components/goal-navigator/QualitativeMessageGrid";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
 import BackButton from "@/components/BackButton";
 
@@ -488,6 +489,11 @@ export default function QualitativeGoalNavigatorPage() {
             <div className="space-y-4 px-6 pt-6">
               <QualitativeFoundation defaultOpen />
               <QualitativeEvaluationGrid
+                answers={answers}
+                onChange={(key, val) => setAnswers((prev) => ({ ...prev, [key]: val }))}
+                disabled={readOnly}
+              />
+              <QualitativeMessageGrid
                 answers={answers}
                 onChange={(key, val) => setAnswers((prev) => ({ ...prev, [key]: val }))}
                 disabled={readOnly}
