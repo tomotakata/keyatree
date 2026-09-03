@@ -580,76 +580,32 @@ export default function QualitativeGoalNavigatorPage() {
                 <div className="bg-gray-50 px-5 py-4 border-b">
                   <h2 className="text-lg font-bold text-gray-800">定性目標設定シート</h2>
                 </div>
-                <div className="p-5 space-y-5 text-sm text-gray-700 leading-7">
-                  <section>
-                    <h3 className="font-bold text-gray-900 mb-2">基本情報</h3>
-                    <p>記入日：{answers.entry_date || "未入力"}</p>
-                    <p>名前：{answers.name || myName || "未設定"}</p>
-                    <p>部署：{answers.department || myDepartment || "未設定"}</p>
-                    <p>グレード：{answers.grade || myGrade || "未設定"}</p>
-                  </section>
-                  <section>
-                    <h3 className="font-bold text-gray-900 mb-3">会社から求められている能力項目</h3>
-                    <div className="space-y-4">
-                      {[1, 2, 3, 4, 5].map((n) => {
-                        const circled: Record<number, string> = { 1: "①", 2: "②", 3: "③", 4: "④", 5: "⑤" };
-                        const comp = answers[`q_comp_${n}`];
-                        if (!comp) return null;
-                        return (
-                          <div key={n} className="rounded-xl border border-gray-200 p-4">
-                            <p className="font-bold text-gray-900">能力項目{circled[n]}</p>
-                            <p className="mt-1">{comp}</p>
-                            <div className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
-                              <p>主要な結果（項目）：{answers[`q_kr_item_${n}`] || "未入力"}</p>
-                              <p>主要な結果（数字）：{answers[`q_kr_num_${n}`] || "未入力"}</p>
-                              <p>
-                                評価　自己：{answers[`q_self_${n}`] ?? "0"} ／ 一次：
-                                {answers[`q_first_${n}`] ?? "0"} ／ 二次：{answers[`q_second_${n}`] ?? "0"}
-                              </p>
-                            </div>
-                            <p className="mt-2">達成するための行動：{answers[`q_kr_action_${n}`] || "未入力"}</p>
-                            <div className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
-                              <p>
-                                支援者1：{answers[`q_supporter_${n}_1`] || "未入力"}
-                                {answers[`q_supporter_date_${n}_1`] ? `（依頼日 ${answers[`q_supporter_date_${n}_1`]}）` : ""}
-                              </p>
-                              <p>
-                                支援者2：{answers[`q_supporter_${n}_2`] || "未入力"}
-                                {answers[`q_supporter_date_${n}_2`] ? `（依頼日 ${answers[`q_supporter_date_${n}_2`]}）` : ""}
-                              </p>
-                            </div>
-                            <p className="mt-2">支援内容：{answers[`q_support_content_${n}`] || "未入力"}</p>
-                            <div className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
-                              <p>中間実績（数字）：{answers[`q_mid_result_${n}`] || "未入力"}</p>
-                              <p>月間実績（数字）：{answers[`q_month_result_${n}`] || "未入力"}</p>
-                            </div>
-                            <p className="mt-2 font-bold text-gray-800">月間原因</p>
-                            <ol className="ml-4 list-decimal">
-                              {[1, 2, 3, 4, 5].map((c) => (
-                                <li key={c}>{answers[`q_month_cause_${n}_${c}`] || "未入力"}</li>
-                              ))}
-                            </ol>
-                            <p className="mt-2 font-bold text-gray-800">月間改善策</p>
-                            <ol className="ml-4 list-decimal">
-                              {[1, 2, 3].map((c) => (
-                                <li key={c}>{answers[`q_month_action_${n}_${c}`] || "未入力"}</li>
-                              ))}
-                            </ol>
-                            {(answers[`q_msg_self_${n}`] || answers[`q_msg_first_${n}`] || answers[`q_msg_second_${n}`]) && (
-                              <div className="mt-2 space-y-1 border-t border-dashed border-gray-200 pt-2 text-xs">
-                                {answers[`q_msg_self_${n}`] && <p>自己評価者：{answers[`q_msg_self_${n}`]}</p>}
-                                {answers[`q_msg_first_${n}`] && <p>一次評価者：{answers[`q_msg_first_${n}`]}</p>}
-                                {answers[`q_msg_second_${n}`] && <p>二次評価者：{answers[`q_msg_second_${n}`]}</p>}
-                              </div>
-                            )}
+                <div className="p-5 space-y-5">
+                  <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+                    <div className="rounded-t-2xl border-b border-gray-100 bg-gray-50 px-5 py-4">
+                      <p className="text-base font-black text-gray-900">基本情報</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 px-5 py-5 sm:grid-cols-2 lg:grid-cols-4">
+                      {[
+                        ["記入日", answers.entry_date || "未入力"],
+                        ["名前", answers.name || myName || "未設定"],
+                        ["部署", answers.department || myDepartment || "未設定"],
+                        ["グレード", answers.grade || myGrade || "未設定"],
+                      ].map(([label, val]) => (
+                        <div key={label}>
+                          <span className="mb-1 block text-xs font-bold text-gray-600">{label}</span>
+                          <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-bold text-gray-800">
+                            {val}
                           </div>
-                        );
-                      })}
-                      {![1, 2, 3, 4, 5].some((n) => answers[`q_comp_${n}`]) && (
-                        <p className="text-gray-400">能力項目が未選択です。</p>
-                      )}
+                        </div>
+                      ))}
                     </div>
                   </section>
+
+                  <QualitativeFoundation defaultOpen={false} />
+                  <QualitativeEvaluationGrid answers={answers} onChange={() => {}} disabled />
+                  <QualitativeMessageGrid answers={answers} onChange={() => {}} disabled />
+                  <QualitativeCompetencySection answers={answers} onChange={() => {}} disabled grade={myGrade} />
                 </div>
               </div>
 
