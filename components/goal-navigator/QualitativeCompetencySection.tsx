@@ -81,6 +81,12 @@ export default function QualitativeCompetencySection({
           const compKey = `q_comp_${n}`;
           const itemKey = `q_kr_item_${n}`;
           const numKey = `q_kr_num_${n}`;
+          const actionKey = `q_kr_action_${n}`;
+          const supporter1Key = `q_supporter_${n}_1`;
+          const supporter2Key = `q_supporter_${n}_2`;
+          const supportContentKey = `q_support_content_${n}`;
+          const supDate1Key = `q_supporter_date_${n}_1`;
+          const supDate2Key = `q_supporter_date_${n}_2`;
           return (
             <div key={n} className="flex flex-col rounded-2xl border border-gray-200 p-4">
               <label className="block">
@@ -144,6 +150,95 @@ export default function QualitativeCompetencySection({
                     </span>
                   </button>
                 </div>
+              </div>
+
+              <div className="my-2 text-center text-sm font-bold text-gray-400">↓↓</div>
+
+              <div className="mb-3 border-y border-dashed border-gray-300 py-1 text-center text-xs font-black text-gray-700">
+                主要な結果{CIRCLED[n]}を達成するための行動
+              </div>
+              <div>
+                <span className="mb-1 block text-xs font-bold text-gray-600">行動 {n}</span>
+                <button
+                  type="button"
+                  onClick={() => open(actionKey, `行動 ${n}`, false)}
+                  disabled={disabled}
+                  className="relative flex h-24 w-full items-start rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-left text-xs leading-5 text-gray-800 transition hover:border-indigo-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="line-clamp-3 whitespace-pre-wrap pr-6">
+                    {answers[actionKey] || <span className="text-gray-400">クリックして入力</span>}
+                  </span>
+                  <span className="absolute bottom-2 right-2 text-gray-400">
+                    <ExpandIcon />
+                  </span>
+                </button>
+              </div>
+
+              <div className="my-2 text-center text-sm font-bold text-gray-400">↓↓</div>
+
+              <div className="mb-3 border-y border-dashed border-gray-300 py-1 text-center text-xs font-black text-gray-700">
+                主要な結果{CIRCLED[n]}を達成するための支援者
+              </div>
+              <div className="space-y-3">
+                {[
+                  { sKey: supporter1Key, dKey: supDate1Key, idx: 1 },
+                  { sKey: supporter2Key, dKey: supDate2Key, idx: 2 },
+                ].map(({ sKey, dKey, idx }) => (
+                  <div key={idx} className="space-y-2">
+                    <div>
+                      <span className="mb-1 block text-xs font-bold text-gray-600">
+                        依頼者{CIRCLED[n]} {idx}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => open(sKey, `依頼者${CIRCLED[n]} ${idx}`, false)}
+                        disabled={disabled}
+                        className="relative flex h-12 w-full items-start rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-left text-xs leading-5 text-gray-800 transition hover:border-indigo-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <span className="line-clamp-1 whitespace-pre-wrap pr-6">
+                          {answers[sKey] || <span className="text-gray-400">クリックして入力</span>}
+                        </span>
+                        <span className="absolute bottom-2 right-2 text-gray-400">
+                          <ExpandIcon />
+                        </span>
+                      </button>
+                    </div>
+                    <div>
+                      <span className="mb-1 block text-xs font-bold text-gray-600">
+                        依頼日{CIRCLED[n]} {idx}
+                      </span>
+                      <input
+                        type="date"
+                        value={answers[dKey] ?? ""}
+                        onChange={(e) => onChange(dKey, e.target.value)}
+                        disabled={disabled}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:bg-gray-50"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="my-2 text-center text-sm font-bold text-gray-400">↓↓</div>
+
+              <div className="mb-3 border-y border-dashed border-gray-300 py-1 text-center text-xs font-black text-gray-700">
+                支援内容
+              </div>
+              <div>
+                <span className="mb-1 block text-xs font-bold text-gray-600">支援内容 {n}</span>
+                <button
+                  type="button"
+                  onClick={() => open(supportContentKey, `支援内容 ${n}`, false)}
+                  disabled={disabled}
+                  className="relative flex h-24 w-full items-start rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-left text-xs leading-5 text-gray-800 transition hover:border-indigo-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="line-clamp-3 whitespace-pre-wrap pr-6">
+                    {answers[supportContentKey] || <span className="text-gray-400">クリックして入力</span>}
+                  </span>
+                  <span className="absolute bottom-2 right-2 text-gray-400">
+                    <ExpandIcon />
+                  </span>
+                </button>
               </div>
 
               <div className="mt-2 text-center text-sm font-bold text-gray-400">↓↓</div>

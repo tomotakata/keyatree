@@ -607,6 +607,18 @@ export default function QualitativeGoalNavigatorPage() {
                                 {answers[`q_first_${n}`] ?? "0"} ／ 二次：{answers[`q_second_${n}`] ?? "0"}
                               </p>
                             </div>
+                            <p className="mt-2">達成するための行動：{answers[`q_kr_action_${n}`] || "未入力"}</p>
+                            <div className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
+                              <p>
+                                支援者1：{answers[`q_supporter_${n}_1`] || "未入力"}
+                                {answers[`q_supporter_date_${n}_1`] ? `（依頼日 ${answers[`q_supporter_date_${n}_1`]}）` : ""}
+                              </p>
+                              <p>
+                                支援者2：{answers[`q_supporter_${n}_2`] || "未入力"}
+                                {answers[`q_supporter_date_${n}_2`] ? `（依頼日 ${answers[`q_supporter_date_${n}_2`]}）` : ""}
+                              </p>
+                            </div>
+                            <p className="mt-2">支援内容：{answers[`q_support_content_${n}`] || "未入力"}</p>
                             {(answers[`q_msg_self_${n}`] || answers[`q_msg_first_${n}`] || answers[`q_msg_second_${n}`]) && (
                               <div className="mt-2 space-y-1 border-t border-dashed border-gray-200 pt-2 text-xs">
                                 {answers[`q_msg_self_${n}`] && <p>自己評価者：{answers[`q_msg_self_${n}`]}</p>}
