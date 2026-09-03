@@ -536,12 +536,6 @@ export default function QualitativeGoalNavigatorPage() {
               </section>
 
               <QualitativeFoundation defaultOpen />
-              <QualitativeCompetencySection
-                answers={answers}
-                onChange={(key, val) => setAnswers((prev) => ({ ...prev, [key]: val }))}
-                disabled={readOnly}
-                grade={myGrade}
-              />
               <QualitativeEvaluationGrid
                 answers={answers}
                 onChange={(key, val) => setAnswers((prev) => ({ ...prev, [key]: val }))}
@@ -551,6 +545,12 @@ export default function QualitativeGoalNavigatorPage() {
                 answers={answers}
                 onChange={(key, val) => setAnswers((prev) => ({ ...prev, [key]: val }))}
                 disabled={readOnly}
+              />
+              <QualitativeCompetencySection
+                answers={answers}
+                onChange={(key, val) => setAnswers((prev) => ({ ...prev, [key]: val }))}
+                disabled={readOnly}
+                grade={myGrade}
               />
 
               <div className="flex flex-wrap items-center justify-end gap-3">
