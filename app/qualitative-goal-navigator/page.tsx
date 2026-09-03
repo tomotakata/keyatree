@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas-pro";
-import { saveNavigatorRecord, getMyNavigatorRecords } from "@/lib/goalNavigatorActions";
+import { saveNavigatorRecord, getMyNavigatorRecords, getMyProfile } from "@/lib/goalNavigatorActions";
 import type { NavigatorRecord, RecordStatus } from "@/lib/goalNavigatorStore";
 import { QUAL_DRAFT_BASE, nsKey } from "@/lib/goalStorage";
 import AiAssist from "@/components/goal-navigator/AiAssist";
@@ -13,6 +13,7 @@ import ChatNavigator from "@/components/goal-navigator/ChatNavigator";
 import QualitativeFoundation from "@/components/goal-navigator/QualitativeFoundation";
 import QualitativeEvaluationGrid from "@/components/goal-navigator/QualitativeEvaluationGrid";
 import QualitativeMessageGrid from "@/components/goal-navigator/QualitativeMessageGrid";
+import QualitativeCompetencySection from "@/components/goal-navigator/QualitativeCompetencySection";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
 import BackButton from "@/components/BackButton";
 
@@ -103,6 +104,7 @@ export default function QualitativeGoalNavigatorPage() {
   const [loadingRecords, setLoadingRecords] = useState(true);
   const [activeStatus, setActiveStatus] = useState<RecordStatus | "new">("new");
   const [reviewComment, setReviewComment] = useState("");
+  const [myGrade, setMyGrade] = useState<string>("");
   const readOnly = activeStatus === "submitted" || activeStatus === "approved";
 
   const current = flow[stepIndex];
@@ -140,6 +142,11 @@ export default function QualitativeGoalNavigatorPage() {
       .finally(() => {
         if (alive) setLoadingRecords(false);
       });
+    getMyProfile()
+      .then((p) => {
+        if (alive && p) setMyGrade(p.grade || "");
+      })
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -488,6 +495,12 @@ export default function QualitativeGoalNavigatorPage() {
           {!submitted && (
             <div className="space-y-4 px-6 pt-6">
               <QualitativeFoundation defaultOpen />
+              <QualitativeCompetencySection
+                answers={answers}
+                onChange={(key, val) => setAnswers((prev) => ({ ...prev, [key]: val }))}
+                disabled={readOnly}
+                grade={myGrade}
+              />
               <QualitativeEvaluationGrid
                 answers={answers}
                 onChange={(key, val) => setAnswers((prev) => ({ ...prev, [key]: val }))}

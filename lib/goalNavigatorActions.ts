@@ -17,6 +17,7 @@ import {
   type NavigatorRecord,
   upsertNavigatorRecord,
 } from "@/lib/goalNavigatorStore";
+import { getStaff } from "@/lib/staffServerStore";
 
 export async function saveNavigatorRecord(input: {
   id?: string;
@@ -285,4 +286,30 @@ export async function getApprovedNavigatorRecords(kind?: NavigatorKind): Promise
   if (!canApprove(session)) return [];
   const records = await listNavigatorRecords({ kind, includeAll: true });
   return records.filter((record) => record.status === "approved");
+}
+
+/** ログイン中スタッフのプロフィール（名前・部署・グレード）を返す。定性シートの能力項目フィルタ等で使用。 */
+export async function getMyProfile(): Promise<{
+  name: string;
+  department: string;
+  grade: string;
+  employeeId: string;
+} | null> {
+  const session = await getServerSession();
+  if (!session) return null;
+  let grade = "";
+  let department = "";
+  const employeeId = session.employeeId || "";
+  if (employeeId) {
+    try {
+      const staff = await getStaff(employeeId);
+      if (staff) {
+        grade = staff.grade || "";
+        department = staff.department || "";
+      }
+    } catch {
+      // フォールバック（取得失敗時は空のまま）
+    }
+  }
+  return { name: session.name || "", department, grade, employeeId };
 }
