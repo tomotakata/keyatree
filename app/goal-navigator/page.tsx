@@ -20,18 +20,6 @@ function formatDate(iso?: string) {
   return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
-const sampleAnswers: Record<string, string> = {
-  company_item: "全社の年間売上目標を達成し、顧客満足度の全社平均を向上させる",
-  company_deadline: "2026-09-30",
-  company_value: "36000",
-  team_item: "チームの新規契約件数を前年比120%にする",
-  team_deadline: "2026-09-30",
-  team_value: "120",
-  personal_item: "担当エリアの新規契約を月10件達成する",
-  personal_deadline: "2026-09-30",
-  personal_value: "10",
-};
-
 // 定量目標のヒアリング項目。名前・所属はログイン情報から自動取得するためヒアリングしない。
 type StepKey =
   | "company_item"
@@ -280,14 +268,6 @@ export default function GoalNavigatorPage() {
     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
     pdf.addImage(imageData, "PNG", 0, 0, pdfWidth, pdfHeight);
     pdf.save("goal-navigator-report.pdf");
-  };
-
-  const fillSample = () => {
-    setAnswers(sampleAnswers);
-    setStepIndex(0);
-    setSubmitted(true);
-    setNotice("サンプル回答を反映しました");
-    window.setTimeout(() => setNotice(""), 2500);
   };
 
   const setMetric = (key: string, val: string) => {
@@ -556,14 +536,6 @@ export default function GoalNavigatorPage() {
               </div>
             )}
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              {activeStatus === "new" && (
-                <button
-                  onClick={fillSample}
-                  className="rounded-xl bg-white/15 px-4 py-2 text-sm font-bold text-white backdrop-blur transition hover:bg-white/25"
-                >
-                  サンプル回答を入れる
-                </button>
-              )}
               <div className="inline-flex rounded-xl bg-white/15 p-1 backdrop-blur">
                 <button
                   onClick={() => setUiMode("sheet")}
