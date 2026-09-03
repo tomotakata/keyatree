@@ -105,6 +105,8 @@ export default function QualitativeGoalNavigatorPage() {
   const [activeStatus, setActiveStatus] = useState<RecordStatus | "new">("new");
   const [reviewComment, setReviewComment] = useState("");
   const [myGrade, setMyGrade] = useState<string>("");
+  const [myName, setMyName] = useState<string>("");
+  const [myDepartment, setMyDepartment] = useState<string>("");
   const readOnly = activeStatus === "submitted" || activeStatus === "approved";
 
   const current = flow[stepIndex];
@@ -144,7 +146,11 @@ export default function QualitativeGoalNavigatorPage() {
       });
     getMyProfile()
       .then((p) => {
-        if (alive && p) setMyGrade(p.grade || "");
+        if (alive && p) {
+          setMyGrade(p.grade || "");
+          setMyName(p.name || "");
+          setMyDepartment(p.department || "");
+        }
       })
       .catch(() => {});
     return () => {
@@ -153,7 +159,7 @@ export default function QualitativeGoalNavigatorPage() {
   }, []);
 
   const startNew = () => {
-    setAnswers({});
+    setAnswers({ name: myName, department: myDepartment, grade: myGrade });
     setRecordId("");
     setStepIndex(0);
     setSubmitted(false);
@@ -462,23 +468,10 @@ export default function QualitativeGoalNavigatorPage() {
               </div>
             )}
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              {activeStatus === "new" && (
-                <button
-                  onClick={fillSample}
-                  className="rounded-xl bg-white/15 px-4 py-2 text-sm font-bold text-white backdrop-blur transition hover:bg-white/25"
-                >
-                  サンプル回答を入れる
-                </button>
-              )}
               <div className="inline-flex rounded-xl bg-white/15 p-1 backdrop-blur">
-                <button
-                  onClick={() => setUiMode("step")}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                    uiMode === "step" ? "bg-white text-indigo-700" : "text-white hover:bg-white/10"
-                  }`}
-                >
-                  ステップ入力
-                </button>
+                <span className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-indigo-700">
+                  シート入力
+                </span>
                 <button
                   type="button"
                   disabled
@@ -492,8 +485,48 @@ export default function QualitativeGoalNavigatorPage() {
             </div>
           </div>
 
-          {!submitted && (
-            <div className="space-y-4 px-6 pt-6">
+          {!submitted ? (
+            <div className="space-y-5 p-6">
+              {notice ? (
+                <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-700">
+                  {notice}
+                </div>
+              ) : null}
+
+              {/* 基本情報（名前・部署・グレードはログイン情報から自動取得） */}
+              <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <div className="rounded-t-2xl border-b border-gray-100 bg-gray-50 px-5 py-4">
+                  <p className="text-base font-black text-gray-900">基本情報</p>
+                  <p className="mt-0.5 text-xs font-bold text-gray-500">
+                    名前・部署・グレードはログイン情報から自動取得されます。
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 px-5 py-5 sm:grid-cols-2 lg:grid-cols-4">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-gray-600">記入日</span>
+                    <input
+                      type="date"
+                      value={answers.entry_date ?? ""}
+                      onChange={(e) => setAnswers((prev) => ({ ...prev, entry_date: e.target.value }))}
+                      disabled={readOnly}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-bold text-gray-900 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:bg-gray-50"
+                    />
+                  </label>
+                  {[
+                    ["名前", answers.name || myName],
+                    ["部署", answers.department || myDepartment],
+                    ["グレード", answers.grade || myGrade],
+                  ].map(([label, val]) => (
+                    <div key={label}>
+                      <span className="mb-1 block text-xs font-bold text-gray-600">{label}</span>
+                      <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-bold text-gray-800">
+                        {val || <span className="text-gray-400">未設定</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
               <QualitativeFoundation defaultOpen />
               <QualitativeCompetencySection
                 answers={answers}
@@ -511,179 +544,76 @@ export default function QualitativeGoalNavigatorPage() {
                 onChange={(key, val) => setAnswers((prev) => ({ ...prev, [key]: val }))}
                 disabled={readOnly}
               />
-            </div>
-          )}
 
-          {uiMode === "chat" && !submitted ? (
-            <ChatNavigator
-              kind="qualitative"
-              steps={flow.map((s) => ({
-                key: s.key,
-                title: s.title,
-                prompt: s.prompt,
-                kind: s.kind,
-                placeholder: s.placeholder,
-                section: s.title,
-              }))}
-              answers={answers}
-              setAnswer={(key, val) =>
-                setAnswers((prev) => {
-                  const nextState = { ...prev, [key]: val };
-                  if (key === "stage") nextState.grade = "";
-                  return nextState;
-                })
-              }
-              optionsFor={(key, ans) => {
-                if (key === "department") return departmentOptions;
-                if (key === "stage") return stageOptions;
-                if (key === "grade") return gradeMap[ans.stage] ?? [];
-                if (key === "category") return categoryOptions;
-                if (key === "competency")
-                  return competencyOptions.map((item) => `No.${item.no} ${item.text}`);
-                return [];
-              }}
-              accent="indigo"
-              onComplete={() => setSubmitted(true)}
-              onSaveDraft={saveDraft}
-              isSaving={isPending}
-            />
-          ) : !submitted ? (
-            <div className="p-6 space-y-6">
-              <div>
-                <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
-                  <span>{current.title}</span>
-                  <span>{stepIndex + 1} / {flow.length}</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2.5">
-                  <div className="bg-indigo-500 h-2.5 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
-                </div>
-              </div>
-
-              <div>
-                <span className="inline-flex text-xs font-bold px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                  {current.title}
-                </span>
-                <h2 className="text-xl font-bold text-gray-800 mt-4 leading-relaxed">{current.prompt}</h2>
-              </div>
-
-              <div>
-                {notice ? (
-                  <div className="mb-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-700">
-                    {notice}
-                  </div>
-                ) : null}
-                {current.kind === "select" ? (
-                  <div className="space-y-3">
-                    {options.map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => onChange(option)}
-                        className={`w-full text-left px-4 py-4 rounded-2xl border transition ${
-                          currentValue === option
-                            ? "border-indigo-400 bg-indigo-50 text-indigo-700"
-                            : "border-gray-200 hover:border-indigo-200 hover:bg-gray-50 text-gray-700"
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                ) : current.kind === "textarea" ? (
-                  <textarea
-                    rows={6}
-                    value={currentValue}
-                    onChange={(e) => onChange(e.target.value)}
-                    placeholder={current.placeholder}
-                    className="w-full text-sm border border-gray-200 rounded-2xl px-4 py-4 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    value={currentValue}
-                    onChange={(e) => onChange(e.target.value)}
-                    placeholder={current.placeholder}
-                    className="w-full text-sm border border-gray-200 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                  />
-                )}
-                <p className="text-xs text-gray-400 mt-2">選択した名称は原文のまま保持する想定です。</p>
-                {current.kind !== "select" ? (
-                  <AiAssist
-                    kind="qualitative"
-                    stepKey={current.key}
-                    stepTitle={current.title}
-                    section={current.title}
-                    prompt={current.prompt}
-                    currentValue={currentValue}
-                    answers={answers}
-                    onApply={(text) => onChange(text)}
-                  />
-                ) : null}
-              </div>
-
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-end gap-3">
                 <button
-                  onClick={prev}
-                  disabled={stepIndex === 0}
-                  className="px-5 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  onClick={saveDraft}
+                  disabled={isPending || readOnly}
+                  className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-bold text-indigo-600 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  戻る
+                  {isPending ? "保存中..." : "下書き保存"}
                 </button>
-                <div className="flex gap-3">
-                  <button
-                    onClick={saveDraft}
-                    disabled={isPending}
-                    className="px-5 py-3 rounded-xl border border-indigo-200 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition"
-                  >
-                    {isPending ? "保存中..." : "下書き保存"}
-                  </button>
-                  <button
-                    onClick={next}
-                    className="px-5 py-3 rounded-xl bg-indigo-600 text-sm text-white font-bold hover:bg-indigo-700 transition"
-                  >
-                    {stepIndex === flow.length - 1 ? "レポート生成" : "次へ"}
-                  </button>
-                </div>
+                <button
+                  onClick={() => setSubmitted(true)}
+                  className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
+                >
+                  レポート生成
+                </button>
               </div>
             </div>
           ) : (
             <div className="p-6 space-y-6">
               <div className="bg-indigo-50 border border-indigo-200 rounded-2xl px-5 py-4">
                 <p className="text-indigo-700 text-sm font-bold">定性目標レポートを生成しました</p>
-                <p className="text-indigo-600 text-xs mt-1">運用画面向けのサンプル出力です。</p>
+                <p className="text-indigo-600 text-xs mt-1">入力内容をシートと同じ形式で確認できます。</p>
               </div>
 
               <div ref={reportRef} className="border rounded-2xl overflow-hidden bg-white">
                 <div className="bg-gray-50 px-5 py-4 border-b">
-                  <h2 className="text-lg font-bold text-gray-800">定性目標設定レポート</h2>
+                  <h2 className="text-lg font-bold text-gray-800">定性目標設定シート</h2>
                 </div>
                 <div className="p-5 space-y-5 text-sm text-gray-700 leading-7">
                   <section>
-                    <h3 className="font-bold text-gray-900 mb-2">表紙情報</h3>
-                    <p>名前：{answers.name}</p>
-                    <p>部署：{answers.department}</p>
-                    <p>作成日：2025/06/12</p>
+                    <h3 className="font-bold text-gray-900 mb-2">基本情報</h3>
+                    <p>記入日：{answers.entry_date || "未入力"}</p>
+                    <p>名前：{answers.name || myName || "未設定"}</p>
+                    <p>部署：{answers.department || myDepartment || "未設定"}</p>
+                    <p>グレード：{answers.grade || myGrade || "未設定"}</p>
                   </section>
                   <section>
-                    <h3 className="font-bold text-gray-900 mb-2">1. 目標</h3>
-                    <p>期限：{answers.deadline}</p>
-                    <p>目標文：{answers.goal}</p>
+                    <h3 className="font-bold text-gray-900 mb-3">会社から求められている能力項目</h3>
+                    <div className="space-y-4">
+                      {[1, 2, 3, 4, 5].map((n) => {
+                        const circled: Record<number, string> = { 1: "①", 2: "②", 3: "③", 4: "④", 5: "⑤" };
+                        const comp = answers[`q_comp_${n}`];
+                        if (!comp) return null;
+                        return (
+                          <div key={n} className="rounded-xl border border-gray-200 p-4">
+                            <p className="font-bold text-gray-900">能力項目{circled[n]}</p>
+                            <p className="mt-1">{comp}</p>
+                            <div className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
+                              <p>主要な結果（項目）：{answers[`q_kr_item_${n}`] || "未入力"}</p>
+                              <p>主要な結果（数字）：{answers[`q_kr_num_${n}`] || "未入力"}</p>
+                              <p>
+                                評価　自己：{answers[`q_self_${n}`] ?? "0"} ／ 一次：
+                                {answers[`q_first_${n}`] ?? "0"} ／ 二次：{answers[`q_second_${n}`] ?? "0"}
+                              </p>
+                            </div>
+                            {(answers[`q_msg_self_${n}`] || answers[`q_msg_first_${n}`] || answers[`q_msg_second_${n}`]) && (
+                              <div className="mt-2 space-y-1 border-t border-dashed border-gray-200 pt-2 text-xs">
+                                {answers[`q_msg_self_${n}`] && <p>自己評価者：{answers[`q_msg_self_${n}`]}</p>}
+                                {answers[`q_msg_first_${n}`] && <p>一次評価者：{answers[`q_msg_first_${n}`]}</p>}
+                                {answers[`q_msg_second_${n}`] && <p>二次評価者：{answers[`q_msg_second_${n}`]}</p>}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {![1, 2, 3, 4, 5].some((n) => answers[`q_comp_${n}`]) && (
+                        <p className="text-gray-400">能力項目が未選択です。</p>
+                      )}
+                    </div>
                   </section>
-                  <section>
-                    <h3 className="font-bold text-gray-900 mb-2">2. 選択した定性目標</h3>
-                    <p>ステージ：{answers.stage}</p>
-                    <p>グレード：{answers.grade}</p>
-                    <p>定性目標カテゴリ：{answers.category}</p>
-                    <p>選択コンピテンシー：{answers.competency}</p>
-                  </section>
-                  <section>
-                    <h3 className="font-bold text-gray-900 mb-2">3. 行動計画</h3>
-                    <ul className="list-disc pl-5">
-                      <li>{answers.action1}</li>
-                      <li>{answers.action2}</li>
-                      <li>{answers.action3}</li>
-                    </ul>
-                  </section>
-                  <p className="font-bold text-indigo-700">この目標は、今日決めたこの一歩から始まります。</p>
                 </div>
               </div>
 
@@ -695,28 +625,10 @@ export default function QualitativeGoalNavigatorPage() {
               <div className="flex flex-wrap gap-3">
                 {!readOnly && (
                   <button
-                    onClick={() => {
-                      setSubmitted(false);
-                      setStepIndex(0);
-                    }}
+                    onClick={() => setSubmitted(false)}
                     className="px-5 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition"
                   >
                     もう一度入力
-                  </button>
-                )}
-                <button
-                  onClick={downloadWord}
-                  className="px-5 py-3 rounded-xl bg-indigo-600 text-sm text-white font-bold hover:bg-indigo-700 transition"
-                >
-                  Word出力
-                </button>
-                {/* PDF出力は一時非公開（出力品質の確認中） */}
-                {false && (
-                  <button
-                    onClick={printPdf}
-                    className="px-5 py-3 rounded-xl border border-gray-200 text-sm text-gray-700 font-bold hover:bg-gray-50 transition"
-                  >
-                    PDF出力
                   </button>
                 )}
                 {!readOnly && (
