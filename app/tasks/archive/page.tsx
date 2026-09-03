@@ -117,7 +117,7 @@ export default function ArchivePage() {
           <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
             <span className="text-white text-xs font-bold">K</span>
           </div>
-          <Link href="/tasks" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">タスク管理</Link>
+          <Link href="/tasks" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">チームス</Link>
           <span className="text-gray-300 mx-1">›</span>
           <span className="text-gray-700 text-sm font-medium">アーカイブ</span>
         </div>

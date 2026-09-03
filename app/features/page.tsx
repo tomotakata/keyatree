@@ -75,12 +75,12 @@ const features: Feature[] = [
   },
   {
     id: "tasks",
-    href: "/tasks",
-    label: "TASK",
+    href: "/tasks/channels",
+    label: "TEAMS",
     color: "from-amber-400 to-orange-500",
-    title: "タスク管理",
-    desc: "タスクの一覧・詳細・登録・スレッド管理。",
-    tags: ["タスク", "スレッド"],
+    title: "チームス",
+    desc: "チャンネル・トークルームでのやりとりと依頼（タスク）管理。",
+    tags: ["チャンネル", "トーク", "タスク"],
     status: "公開中",
   },
   {

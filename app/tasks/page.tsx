@@ -136,7 +136,7 @@ export default function TasksPage() {
         <div className="w-6 h-6 rounded-md bg-emerald-500 flex items-center justify-center ml-2">
           <span className="text-white text-[11px] font-bold">K</span>
         </div>
-        <span className="text-sm font-bold text-white">タスク管理</span>
+        <span className="text-sm font-bold text-white">チームス</span>
         <div className="ml-auto flex items-center gap-2">
           <Link href="/features" className="text-zinc-400 hover:text-white text-xs transition">機能一覧</Link>
         </div>

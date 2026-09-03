@@ -241,7 +241,7 @@ export default function ChannelsWorkspacePage() {
       {/* 上部バー */}
       <header className="h-12 flex items-center gap-3 px-4 bg-zinc-900 border-b border-zinc-800 flex-shrink-0">
         <Link href="/tasks" className="text-zinc-400 hover:text-white text-sm flex items-center gap-1.5 transition">
-          <span className="text-base leading-none">‹</span> タスク管理へ戻る
+          <span className="text-base leading-none">‹</span> チームスへ戻る
         </Link>
         <div className="w-6 h-6 rounded-md bg-emerald-500 flex items-center justify-center ml-2">
           <span className="text-white text-[11px] font-bold">K</span>
