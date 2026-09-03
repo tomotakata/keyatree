@@ -29,7 +29,7 @@ export default function RecordActions({ record }: Props) {
       new Paragraph({ children: [new TextRun({ text: sectionTitle(record), bold: true, size: 32 })] }),
       new Paragraph(""),
       new Paragraph(`名前：${record.employeeName}`),
-      new Paragraph(`部署：${record.department}`),
+      new Paragraph(`所属チーム：${record.department}`),
       new Paragraph(`ステータス：${record.status}`),
       new Paragraph(""),
       ...entries.map(([key, value]) => new Paragraph(`${key}：${value}`)),

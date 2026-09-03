@@ -57,7 +57,7 @@ export default function ClientPendingApprovals() {
           id: parsed.recordId || `${source.kind}-local-submitted`,
           name: parsed.answers.name || "名前未設定",
           title: parsed.answers.goal || (source.kind === "quantitative" ? "目標設定シート" : "定性目標設定シート"),
-          department: parsed.answers.department || "部署未設定",
+          department: parsed.answers.department || "所属チーム未設定",
           savedAt: parsed.savedAt,
           kind: source.kind,
           href: source.href,

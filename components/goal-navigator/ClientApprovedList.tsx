@@ -46,7 +46,7 @@ export default function ClientApprovedList() {
           id: parsed.recordId || `${source.kind}-local-approved`,
           name: parsed.answers.name || "名前未設定",
           title: parsed.answers.goal || (source.kind === "quantitative" ? "目標設定シート" : "定性目標設定シート"),
-          department: parsed.answers.department || "部署未設定",
+          department: parsed.answers.department || "所属チーム未設定",
           approvedAt: parsed.approvedAt,
           kind: source.kind,
           answers: parsed.answers,

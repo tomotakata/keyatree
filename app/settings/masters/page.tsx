@@ -54,7 +54,7 @@ const initialMasters: Masters = {
 };
 
 const tabConfig = [
-  { key: "department",    label: "部署",     desc: "スタッフが所属する部署・課の一覧" },
+  { key: "department",    label: "所属チーム",     desc: "スタッフが所属するチームの一覧" },
   { key: "position",      label: "役職",     desc: "スタッフの役職区分" },
   { key: "grade",         label: "ステージ", desc: "給与・評価に紐づくステージ区分" },
   { key: "employmentType",label: "雇用形態", desc: "契約の種別区分" },

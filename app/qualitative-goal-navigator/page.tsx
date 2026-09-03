@@ -291,7 +291,7 @@ export default function QualitativeGoalNavigatorPage() {
             new Paragraph(""),
             new Paragraph({ children: [new TextRun({ text: "表紙情報", bold: true })] }),
             new Paragraph(`名前：${answers.name || ""}`),
-            new Paragraph(`部署：${answers.department || ""}`),
+            new Paragraph(`所属チーム：${answers.department || ""}`),
             new Paragraph(`作成日：${new Date().toLocaleDateString("ja-JP")}`),
             new Paragraph({ children: [new TextRun({ text: "1. 目標", bold: true })] }),
             new Paragraph(`期限：${answers.deadline || ""}`),
@@ -506,7 +506,7 @@ export default function QualitativeGoalNavigatorPage() {
                 <div className="rounded-t-2xl border-b border-gray-100 bg-gray-50 px-5 py-4">
                   <p className="text-base font-black text-gray-900">基本情報</p>
                   <p className="mt-0.5 text-xs font-bold text-gray-500">
-                    名前・部署・グレードはログイン情報から自動取得されます。
+                    名前・所属チーム・グレードはログイン情報から自動取得されます。
                   </p>
                 </div>
                 <div className="grid grid-cols-1 gap-4 px-5 py-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -522,7 +522,7 @@ export default function QualitativeGoalNavigatorPage() {
                   </label>
                   {[
                     ["名前", answers.name || myName],
-                    ["部署", answers.department || myDepartment],
+                    ["所属チーム", answers.department || myDepartment],
                     ["グレード", answers.grade || myGrade],
                   ].map(([label, val]) => (
                     <div key={label}>
@@ -589,7 +589,7 @@ export default function QualitativeGoalNavigatorPage() {
                       {[
                         ["記入日", answers.entry_date || "未入力"],
                         ["名前", answers.name || myName || "未設定"],
-                        ["部署", answers.department || myDepartment || "未設定"],
+                        ["所属チーム", answers.department || myDepartment || "未設定"],
                         ["グレード", answers.grade || myGrade || "未設定"],
                       ].map(([label, val]) => (
                         <div key={label}>
@@ -671,7 +671,7 @@ export default function QualitativeGoalNavigatorPage() {
             <div className="space-y-3 text-sm">
               {[
                 ["名前", answers.name],
-                ["部署", answers.department],
+                ["所属チーム", answers.department],
                 ["ステージ", answers.stage],
                 ["グレード", answers.grade],
                 ["カテゴリ", answers.category],

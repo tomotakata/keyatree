@@ -5,7 +5,6 @@ import Link from "next/link";
 import { employees, Employee } from "@/lib/mockData";
 import HeaderNav from "@/components/HeaderNav";
 
-const departments = ["", "営業部 > 第一営業課", "営業部 > 第二営業課", "管理部 > 総務課", "物件管理部 > 物件課", "経営管理部"];
 const teams = ["", "クライアントマネジメントチーム", "リーシングチーム", "リーシングアシスタントチーム", "カスタマーサポートチーム", "カスタマーオペレーションチーム", "アカウントチーム", "マーケティングチーム"];
 const positions = ["代表取締役", "部長", "課長", "主任", "担当者"];
 const grades = ["-", "E1", "E2", "J1", "J2", "J3", "S1", "S2", "S3", "M1", "M2", "M3", "L1", "L2"];
@@ -16,7 +15,7 @@ const ranks = ["S", "A", "B", "C"];
 const inputCls = "w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-300 bg-white text-gray-800";
 
 type EditForm = {
-  department: string; team: string; position: string; grade: string;
+  team: string; position: string; grade: string;
   jobType: string; employmentType: string; evaluationRank: string;
 };
 
@@ -62,7 +61,6 @@ export default function StaffManagePage() {
       !q ||
       e.name.includes(q) ||
       e.nameKana.includes(q) ||
-      (e.department ?? "").includes(q) ||
       (e.team ?? "").includes(q) ||
       (e.position ?? "").includes(q);
     const matchTeam = teamFilter === "すべて" || e.team === teamFilter;
@@ -73,7 +71,6 @@ export default function StaffManagePage() {
     setEditing(emp);
     setError("");
     setForm({
-      department: emp.department ?? "",
       team: emp.team ?? "",
       position: emp.position ?? "担当者",
       grade: emp.grade ?? "-",
@@ -88,7 +85,7 @@ export default function StaffManagePage() {
     setSaving(true);
     setError("");
     try {
-      const merged: Employee = { ...editing, ...form };
+      const merged: Employee = { ...editing, ...form, department: form.team };
       const res = await fetch("/api/staff", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -120,7 +117,7 @@ export default function StaffManagePage() {
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-5">
         <div>
           <h1 className="text-xl font-bold text-gray-800">スタッフ管理</h1>
-          <p className="text-sm text-gray-500 mt-1">スタッフの新規登録と、所属部署・チーム・役職・グレードなどの登録修正ができます。</p>
+          <p className="text-sm text-gray-500 mt-1">スタッフの新規登録と、所属チーム・役職・グレードなどの登録修正ができます。</p>
         </div>
 
         {/* 検索・フィルター */}
@@ -129,7 +126,7 @@ export default function StaffManagePage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="名前・部署・チーム・役職で検索..."
+            placeholder="名前・チーム・役職で検索..."
             className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-300"
           />
           <select
@@ -145,9 +142,8 @@ export default function StaffManagePage() {
 
         {/* リスト表示 */}
         <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-          <div className="hidden md:grid grid-cols-[1.4fr_1.4fr_1.2fr_0.8fr_0.7fr_0.7fr_auto] gap-3 px-5 py-3 bg-gray-50 border-b text-xs font-bold text-gray-500">
+          <div className="hidden md:grid grid-cols-[1.6fr_1.4fr_0.9fr_0.7fr_0.7fr_auto] gap-3 px-5 py-3 bg-gray-50 border-b text-xs font-bold text-gray-500">
             <span>氏名</span>
-            <span>部署</span>
             <span>所属チーム</span>
             <span>役職</span>
             <span>グレード</span>
@@ -156,12 +152,11 @@ export default function StaffManagePage() {
           </div>
           <ul className="divide-y divide-gray-100">
             {filtered.map((e) => (
-              <li key={e.id} className="grid grid-cols-2 md:grid-cols-[1.4fr_1.4fr_1.2fr_0.8fr_0.7fr_0.7fr_auto] gap-2 md:gap-3 px-5 py-3 items-center text-sm hover:bg-gray-50/70 transition">
+              <li key={e.id} className="grid grid-cols-2 md:grid-cols-[1.6fr_1.4fr_0.9fr_0.7fr_0.7fr_auto] gap-2 md:gap-3 px-5 py-3 items-center text-sm hover:bg-gray-50/70 transition">
                 <div className="min-w-0">
                   <Link href={`/employees/${e.id}`} className="font-bold text-gray-800 hover:text-emerald-600 truncate block">{e.name}</Link>
                   <span className="text-[11px] text-gray-400 truncate block">{e.nameKana}</span>
                 </div>
-                <span className="text-gray-600 truncate">{e.department || <span className="text-gray-300">未設定</span>}</span>
                 <span className="text-gray-600 truncate">{e.team || <span className="text-gray-300">未設定</span>}</span>
                 <span className="text-gray-600 truncate">{e.position || <span className="text-gray-300">-</span>}</span>
                 <span className="text-gray-700 font-medium">{e.grade || "-"}</span>
@@ -195,12 +190,6 @@ export default function StaffManagePage() {
               <button onClick={() => setEditing(null)} className="text-white/80 hover:text-white text-lg leading-none">×</button>
             </div>
             <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-              <div>
-                <label className="text-xs font-semibold text-gray-600 mb-1 block">部署</label>
-                <select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className={inputCls}>
-                  {departments.map((d) => <option key={d} value={d}>{d || "未設定"}</option>)}
-                </select>
-              </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600 mb-1 block">所属チーム</label>
                 <select value={form.team} onChange={(e) => setForm({ ...form, team: e.target.value })} className={inputCls}>

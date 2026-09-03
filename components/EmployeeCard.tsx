@@ -34,7 +34,7 @@ export default function EmployeeCard({ employee }: { employee: Employee }) {
       <div className="text-center">
         <p className="text-xs text-gray-400 mb-0.5">{employee.nameKana}</p>
         <h2 className="text-xl font-bold text-gray-800">{employee.name}</h2>
-        <p className="text-sm text-gray-500 mt-1">{employee.department}</p>
+        <p className="text-sm text-gray-500 mt-1">{employee.team || employee.department}</p>
       </div>
 
       {/* エニアグラムバッジ */}

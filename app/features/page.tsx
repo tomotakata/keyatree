@@ -69,7 +69,7 @@ const features: Feature[] = [
     label: "EMP",
     color: "from-emerald-500 to-blue-500",
     title: "スタッフ管理",
-    desc: "スタッフの新規登録と、所属部署・チーム・役職・グレードの登録修正。リスト表示。",
+    desc: "スタッフの新規登録と、所属チーム・役職・グレードの登録修正。リスト表示。",
     tags: ["スタッフ", "認証", "権限"],
     status: "公開中",
   },

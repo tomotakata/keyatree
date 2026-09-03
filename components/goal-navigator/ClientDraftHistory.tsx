@@ -47,7 +47,7 @@ export default function ClientDraftHistory({
           id: parsed.recordId || "local-draft",
           name: parsed.answers.name || "名前未設定",
           title: parsed.answers.goal || emptyLabel,
-          department: parsed.answers.department || "部署未設定",
+          department: parsed.answers.department || "所属チーム未設定",
           savedAt: parsed.savedAt,
           href,
         },

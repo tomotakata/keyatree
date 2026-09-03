@@ -13,12 +13,12 @@ const rankColors: Record<string, { bg: string; text: string; border: string }> =
   C: { bg: "bg-gray-50", text: "text-gray-500", border: "border-gray-300" },
 };
 
-const deptOptions = ["すべて", ...Array.from(new Set(employees.map((e) => e.department.split(" > ")[0])))];
+const teamOptions = ["すべて", ...Array.from(new Set(employees.map((e) => e.team).filter(Boolean)))];
 const rankOptions = ["すべて", "S", "A", "B", "C"];
 
 export default function EmployeeListPage() {
   const [search, setSearch] = useState("");
-  const [dept, setDept] = useState("すべて");
+  const [team, setTeam] = useState("すべて");
   const [rank, setRank] = useState("すべて");
   const [allEmployees, setAllEmployees] = useState<Employee[]>(employees);
 
@@ -40,11 +40,11 @@ export default function EmployeeListPage() {
     const matchSearch =
       e.name.includes(search) ||
       e.nameKana.includes(search) ||
-      e.department.includes(search) ||
+      (e.team ?? "").includes(search) ||
       e.position.includes(search);
-    const matchDept = dept === "すべて" || e.department.startsWith(dept);
+    const matchTeam = team === "すべて" || e.team === team;
     const matchRank = rank === "すべて" || e.evaluationRank === rank;
-    return matchSearch && matchDept && matchRank;
+    return matchSearch && matchTeam && matchRank;
   });
 
   return (
@@ -63,15 +63,15 @@ export default function EmployeeListPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="名前・部署・役職で検索..."
+            placeholder="名前・チーム・役職で検索..."
             className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-300"
           />
           <select
-            value={dept}
-            onChange={(e) => setDept(e.target.value)}
+            value={team}
+            onChange={(e) => setTeam(e.target.value)}
             className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300"
           >
-            {deptOptions.map((d) => <option key={d} value={d}>{d}</option>)}
+            {teamOptions.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
           <select
             value={rank}
@@ -129,11 +129,8 @@ export default function EmployeeListPage() {
                         <h3 className="text-base font-bold text-gray-800 group-hover:text-emerald-600 transition-colors">
                           {emp.name}
                         </h3>
-                        <p className="text-xs text-gray-500 mt-0.5 truncate">{emp.department}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">{emp.team || emp.department}</p>
                         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                          {emp.team && (
-                            <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">{emp.team}</span>
-                          )}
                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{emp.position}</span>
                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{emp.grade}</span>
                         </div>

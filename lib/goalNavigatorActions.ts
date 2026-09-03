@@ -305,7 +305,7 @@ export async function getMyProfile(): Promise<{
       const staff = await getStaff(employeeId);
       if (staff) {
         grade = staff.grade || "";
-        department = staff.department || "";
+        department = staff.team || staff.department || "";
       }
     } catch {
       // フォールバック（取得失敗時は空のまま）

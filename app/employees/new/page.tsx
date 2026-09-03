@@ -6,7 +6,6 @@ import { permissions, Permission } from "@/lib/permissions";
 import { makeNewEmployee } from "@/lib/staffStore";
 import BackButton from "@/components/BackButton";
 
-const departments = ["営業部 > 第一営業課", "営業部 > 第二営業課", "管理部 > 総務課", "物件管理部 > 物件課", "経営管理部"];
 const teams = ["", "クライアントマネジメントチーム", "リーシングチーム", "リーシングアシスタントチーム", "カスタマーサポートチーム", "カスタマーオペレーションチーム", "アカウントチーム", "マーケティングチーム"];
 const positions = ["代表取締役", "部長", "課長", "主任", "担当者"];
 const grades = ["E1", "E2", "J1", "J2", "J3", "S1", "S2", "S3", "M1", "M2", "M3"];
@@ -27,7 +26,7 @@ const permColorMap: Record<string, { badge: string; ring: string; border: string
 };
 
 type FormData = {
-  name: string; nameKana: string; department: string; team: string; position: string;
+  name: string; nameKana: string; team: string; position: string;
   grade: string; jobType: string; employmentType: string; joinedAt: string;
   enneagramType: string; bio: string;
   email: string; password: string; confirmPassword: string;
@@ -35,7 +34,7 @@ type FormData = {
 };
 
 const initial: FormData = {
-  name: "", nameKana: "", department: departments[0], team: teams[0], position: positions[4],
+  name: "", nameKana: "", team: teams[0], position: positions[4],
   grade: grades[2], jobType: jobTypes[0], employmentType: employmentTypes[0],
   joinedAt: new Date().toISOString().slice(0, 10), enneagramType: "3", bio: "",
   email: "", password: "", confirmPassword: "", permissionId: "staff",
@@ -100,7 +99,7 @@ export default function NewEmployeePage() {
     const emp = makeNewEmployee({
       name: form.name,
       nameKana: form.nameKana,
-      department: form.department,
+      department: form.team,
       team: form.team,
       position: form.position,
       grade: form.grade,
@@ -227,11 +226,6 @@ export default function NewEmployeePage() {
           {/* ② 所属・役職 */}
           <section className="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
             <h2 className="text-sm font-bold text-gray-700 pb-2 border-b">所属・役職</h2>
-            <Field label="部署">
-              <select value={form.department} onChange={(e) => set("department", e.target.value)} className={inputCls}>
-                {departments.map((d) => <option key={d}>{d}</option>)}
-              </select>
-            </Field>
             <Field label="所属チーム">
               <select value={form.team} onChange={(e) => set("team", e.target.value)} className={inputCls}>
                 {teams.map((t) => <option key={t} value={t}>{t || "未設定"}</option>)}

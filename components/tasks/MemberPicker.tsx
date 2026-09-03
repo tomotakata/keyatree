@@ -76,7 +76,7 @@ export default function MemberPicker({
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="名前・部署で検索..."
+        placeholder="名前・チームで検索..."
         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
       />
       <div className="max-h-56 overflow-y-auto space-y-1 border border-gray-100 rounded-lg p-1">
@@ -109,9 +109,9 @@ export default function MemberPicker({
                   {m.name.charAt(0)}
                 </span>
                 <span className="text-sm text-gray-700 truncate">{m.name}</span>
-                {(m.department || m.team) && (
+                {(m.team || m.department) && (
                   <span className="text-[11px] text-gray-400 ml-auto flex-shrink-0 truncate max-w-[8rem]">
-                    {m.department || m.team}
+                    {m.team || m.department}
                   </span>
                 )}
                 {locked && <span className="text-[10px] text-gray-400 flex-shrink-0">固定</span>}

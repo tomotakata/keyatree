@@ -24,7 +24,7 @@ export default function LocalRecordActions({ record }: { record: LocalRecord }) 
         children: [
           new Paragraph({ children: [new TextRun({ text: record.kind === "quantitative" ? "目標設定レポート" : "定性目標設定レポート", bold: true, size: 32 })] }),
           new Paragraph(`名前：${record.name}`),
-          new Paragraph(`部署：${record.department}`),
+          new Paragraph(`所属チーム：${record.department}`),
           ...entries.map(([key, value]) => new Paragraph(`${key}：${value}`)),
         ],
       }],
