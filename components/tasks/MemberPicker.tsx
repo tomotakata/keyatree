@@ -56,7 +56,7 @@ export default function MemberPicker({
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [candidates]);
 
   const toggle = (id: string) => {
     if (lockedIds.includes(id)) return;
