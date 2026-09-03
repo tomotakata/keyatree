@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 
 type LocalRecord = {
   title: string;

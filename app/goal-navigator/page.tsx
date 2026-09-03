@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 import { saveNavigatorRecord, getMyNavigatorRecords, updateGoalMetricsAction } from "@/lib/goalNavigatorActions";
 import type { NavigatorRecord, RecordStatus, ItemComment } from "@/lib/goalNavigatorStore";
 import { QUANT_DRAFT_BASE, nsKey } from "@/lib/goalStorage";

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 import { saveNavigatorRecord, getMyNavigatorRecords } from "@/lib/goalNavigatorActions";
 import type { NavigatorRecord, RecordStatus } from "@/lib/goalNavigatorStore";
 import { QUAL_DRAFT_BASE, nsKey } from "@/lib/goalStorage";
