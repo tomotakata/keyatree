@@ -154,11 +154,13 @@ export default function ChatNavigator({
 
   const goBack = () => {
     if (!canGoBack) return;
-    // 1ステップ = [質問, ユーザー回答, AIコメント] の3メッセージ単位。
-    // 直近ブロックを取り除き、ひとつ前の質問を再表示して回答し直せるようにする。
+    // 直近ステップの回答ブロックを取り除き、ひとつ前の質問を再表示して回答し直せるようにする。
+    // 通常は [ユーザー回答, AIコメント, 次の質問] の3メッセージ。ただし目標数値(_value)は
+    // AIコメントを挟まないため [ユーザー回答, 次の質問] の2メッセージ単位となる。
     const targetIndex = done ? steps.length - 1 : cursor - 1;
     if (targetIndex < 0) return;
-    setMessages((prev) => prev.slice(0, Math.max(0, prev.length - 3)));
+    const removeCount = steps[targetIndex].key.endsWith("_value") ? 2 : 3;
+    setMessages((prev) => prev.slice(0, Math.max(0, prev.length - removeCount)));
     setDone(false);
     setCursor(targetIndex);
     const targetStep = steps[targetIndex];
@@ -177,6 +179,12 @@ export default function ChatNavigator({
 
     const stepAtSubmit = current;
     const indexAtSubmit = cursor;
+
+    // 目標数値の入力後は可変コメントを挟まず、統一した次の質問（目標項目）へ直接進める
+    if (stepAtSubmit.key.endsWith("_value")) {
+      advance(indexAtSubmit, updated);
+      return;
+    }
 
     setLoading(true);
     push({ role: "assistant", text: "", pending: true });

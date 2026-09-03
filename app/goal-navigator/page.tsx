@@ -45,19 +45,24 @@ type StepKey =
   | "personal_deadline"
   | "personal_value";
 
+const GOAL_VALUE_PROMPT = "達成するべき具体的な目標数値を記載ください。";
+const GOAL_ITEM_PROMPT =
+  "入力した目標数値が具体的に、どのような目標数値であり、目標を設定した経緯や目標を達成したことによる達成意義を目標項目として回答してください。";
+const GOAL_ITEM_PLACEHOLDER = "例：この目標数値が示す内容・目標設定の経緯・達成することの意義";
+
 const steps: { key: StepKey; title: string; prompt: string; placeholder?: string; section: string; kind?: "text" | "textarea" | "select" }[] = [
   // ① 全社定量目標（目標達成期日 → 目標数値 → 目標項目 の順）
   { key: "company_deadline", title: "① 全社定量目標", prompt: "全社定量目標の「目標達成期日」を入力してください。", placeholder: "例：2026-09-30", section: "全社定量目標", kind: "text" },
-  { key: "company_value", title: "① 全社定量目標", prompt: "全社定量目標の「目標数値」を入力してください（数字のみ・単位不要）。", placeholder: "例：36000", section: "全社定量目標", kind: "text" },
-  { key: "company_item", title: "① 全社定量目標", prompt: "全社定量目標の「目標項目」を入力してください。", placeholder: "例：全社の年間売上目標を達成する", section: "全社定量目標", kind: "textarea" },
+  { key: "company_value", title: "① 全社定量目標", prompt: GOAL_VALUE_PROMPT, placeholder: "例：36000", section: "全社定量目標", kind: "text" },
+  { key: "company_item", title: "① 全社定量目標", prompt: GOAL_ITEM_PROMPT, placeholder: GOAL_ITEM_PLACEHOLDER, section: "全社定量目標", kind: "textarea" },
   // ② チーム定量目標
   { key: "team_deadline", title: "② チーム定量目標", prompt: "チーム定量目標の「目標達成期日」を入力してください。", placeholder: "例：2026-09-30", section: "チーム定量目標", kind: "text" },
-  { key: "team_value", title: "② チーム定量目標", prompt: "チーム定量目標の「目標数値」を入力してください（数字のみ・単位不要）。", placeholder: "例：120", section: "チーム定量目標", kind: "text" },
-  { key: "team_item", title: "② チーム定量目標", prompt: "チーム定量目標の「目標項目」を入力してください。", placeholder: "例：チームの新規契約件数を前年比120%にする", section: "チーム定量目標", kind: "textarea" },
+  { key: "team_value", title: "② チーム定量目標", prompt: GOAL_VALUE_PROMPT, placeholder: "例：120", section: "チーム定量目標", kind: "text" },
+  { key: "team_item", title: "② チーム定量目標", prompt: GOAL_ITEM_PROMPT, placeholder: GOAL_ITEM_PLACEHOLDER, section: "チーム定量目標", kind: "textarea" },
   // ③ 個人定量目標
   { key: "personal_deadline", title: "③ 個人定量目標", prompt: "個人定量目標の「目標達成期日」を入力してください。", placeholder: "例：2026-09-30", section: "個人定量目標", kind: "text" },
-  { key: "personal_value", title: "③ 個人定量目標", prompt: "個人定量目標の「目標数値」を入力してください（数字のみ・単位不要）。", placeholder: "例：10", section: "個人定量目標", kind: "text" },
-  { key: "personal_item", title: "③ 個人定量目標", prompt: "個人定量目標の「目標項目」を入力してください。", placeholder: "例：担当エリアの新規契約を月10件達成する", section: "個人定量目標", kind: "textarea" },
+  { key: "personal_value", title: "③ 個人定量目標", prompt: GOAL_VALUE_PROMPT, placeholder: "例：10", section: "個人定量目標", kind: "text" },
+  { key: "personal_item", title: "③ 個人定量目標", prompt: GOAL_ITEM_PROMPT, placeholder: GOAL_ITEM_PLACEHOLDER, section: "個人定量目標", kind: "textarea" },
 ];
 
 export default function GoalNavigatorPage() {
