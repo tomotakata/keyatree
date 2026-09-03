@@ -3,6 +3,7 @@ import HeaderNav from "@/components/HeaderNav";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
 import ReviewDecisionPanel from "@/components/goal-navigator/ReviewDecisionPanel";
 import ProgressPanel from "@/components/goal-navigator/ProgressPanel";
+import ItemCommentPanel from "@/components/goal-navigator/ItemCommentPanel";
 import { getNavigatorRecordDetail } from "@/lib/goalNavigatorActions";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,12 @@ const FIELD_LABELS: Record<string, string> = {
   personal_item: "個人定量目標：目標項目",
   personal_deadline: "個人定量目標：目標達成期日",
   personal_value: "個人定量目標：目標数値",
+  company_progress: "全社定量目標：進捗数値",
+  company_result: "全社定量目標：結果数値",
+  team_progress: "チーム定量目標：進捗数値",
+  team_result: "チーム定量目標：結果数値",
+  personal_progress: "個人定量目標：進捗数値",
+  personal_result: "個人定量目標：結果数値",
 };
 
 export default async function GoalNavigatorApprovalDetailPage({
@@ -139,6 +146,41 @@ export default async function GoalNavigatorApprovalDetailPage({
         </div>
 
         {canApprove ? <ReviewDecisionPanel recordId={record.id} status={record.status} /> : null}
+
+        <ItemCommentPanel
+          recordId={record.id}
+          comments={record.itemComments ?? []}
+          canApprove={canApprove}
+          goals={[
+            {
+              target: "company",
+              label: "① 全社定量目標",
+              item: record.answers.company_item,
+              deadline: record.answers.company_deadline,
+              value: record.answers.company_value,
+              progress: record.answers.company_progress,
+              result: record.answers.company_result,
+            },
+            {
+              target: "team",
+              label: "② チーム定量目標",
+              item: record.answers.team_item,
+              deadline: record.answers.team_deadline,
+              value: record.answers.team_value,
+              progress: record.answers.team_progress,
+              result: record.answers.team_result,
+            },
+            {
+              target: "personal",
+              label: "③ 個人定量目標",
+              item: record.answers.personal_item,
+              deadline: record.answers.personal_deadline,
+              value: record.answers.personal_value,
+              progress: record.answers.personal_progress,
+              result: record.answers.personal_result,
+            },
+          ]}
+        />
 
         <ProgressPanel
           recordId={record.id}

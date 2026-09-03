@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  addItemComment,
   addProgressReply,
   addProgressUpdate,
   approveNavigatorRecord,
@@ -10,6 +11,8 @@ import {
   getServerSession,
   listNavigatorRecords,
   rejectNavigatorRecord,
+  updateNavigatorMetrics,
+  type ItemComment,
   type NavigatorKind,
   type NavigatorRecord,
   upsertNavigatorRecord,
@@ -183,6 +186,75 @@ export async function addProgressReplyAction(recordId: string, updateId: string,
   });
   if (!record) return { ok: false as const, message: "コメントの保存に失敗しました" };
 
+  revalidatePath(`/approvals/goal-navigators/${recordId}`);
+
+  return { ok: true as const, record };
+}
+
+/** 進捗数値・結果数値の後日更新：本人または承認者のみ。承認ステータスは変えない */
+export async function updateGoalMetricsAction(recordId: string, patch: Record<string, string>) {
+  const session = await getServerSession();
+  if (!session) return { ok: false as const, message: "ログイン情報を確認できませんでした" };
+
+  const target = await getNavigatorRecordById(recordId);
+  if (!target) return { ok: false as const, message: "対象レコードが見つかりません" };
+
+  const ownerId = session.employeeId || session.id || session.email;
+  const isOwner = Boolean(ownerId && target.ownerId === ownerId);
+  if (!isOwner && !canApprove(session)) {
+    return { ok: false as const, message: "この目標を更新する権限がありません" };
+  }
+
+  // 許可するキーのみ（進捗数値・結果数値）に限定
+  const allowed = new Set([
+    "company_progress",
+    "company_result",
+    "team_progress",
+    "team_result",
+    "personal_progress",
+    "personal_result",
+  ]);
+  const safePatch: Record<string, string> = {};
+  for (const [k, v] of Object.entries(patch)) {
+    if (allowed.has(k)) safePatch[k] = String(v ?? "");
+  }
+  if (Object.keys(safePatch).length === 0) {
+    return { ok: false as const, message: "更新対象の数値がありません" };
+  }
+
+  const record = await updateNavigatorMetrics(recordId, safePatch);
+  if (!record) return { ok: false as const, message: "更新に失敗しました" };
+
+  revalidatePath("/goal-navigator");
+  revalidatePath("/goal-navigator/history");
+  revalidatePath(`/approvals/goal-navigators/${recordId}`);
+
+  return { ok: true as const, record };
+}
+
+/** 目標項目への承認者コメント：承認者（管理者/人事）のみ。複数人・複数件可 */
+export async function addItemCommentAction(
+  recordId: string,
+  target: ItemComment["target"],
+  body: string
+) {
+  const session = await getServerSession();
+  if (!canApprove(session)) {
+    return { ok: false as const, message: "コメントする権限がありません（承認者のみ）" };
+  }
+  if (!body.trim()) return { ok: false as const, message: "コメントを入力してください" };
+
+  const record = await addItemComment(recordId, {
+    authorId: session?.id || session?.employeeId,
+    authorName: session?.name || "承認者",
+    isApprover: true,
+    target,
+    body: body.trim(),
+  });
+  if (!record) return { ok: false as const, message: "対象レコードが見つかりません" };
+
+  revalidatePath("/goal-navigator");
+  revalidatePath("/goal-navigator/history");
   revalidatePath(`/approvals/goal-navigators/${recordId}`);
 
   return { ok: true as const, record };

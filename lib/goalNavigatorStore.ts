@@ -40,6 +40,17 @@ export type ProgressUpdate = {
   replies?: ProgressReply[];
 };
 
+// 目標項目に対する承認者コメント（複数人・複数件）
+export type ItemComment = {
+  id: string;
+  at: string;
+  authorId?: string;
+  authorName: string;
+  isApprover?: boolean;
+  target: "company" | "team" | "personal";
+  body: string;
+};
+
 export type NavigatorSession = {
   id?: string;
   name: string;
@@ -68,6 +79,7 @@ export type NavigatorRecord = {
   reviewedAt?: string;
   reviewedBy?: string;
   progressUpdates?: ProgressUpdate[];
+  itemComments?: ItemComment[];
 };
 
 type AuditActor = {
@@ -538,6 +550,85 @@ export async function addProgressReply(
   record.progressUpdates = (record.progressUpdates ?? []).map((u) =>
     u.id === updateId ? { ...u, replies: [...(u.replies ?? []), entry] } : u
   );
+  record.updatedAt = now;
+  return record;
+}
+
+// ---- 進捗数値・結果数値など数値メトリクスの後日更新（承認ステータスは変更しない）----
+export async function updateNavigatorMetrics(recordId: string, patch: Record<string, string>) {
+  const now = new Date().toISOString();
+
+  const applyPatch = (record: NavigatorRecord): NavigatorRecord => ({
+    ...record,
+    answers: { ...record.answers, ...patch },
+    updatedAt: now,
+  });
+
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseAdmin();
+    await ensureBucket(supabase);
+    const before = await getJson<NavigatorRecord>(supabase, recordPath(recordId));
+    if (!before) return null;
+    const record = applyPatch(before);
+    await putJson(supabase, recordPath(record.id), record);
+    await writeAuditLog(supabase, {
+      entityId: record.id,
+      operation: "update",
+      beforeData: before,
+      afterData: record,
+    });
+    return record;
+  }
+
+  const records = getStore();
+  const record = records.find((item) => item.id === recordId);
+  if (!record) return null;
+  record.answers = { ...record.answers, ...patch };
+  record.updatedAt = now;
+  return record;
+}
+
+// ---- 目標項目への承認者コメント（複数人・複数件）----
+export async function addItemComment(
+  recordId: string,
+  input: { authorId?: string; authorName: string; isApprover?: boolean; target: ItemComment["target"]; body: string }
+) {
+  const now = new Date().toISOString();
+  const entry: ItemComment = {
+    id: crypto.randomUUID(),
+    at: now,
+    authorId: input.authorId,
+    authorName: input.authorName,
+    isApprover: input.isApprover,
+    target: input.target,
+    body: input.body,
+  };
+
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseAdmin();
+    await ensureBucket(supabase);
+    const before = await getJson<NavigatorRecord>(supabase, recordPath(recordId));
+    if (!before) return null;
+    const record: NavigatorRecord = {
+      ...before,
+      itemComments: [...(before.itemComments ?? []), entry],
+      updatedAt: now,
+    };
+    await putJson(supabase, recordPath(record.id), record);
+    await writeAuditLog(supabase, {
+      entityId: record.id,
+      operation: "update",
+      beforeData: before,
+      afterData: record,
+      actor: { actorId: input.authorId, actorName: input.authorName },
+    });
+    return record;
+  }
+
+  const records = getStore();
+  const record = records.find((item) => item.id === recordId);
+  if (!record) return null;
+  record.itemComments = [...(record.itemComments ?? []), entry];
   record.updatedAt = now;
   return record;
 }

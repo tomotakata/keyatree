@@ -5,8 +5,8 @@ import Link from "next/link";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import { saveNavigatorRecord, getMyNavigatorRecords } from "@/lib/goalNavigatorActions";
-import type { NavigatorRecord, RecordStatus } from "@/lib/goalNavigatorStore";
+import { saveNavigatorRecord, getMyNavigatorRecords, updateGoalMetricsAction } from "@/lib/goalNavigatorActions";
+import type { NavigatorRecord, RecordStatus, ItemComment } from "@/lib/goalNavigatorStore";
 import { QUANT_DRAFT_BASE, nsKey } from "@/lib/goalStorage";
 import { getClientSession } from "@/lib/clientSession";
 import AiAssist from "@/components/goal-navigator/AiAssist";
@@ -46,18 +46,18 @@ type StepKey =
   | "personal_value";
 
 const steps: { key: StepKey; title: string; prompt: string; placeholder?: string; section: string; kind?: "text" | "textarea" | "select" }[] = [
-  // ① 全社定量目標
-  { key: "company_item", title: "① 全社定量目標", prompt: "全社定量目標の「目標項目」を入力してください。", placeholder: "例：全社の年間売上目標を達成する", section: "全社定量目標", kind: "textarea" },
+  // ① 全社定量目標（目標達成期日 → 目標数値 → 目標項目 の順）
   { key: "company_deadline", title: "① 全社定量目標", prompt: "全社定量目標の「目標達成期日」を入力してください。", placeholder: "例：2026-09-30", section: "全社定量目標", kind: "text" },
   { key: "company_value", title: "① 全社定量目標", prompt: "全社定量目標の「目標数値」を入力してください（数字のみ・単位不要）。", placeholder: "例：36000", section: "全社定量目標", kind: "text" },
+  { key: "company_item", title: "① 全社定量目標", prompt: "全社定量目標の「目標項目」を入力してください。", placeholder: "例：全社の年間売上目標を達成する", section: "全社定量目標", kind: "textarea" },
   // ② チーム定量目標
-  { key: "team_item", title: "② チーム定量目標", prompt: "チーム定量目標の「目標項目」を入力してください。", placeholder: "例：チームの新規契約件数を前年比120%にする", section: "チーム定量目標", kind: "textarea" },
   { key: "team_deadline", title: "② チーム定量目標", prompt: "チーム定量目標の「目標達成期日」を入力してください。", placeholder: "例：2026-09-30", section: "チーム定量目標", kind: "text" },
   { key: "team_value", title: "② チーム定量目標", prompt: "チーム定量目標の「目標数値」を入力してください（数字のみ・単位不要）。", placeholder: "例：120", section: "チーム定量目標", kind: "text" },
+  { key: "team_item", title: "② チーム定量目標", prompt: "チーム定量目標の「目標項目」を入力してください。", placeholder: "例：チームの新規契約件数を前年比120%にする", section: "チーム定量目標", kind: "textarea" },
   // ③ 個人定量目標
-  { key: "personal_item", title: "③ 個人定量目標", prompt: "個人定量目標の「目標項目」を入力してください。", placeholder: "例：担当エリアの新規契約を月10件達成する", section: "個人定量目標", kind: "textarea" },
   { key: "personal_deadline", title: "③ 個人定量目標", prompt: "個人定量目標の「目標達成期日」を入力してください。", placeholder: "例：2026-09-30", section: "個人定量目標", kind: "text" },
   { key: "personal_value", title: "③ 個人定量目標", prompt: "個人定量目標の「目標数値」を入力してください（数字のみ・単位不要）。", placeholder: "例：10", section: "個人定量目標", kind: "text" },
+  { key: "personal_item", title: "③ 個人定量目標", prompt: "個人定量目標の「目標項目」を入力してください。", placeholder: "例：担当エリアの新規契約を月10件達成する", section: "個人定量目標", kind: "textarea" },
 ];
 
 export default function GoalNavigatorPage() {
@@ -69,6 +69,9 @@ export default function GoalNavigatorPage() {
   const [notice, setNotice] = useState("");
   const [recordId, setRecordId] = useState<string>("");
   const [isPending, startTransition] = useTransition();
+  // 目標項目への承認者コメント（読み取り表示用）／進捗・結果数値の後日更新
+  const [itemComments, setItemComments] = useState<ItemComment[]>([]);
+  const [savingMetrics, startMetrics] = useTransition();
 
   // ログイン情報（名前・所属）
   const [me, setMe] = useState<{ name: string; org: string }>({ name: "", org: "" });
@@ -141,6 +144,7 @@ export default function GoalNavigatorPage() {
     setSubmitted(false);
     setActiveStatus("new");
     setReviewComment("");
+    setItemComments([]);
     setUiMode("step");
     setNotice("");
     setMode("editor");
@@ -152,6 +156,7 @@ export default function GoalNavigatorPage() {
     setStepIndex(0);
     setActiveStatus(record.status);
     setReviewComment(record.reviewComment || "");
+    setItemComments(record.itemComments ?? []);
     setUiMode("step");
     setNotice("");
     // 下書き・やり直し依頼は編集モード、提出済み・承認済みはレポート（閲覧）表示
@@ -305,12 +310,98 @@ export default function GoalNavigatorPage() {
     window.setTimeout(() => setNotice(""), 2500);
   };
 
-  const goalBlock = (label: string, item?: string, deadline?: string, val?: string) => (
+  const setMetric = (key: string, val: string) => {
+    setAnswers((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const saveMetrics = () => {
+    if (!recordId) {
+      setNotice("先に目標を保存（下書き/承認依頼）してから進捗・結果数値を入力できます");
+      window.setTimeout(() => setNotice(""), 3500);
+      return;
+    }
+    startMetrics(async () => {
+      const res = await updateGoalMetricsAction(recordId, {
+        company_progress: answers.company_progress ?? "",
+        company_result: answers.company_result ?? "",
+        team_progress: answers.team_progress ?? "",
+        team_result: answers.team_result ?? "",
+        personal_progress: answers.personal_progress ?? "",
+        personal_result: answers.personal_result ?? "",
+      });
+      if (!res.ok) {
+        setNotice(res.message);
+        return;
+      }
+      setNotice("進捗数値・結果数値を保存しました");
+      window.setTimeout(() => setNotice(""), 2500);
+    });
+  };
+
+  const commentsFor = (target: ItemComment["target"]) =>
+    [...itemComments].filter((c) => c.target === target).sort((a, b) => a.at.localeCompare(b.at));
+
+  const metricRow = (label: string, prefix: "company" | "team" | "personal") => (
+    <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+      <p className="text-xs font-bold text-gray-500">{label}</p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <label className="text-[11px] text-gray-400">
+          進捗数値
+          <input
+            type="text"
+            inputMode="numeric"
+            value={answers[`${prefix}_progress`] ?? ""}
+            onChange={(e) => setMetric(`${prefix}_progress`, e.target.value)}
+            placeholder="数字のみ"
+            className="mt-1 w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          />
+        </label>
+        <label className="text-[11px] text-gray-400">
+          結果数値
+          <input
+            type="text"
+            inputMode="numeric"
+            value={answers[`${prefix}_result`] ?? ""}
+            onChange={(e) => setMetric(`${prefix}_result`, e.target.value)}
+            placeholder="数字のみ"
+            className="mt-1 w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+          />
+        </label>
+      </div>
+    </div>
+  );
+
+  const commentList = (target: ItemComment["target"]) => {
+    const list = commentsFor(target);
+    if (list.length === 0) return null;
+    return (
+      <div className="mt-2 space-y-1.5">
+        <p className="text-xs font-bold text-amber-600">承認者コメント</p>
+        {list.map((c) => (
+          <div key={c.id} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold text-gray-700">{c.authorName}</span>
+              <span className="text-[11px] text-gray-400">{formatDate(c.at)}</span>
+            </div>
+            <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-gray-700">{c.body}</p>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const goalBlock = (label: string, target: ItemComment["target"], item?: string, deadline?: string, val?: string, prefix?: "company" | "team" | "personal") => (
     <section>
       <h3 className="font-bold text-gray-900 mb-2">{label}</h3>
-      <p>目標項目：{item || "未入力"}</p>
       <p>目標達成期日：{deadline || "未入力"}</p>
       <p>目標数値：{val || "未入力"}</p>
+      <p>目標項目：{item || "未入力"}</p>
+      {prefix ? (
+        <p className="text-gray-500">
+          進捗数値：{answers[`${prefix}_progress`] || "-"} ／ 結果数値：{answers[`${prefix}_result`] || "-"}
+        </p>
+      ) : null}
+      {commentList(target)}
     </section>
   );
 
@@ -608,9 +699,9 @@ export default function GoalNavigatorPage() {
                     <p>名前：{me.name || "-"}</p>
                     <p>所属：{me.org || "-"}</p>
                   </section>
-                  {goalBlock("2. 全社定量目標", answers.company_item, answers.company_deadline, answers.company_value)}
-                  {goalBlock("3. チーム定量目標", answers.team_item, answers.team_deadline, answers.team_value)}
-                  {goalBlock("4. 個人定量目標", answers.personal_item, answers.personal_deadline, answers.personal_value)}
+                  {goalBlock("2. 全社定量目標", "company", answers.company_item, answers.company_deadline, answers.company_value, "company")}
+                  {goalBlock("3. チーム定量目標", "team", answers.team_item, answers.team_deadline, answers.team_value, "team")}
+                  {goalBlock("4. 個人定量目標", "personal", answers.personal_item, answers.personal_deadline, answers.personal_value, "personal")}
                 </div>
               </div>
 
@@ -663,6 +754,33 @@ export default function GoalNavigatorPage() {
         </section>
 
         <aside className="space-y-6">
+          <div className="bg-white rounded-3xl border shadow-sm p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-800">進捗数値・結果数値</h3>
+              <span className="text-[11px] text-gray-400">後日入力できます</span>
+            </div>
+            <p className="mt-1 text-xs text-gray-500 leading-5">
+              各目標の進捗数値・結果数値は、提出後でもここから随時入力・保存できます（承認状態は変わりません）。
+            </p>
+            <div className="mt-4 space-y-3">
+              {metricRow("① 全社定量目標", "company")}
+              {metricRow("② チーム定量目標", "team")}
+              {metricRow("③ 個人定量目標", "personal")}
+            </div>
+            <button
+              onClick={saveMetrics}
+              disabled={savingMetrics || !recordId}
+              className="mt-4 w-full rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {savingMetrics ? "保存中..." : "進捗・結果数値を保存"}
+            </button>
+            {!recordId ? (
+              <p className="mt-2 text-[11px] text-amber-600">
+                ※ まず下書き保存または承認依頼を行うと入力できます。
+              </p>
+            ) : null}
+          </div>
+
           <div className="bg-white rounded-3xl border shadow-sm p-5">
             <h3 className="text-sm font-bold text-gray-800 mb-4">保存・履歴</h3>
             <div className="flex flex-col gap-2">
