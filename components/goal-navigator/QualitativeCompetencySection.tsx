@@ -87,6 +87,8 @@ export default function QualitativeCompetencySection({
           const supportContentKey = `q_support_content_${n}`;
           const supDate1Key = `q_supporter_date_${n}_1`;
           const supDate2Key = `q_supporter_date_${n}_2`;
+          const midResultKey = `q_mid_result_${n}`;
+          const monthResultKey = `q_month_result_${n}`;
           return (
             <div key={n} className="flex flex-col rounded-2xl border border-gray-200 p-4">
               <label className="block">
@@ -242,6 +244,108 @@ export default function QualitativeCompetencySection({
               </div>
 
               <div className="mt-2 text-center text-sm font-bold text-gray-400">↓↓</div>
+
+              <div className="mb-3 border-y border-dashed border-gray-300 py-1 text-center text-xs font-black text-gray-700">
+                中間実績【数字】
+              </div>
+              <div>
+                <span className="mb-1 block text-xs font-bold text-gray-600">中間実績({n})</span>
+                <button
+                  type="button"
+                  onClick={() => open(midResultKey, `中間実績(${n})`, true)}
+                  disabled={disabled}
+                  className="relative flex h-20 w-full items-start rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-left text-xs leading-5 text-gray-800 transition hover:border-indigo-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="line-clamp-2 whitespace-pre-wrap pr-6">
+                    {answers[midResultKey] || <span className="text-gray-400">数字のみ入力・単位入力不要</span>}
+                  </span>
+                  <span className="absolute bottom-2 right-2 text-gray-400">
+                    <ExpandIcon />
+                  </span>
+                </button>
+              </div>
+
+              <div className="my-3 border-t-2 border-dashed border-gray-400" />
+
+              <div className="mb-3 border-y border-dashed border-gray-300 py-1 text-center text-xs font-black text-gray-700">
+                月間実績【数字】
+              </div>
+              <div>
+                <span className="mb-1 block text-xs font-bold text-gray-600">月間実績({n})</span>
+                <button
+                  type="button"
+                  onClick={() => open(monthResultKey, `月間実績(${n})`, true)}
+                  disabled={disabled}
+                  className="relative flex h-20 w-full items-start rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-left text-xs leading-5 text-gray-800 transition hover:border-indigo-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="line-clamp-2 whitespace-pre-wrap pr-6">
+                    {answers[monthResultKey] || <span className="text-gray-400">数字のみ入力・単位入力不要</span>}
+                  </span>
+                  <span className="absolute bottom-2 right-2 text-gray-400">
+                    <ExpandIcon />
+                  </span>
+                </button>
+              </div>
+
+              <div className="mt-3 mb-3 border-y border-dashed border-gray-300 py-1 text-center text-xs font-black text-gray-700">
+                原因
+              </div>
+              <p className="mb-2 text-center text-[10px] font-bold leading-4 text-gray-500">
+                「なぜ？」を繰り返し、実績の原因を明確にしましょう！
+              </p>
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5].map((c) => {
+                  const causeKey = `q_month_cause_${n}_${c}`;
+                  return (
+                    <div key={c}>
+                      <span className="mb-1 block text-xs font-bold text-gray-600">月間原因({n})-{c}</span>
+                      <button
+                        type="button"
+                        onClick={() => open(causeKey, `月間原因(${n})-${c}`, false)}
+                        disabled={disabled}
+                        className="relative flex h-12 w-full items-start rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-left text-xs leading-5 text-gray-800 transition hover:border-indigo-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <span className="line-clamp-1 whitespace-pre-wrap pr-6">
+                          {answers[causeKey] || <span className="text-gray-400">なぜ→</span>}
+                        </span>
+                        <span className="absolute bottom-2 right-2 text-gray-400">
+                          <ExpandIcon />
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-3 mb-1 border-y border-dashed border-gray-300 py-1 text-center text-xs font-black text-gray-700">
+                改善策
+              </div>
+              <p className="mb-2 text-center text-[10px] font-bold leading-4 text-gray-500">
+                原因から学習しより良くなるための行動を設定しましょう！
+              </p>
+              <div className="space-y-2">
+                {[1, 2, 3].map((c) => {
+                  const actKey = `q_month_action_${n}_${c}`;
+                  return (
+                    <div key={c}>
+                      <span className="mb-1 block text-xs font-bold text-gray-600">月間改善策({n})-{c}</span>
+                      <button
+                        type="button"
+                        onClick={() => open(actKey, `月間改善策(${n})-${c}`, false)}
+                        disabled={disabled}
+                        className="relative flex h-12 w-full items-start rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-left text-xs leading-5 text-gray-800 transition hover:border-indigo-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <span className="line-clamp-1 whitespace-pre-wrap pr-6">
+                          {answers[actKey] || <span className="text-gray-400">{c})</span>}
+                        </span>
+                        <span className="absolute bottom-2 right-2 text-gray-400">
+                          <ExpandIcon />
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })}

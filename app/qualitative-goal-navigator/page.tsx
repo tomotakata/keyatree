@@ -619,6 +619,22 @@ export default function QualitativeGoalNavigatorPage() {
                               </p>
                             </div>
                             <p className="mt-2">支援内容：{answers[`q_support_content_${n}`] || "未入力"}</p>
+                            <div className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
+                              <p>中間実績（数字）：{answers[`q_mid_result_${n}`] || "未入力"}</p>
+                              <p>月間実績（数字）：{answers[`q_month_result_${n}`] || "未入力"}</p>
+                            </div>
+                            <p className="mt-2 font-bold text-gray-800">月間原因</p>
+                            <ol className="ml-4 list-decimal">
+                              {[1, 2, 3, 4, 5].map((c) => (
+                                <li key={c}>{answers[`q_month_cause_${n}_${c}`] || "未入力"}</li>
+                              ))}
+                            </ol>
+                            <p className="mt-2 font-bold text-gray-800">月間改善策</p>
+                            <ol className="ml-4 list-decimal">
+                              {[1, 2, 3].map((c) => (
+                                <li key={c}>{answers[`q_month_action_${n}_${c}`] || "未入力"}</li>
+                              ))}
+                            </ol>
                             {(answers[`q_msg_self_${n}`] || answers[`q_msg_first_${n}`] || answers[`q_msg_second_${n}`]) && (
                               <div className="mt-2 space-y-1 border-t border-dashed border-gray-200 pt-2 text-xs">
                                 {answers[`q_msg_self_${n}`] && <p>自己評価者：{answers[`q_msg_self_${n}`]}</p>}
