@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { saveNavigatorRecord, getMyNavigatorRecords, updateGoalMetricsAction } from "@/lib/goalNavigatorActions";
@@ -221,40 +220,6 @@ export default function GoalNavigatorPage() {
       setNotice("承認依頼を送信しました");
       window.setTimeout(() => setNotice(""), 2500);
     });
-  };
-
-  const downloadWord = async () => {
-    const block = (label: string, item?: string, deadline?: string, val?: string) => [
-      new Paragraph({ children: [new TextRun({ text: label, bold: true })] }),
-      new Paragraph(`目標項目：${item || ""}`),
-      new Paragraph(`目標達成期日：${deadline || ""}`),
-      new Paragraph(`目標数値：${val || ""}`),
-      new Paragraph(""),
-    ];
-    const doc = new Document({
-      sections: [
-        {
-          children: [
-            new Paragraph({ children: [new TextRun({ text: "定量目標設定レポート", bold: true, size: 32 })] }),
-            new Paragraph(""),
-            new Paragraph({ children: [new TextRun({ text: "1. 基本情報", bold: true })] }),
-            new Paragraph(`名前：${me.name || ""}`),
-            new Paragraph(`所属：${me.org || ""}`),
-            new Paragraph(""),
-            ...block("2. 全社定量目標", answers.company_item, answers.company_deadline, answers.company_value),
-            ...block("3. チーム定量目標", answers.team_item, answers.team_deadline, answers.team_value),
-            ...block("4. 個人定量目標", answers.personal_item, answers.personal_deadline, answers.personal_value),
-          ],
-        },
-      ],
-    });
-    const blob = await Packer.toBlob(doc);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "goal-navigator-report.docx";
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const printPdf = async () => {
@@ -938,14 +903,8 @@ export default function GoalNavigatorPage() {
                   </button>
                 )}
                 <button
-                  onClick={downloadWord}
-                  className="px-5 py-3 rounded-xl bg-emerald-600 text-sm text-white font-bold hover:bg-emerald-700 transition"
-                >
-                  Word出力
-                </button>
-                <button
                   onClick={printPdf}
-                  className="px-5 py-3 rounded-xl border border-gray-200 text-sm text-gray-700 font-bold hover:bg-gray-50 transition"
+                  className="px-5 py-3 rounded-xl bg-emerald-600 text-sm text-white font-bold hover:bg-emerald-700 transition"
                 >
                   PDF出力
                 </button>
