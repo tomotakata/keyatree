@@ -209,12 +209,21 @@ export default function QualitativeGoalNavigatorPage() {
     );
   };
 
+  // 保存名は「記入した月」に合わせた固定名称に統一する。
+  // 例：2026年09月｜定性目標設定シート（記入日フィールドが無いため保存時点の月を使用）
+  const recordTitle = () => {
+    const raw = (answers.entry_date || "").trim();
+    const d = raw ? new Date(raw) : new Date();
+    const base = Number.isNaN(d.getTime()) ? new Date() : d;
+    return `${base.getFullYear()}年${String(base.getMonth() + 1).padStart(2, "0")}月｜定性目標設定シート`;
+  };
+
   const saveDraft = () => {
     startTransition(async () => {
       const result = await saveNavigatorRecord({
         id: recordId || undefined,
         kind: "qualitative",
-        title: answers.goal || "定性目標設定シート",
+        title: recordTitle(),
         department: answers.department || "",
         answers,
         status: "draft",
@@ -237,7 +246,7 @@ export default function QualitativeGoalNavigatorPage() {
       const result = await saveNavigatorRecord({
         id: recordId || undefined,
         kind: "qualitative",
-        title: answers.goal || "定性目標設定シート",
+        title: recordTitle(),
         department: answers.department || "",
         answers,
         status: "submitted",
