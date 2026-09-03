@@ -107,6 +107,7 @@ export default function QualitativeGoalNavigatorPage() {
   const [myGrade, setMyGrade] = useState<string>("");
   const [myName, setMyName] = useState<string>("");
   const [myDepartment, setMyDepartment] = useState<string>("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const readOnly = activeStatus === "submitted" || activeStatus === "approved";
 
   const current = flow[stepIndex];
@@ -447,7 +448,7 @@ export default function QualitativeGoalNavigatorPage() {
           </section>
         </main>
       ) : (
-      <main className="max-w-6xl mx-auto px-4 py-8 grid lg:grid-cols-[1.2fr_0.8fr] gap-6">
+      <main className={`mx-auto px-4 py-8 grid gap-6 ${sidebarOpen ? "max-w-6xl lg:grid-cols-[1.2fr_0.8fr]" : "max-w-4xl lg:grid-cols-1"}`}>
         <section className="bg-white rounded-3xl border shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5">
             <div className="flex items-center justify-between gap-3">
@@ -482,6 +483,13 @@ export default function QualitativeGoalNavigatorPage() {
                   AIアシスタント カミングスーン
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => setSidebarOpen((v) => !v)}
+                className="rounded-xl bg-white/15 px-3 py-1.5 text-xs font-bold text-white backdrop-blur transition hover:bg-white/25"
+              >
+                {sidebarOpen ? "詳細パネルを閉じて広く使う" : "進捗・履歴などの詳細パネルを開く"}
+              </button>
             </div>
           </div>
 
@@ -650,6 +658,7 @@ export default function QualitativeGoalNavigatorPage() {
           )}
         </section>
 
+        {sidebarOpen && (
         <aside className="space-y-6">
           <div className="bg-white rounded-3xl border shadow-sm p-5">
             <h3 className="text-sm font-bold text-gray-800 mb-4">保存・履歴</h3>
@@ -694,6 +703,7 @@ export default function QualitativeGoalNavigatorPage() {
             </div>
           </div>
         </aside>
+        )}
       </main>
       )}
     </div>
