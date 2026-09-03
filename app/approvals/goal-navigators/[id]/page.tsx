@@ -14,6 +14,22 @@ function formatDate(iso?: string) {
   return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+// 定量目標のフィールドキー → 表示ラベル
+const FIELD_LABELS: Record<string, string> = {
+  name: "名前",
+  org: "所属",
+  department: "所属",
+  company_item: "全社定量目標：目標項目",
+  company_deadline: "全社定量目標：目標達成期日",
+  company_value: "全社定量目標：目標数値",
+  team_item: "チーム定量目標：目標項目",
+  team_deadline: "チーム定量目標：目標達成期日",
+  team_value: "チーム定量目標：目標数値",
+  personal_item: "個人定量目標：目標項目",
+  personal_deadline: "個人定量目標：目標達成期日",
+  personal_value: "個人定量目標：目標数値",
+};
+
 export default async function GoalNavigatorApprovalDetailPage({
   params,
 }: {
@@ -114,7 +130,7 @@ export default async function GoalNavigatorApprovalDetailPage({
             ) : (
               entries.map(([key, value]) => (
                 <div key={key} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                  <p className="text-xs font-bold text-gray-400">{key}</p>
+                  <p className="text-xs font-bold text-gray-400">{FIELD_LABELS[key] ?? key}</p>
                   <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-gray-700">{value}</p>
                 </div>
               ))

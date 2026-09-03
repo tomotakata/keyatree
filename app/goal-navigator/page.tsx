@@ -8,6 +8,7 @@ import html2canvas from "html2canvas";
 import { saveNavigatorRecord, getMyNavigatorRecords } from "@/lib/goalNavigatorActions";
 import type { NavigatorRecord, RecordStatus } from "@/lib/goalNavigatorStore";
 import { QUANT_DRAFT_BASE, nsKey } from "@/lib/goalStorage";
+import { getClientSession } from "@/lib/clientSession";
 import AiAssist from "@/components/goal-navigator/AiAssist";
 import ChatNavigator from "@/components/goal-navigator/ChatNavigator";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
@@ -22,110 +23,42 @@ function formatDate(iso?: string) {
 }
 
 const sampleAnswers: Record<string, string> = {
-  name: "鈴木 一郎",
-  department: "営業部 > 第一営業課",
-  deadline: "2026年9月末",
-  goal: "売上3,000万円達成と顧客満足度向上を両立する",
-  why1: "個人目標達成だけでなく、チーム全体の成果向上につなげたいからです。",
-  why2: "売上と満足度を両立できれば、紹介案件が増え、継続的に成果が出せます。",
-  why3: "現状は売上重視になりやすく、フォロー品質にばらつきが出る場面があるためです。",
-  why4: "成果だけでなく、信頼される営業として評価されることに大きな意味があります。",
-  purpose: "2026年9月末までに「売上3,000万円達成と顧客満足度向上を両立する」を実現する。背景には売上と信頼の両立があり、その実現を通じて継続的な紹介獲得と営業品質向上を前進させる。",
-  kr1: "月間売上 3,000万円達成",
-  kr2: "紹介案件比率 25%以上",
-  kr3: "顧客満足度アンケート 4.7以上",
-  state1: "現在の月間売上は平均2,150万円です。",
-  issue1: "月初の商談数が不足し、月末に数字を追う傾向があります。",
-  state2: "現在の紹介案件比率は18%です。",
-  issue2: "成約後の紹介依頼が仕組み化されていません。",
-  state3: "現在の顧客満足度平均は4.3です。",
-  issue3: "初回ヒアリング内容の記録にばらつきがあります。",
-  action11: "毎週月曜9時に見込み顧客20件へ連絡する。",
-  action12: "毎日17時に商談進捗を記録し、週次で売上見込みを更新する。",
-  action13: "毎週金曜に上長へ案件進捗レビューを依頼する。",
-  action21: "成約後3日以内に紹介依頼メッセージを送る。",
-  action22: "毎週2件、既存顧客へフォロー連絡を行う。",
-  action23: "紹介成功事例を毎週朝礼で共有する。",
-  action31: "初回面談後30分以内にヒアリングメモを入力する。",
-  action32: "週1回、顧客対応の振り返りを上長と実施する。",
-  action33: "アンケート低評価案件を当日中に確認し改善策を記録する。",
-  support: "上長に週1回の進捗レビューと、顧客対応フィードバックを依頼する。",
+  company_item: "全社の年間売上目標を達成し、顧客満足度の全社平均を向上させる",
+  company_deadline: "2026-09-30",
+  company_value: "36000",
+  team_item: "チームの新規契約件数を前年比120%にする",
+  team_deadline: "2026-09-30",
+  team_value: "120",
+  personal_item: "担当エリアの新規契約を月10件達成する",
+  personal_deadline: "2026-09-30",
+  personal_value: "10",
 };
 
-const whyPrompts = [
-  "その目標を達成したい理由を教えてください。",
-  "それが実現すると、あなたやチームにどんな良い変化がありますか？",
-  "その変化が必要だと感じている背景は何ですか？",
-  "今回その目標に取り組む一番大きな意味は何でしょうか？",
-];
-
-const departmentOptions = [
-  "営業部 > 第一営業課",
-  "営業部 > 第二営業課",
-  "管理部 > 総務課",
-  "物件管理部 > 物件課",
-  "経営管理部",
-];
-
+// 定量目標のヒアリング項目。名前・所属はログイン情報から自動取得するためヒアリングしない。
 type StepKey =
-  | "name"
-  | "department"
-  | "deadline"
-  | "goal"
-  | "why1"
-  | "why2"
-  | "why3"
-  | "why4"
-  | "purpose"
-  | "kr1"
-  | "kr2"
-  | "kr3"
-  | "state1"
-  | "issue1"
-  | "state2"
-  | "issue2"
-  | "state3"
-  | "issue3"
-  | "action11"
-  | "action12"
-  | "action13"
-  | "action21"
-  | "action22"
-  | "action23"
-  | "action31"
-  | "action32"
-  | "action33"
-  | "support";
+  | "company_item"
+  | "company_deadline"
+  | "company_value"
+  | "team_item"
+  | "team_deadline"
+  | "team_value"
+  | "personal_item"
+  | "personal_deadline"
+  | "personal_value";
 
 const steps: { key: StepKey; title: string; prompt: string; placeholder?: string; section: string; kind?: "text" | "textarea" | "select" }[] = [
-  { key: "name", title: "STEP0 基本情報", prompt: "お名前を入力してください。", placeholder: "例：鈴木 一郎", section: "基本情報", kind: "text" },
-  { key: "department", title: "STEP0 基本情報", prompt: "部署を選択してください。", section: "基本情報", kind: "select" },
-  { key: "deadline", title: "STEP1 目標", prompt: "目標の期限を入力してください。", placeholder: "例：2025年9月末", section: "目標", kind: "text" },
-  { key: "goal", title: "STEP1 目標", prompt: "目標をひと言で表現してください。", placeholder: "例：新規契約件数を月10件達成する", section: "目標", kind: "textarea" },
-  { key: "why1", title: "STEP2 Why", prompt: whyPrompts[0], placeholder: "理由を入力", section: "Why", kind: "textarea" },
-  { key: "why2", title: "STEP2 Why", prompt: whyPrompts[1], placeholder: "変化を入力", section: "Why", kind: "textarea" },
-  { key: "why3", title: "STEP2 Why", prompt: whyPrompts[2], placeholder: "背景を入力", section: "Why", kind: "textarea" },
-  { key: "why4", title: "STEP2 Why", prompt: whyPrompts[3], placeholder: "意味を入力", section: "Why", kind: "textarea" },
-  { key: "purpose", title: "STEP3 統合", prompt: "上記を踏まえて、目的と目標を統合した文章を確認・調整してください。", placeholder: "統合文を入力", section: "統合", kind: "textarea" },
-  { key: "kr1", title: "STEP4 KR", prompt: "主要な結果（KR）1を入力してください。", placeholder: "例：月間新規契約 10件", section: "KR", kind: "text" },
-  { key: "kr2", title: "STEP4 KR", prompt: "主要な結果（KR）2を入力してください。", placeholder: "例：紹介案件比率 20%", section: "KR", kind: "text" },
-  { key: "kr3", title: "STEP4 KR", prompt: "主要な結果（KR）3を入力してください。", placeholder: "例：顧客満足度 4.5以上", section: "KR", kind: "text" },
-  { key: "state1", title: "STEP5 現状と課題", prompt: "KR1の現状（事実）を入力してください。", placeholder: "例：現在は月6件", section: "現状と課題", kind: "textarea" },
-  { key: "issue1", title: "STEP5 現状と課題", prompt: "KR1の課題を入力してください。", placeholder: "例：新規接点数が不足している", section: "現状と課題", kind: "textarea" },
-  { key: "state2", title: "STEP5 現状と課題", prompt: "KR2の現状（事実）を入力してください。", placeholder: "例：現在は12%", section: "現状と課題", kind: "textarea" },
-  { key: "issue2", title: "STEP5 現状と課題", prompt: "KR2の課題を入力してください。", placeholder: "例：既存顧客への依頼頻度が低い", section: "現状と課題", kind: "textarea" },
-  { key: "state3", title: "STEP5 現状と課題", prompt: "KR3の現状（事実）を入力してください。", placeholder: "例：現在は4.1", section: "現状と課題", kind: "textarea" },
-  { key: "issue3", title: "STEP5 現状と課題", prompt: "KR3の課題を入力してください。", placeholder: "例：初回対応品質にばらつきがある", section: "現状と課題", kind: "textarea" },
-  { key: "action11", title: "STEP6 行動", prompt: "KR1に対する具体行動①を入力してください。", placeholder: "例：毎週月曜に見込み顧客20件へ連絡する", section: "行動", kind: "textarea" },
-  { key: "action12", title: "STEP6 行動", prompt: "KR1に対する具体行動②を入力してください。", placeholder: "例：毎日17時に進捗を記録する", section: "行動", kind: "textarea" },
-  { key: "action13", title: "STEP6 行動", prompt: "KR1に対する具体行動③を入力してください。", placeholder: "例：週1回ロープレを実施する", section: "行動", kind: "textarea" },
-  { key: "action21", title: "STEP6 行動", prompt: "KR2に対する具体行動①を入力してください。", placeholder: "例：毎週3件紹介依頼を行う", section: "行動", kind: "textarea" },
-  { key: "action22", title: "STEP6 行動", prompt: "KR2に対する具体行動②を入力してください。", placeholder: "例：成功事例を週次で共有する", section: "行動", kind: "textarea" },
-  { key: "action23", title: "STEP6 行動", prompt: "KR2に対する具体行動③を入力してください。", placeholder: "例：紹介依頼のテンプレを整備する", section: "行動", kind: "textarea" },
-  { key: "action31", title: "STEP6 行動", prompt: "KR3に対する具体行動①を入力してください。", placeholder: "例：初回対応チェックリストを毎回確認する", section: "行動", kind: "textarea" },
-  { key: "action32", title: "STEP6 行動", prompt: "KR3に対する具体行動②を入力してください。", placeholder: "例：週1回フィードバックを受ける", section: "行動", kind: "textarea" },
-  { key: "action33", title: "STEP6 行動", prompt: "KR3に対する具体行動③を入力してください。", placeholder: "例：対応後に毎回自己振り返りを行う", section: "行動", kind: "textarea" },
-  { key: "support", title: "STEP7 支援設計", prompt: "誰の、どんな支援を受けるか入力してください。", placeholder: "例：上長に週1回進捗レビューを依頼する", section: "支援設計", kind: "textarea" },
+  // ① 全社定量目標
+  { key: "company_item", title: "① 全社定量目標", prompt: "全社定量目標の「目標項目」を入力してください。", placeholder: "例：全社の年間売上目標を達成する", section: "全社定量目標", kind: "textarea" },
+  { key: "company_deadline", title: "① 全社定量目標", prompt: "全社定量目標の「目標達成期日」を入力してください。", placeholder: "例：2026-09-30", section: "全社定量目標", kind: "text" },
+  { key: "company_value", title: "① 全社定量目標", prompt: "全社定量目標の「目標数値」を入力してください（数字のみ・単位不要）。", placeholder: "例：36000", section: "全社定量目標", kind: "text" },
+  // ② チーム定量目標
+  { key: "team_item", title: "② チーム定量目標", prompt: "チーム定量目標の「目標項目」を入力してください。", placeholder: "例：チームの新規契約件数を前年比120%にする", section: "チーム定量目標", kind: "textarea" },
+  { key: "team_deadline", title: "② チーム定量目標", prompt: "チーム定量目標の「目標達成期日」を入力してください。", placeholder: "例：2026-09-30", section: "チーム定量目標", kind: "text" },
+  { key: "team_value", title: "② チーム定量目標", prompt: "チーム定量目標の「目標数値」を入力してください（数字のみ・単位不要）。", placeholder: "例：120", section: "チーム定量目標", kind: "text" },
+  // ③ 個人定量目標
+  { key: "personal_item", title: "③ 個人定量目標", prompt: "個人定量目標の「目標項目」を入力してください。", placeholder: "例：担当エリアの新規契約を月10件達成する", section: "個人定量目標", kind: "textarea" },
+  { key: "personal_deadline", title: "③ 個人定量目標", prompt: "個人定量目標の「目標達成期日」を入力してください。", placeholder: "例：2026-09-30", section: "個人定量目標", kind: "text" },
+  { key: "personal_value", title: "③ 個人定量目標", prompt: "個人定量目標の「目標数値」を入力してください（数字のみ・単位不要）。", placeholder: "例：10", section: "個人定量目標", kind: "text" },
 ];
 
 export default function GoalNavigatorPage() {
@@ -137,6 +70,9 @@ export default function GoalNavigatorPage() {
   const [notice, setNotice] = useState("");
   const [recordId, setRecordId] = useState<string>("");
   const [isPending, startTransition] = useTransition();
+
+  // ログイン情報（名前・所属）
+  const [me, setMe] = useState<{ name: string; org: string }>({ name: "", org: "" });
 
   // 一覧 / 編集 の表示モード
   const [mode, setMode] = useState<"list" | "editor">("list");
@@ -150,14 +86,8 @@ export default function GoalNavigatorPage() {
   const current = steps[stepIndex];
   const progress = Math.round(((stepIndex + 1) / steps.length) * 100);
 
-  const autoPurpose = useMemo(() => {
-    if (!answers.goal) return "";
-    const whySummary = [answers.why1, answers.why2, answers.why3, answers.why4].filter(Boolean).join(" / ");
-    return `${answers.deadline || "期限未設定"}までに「${answers.goal}」を実現する。背景には ${whySummary || "理由整理中"} があり、その実現を通じて成果と行動の両面を前進させる。`;
-  }, [answers]);
-
-  const value = current?.key === "purpose" ? (answers.purpose ?? autoPurpose) : (answers[current?.key] ?? "");
-  const options = current?.key === "department" ? departmentOptions : [];
+  const value = answers[current?.key] ?? "";
+  const options: string[] = [];
 
   const refreshRecords = () => {
     setLoadingRecords(true);
@@ -179,6 +109,27 @@ export default function GoalNavigatorPage() {
       .finally(() => {
         if (alive) setLoadingRecords(false);
       });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // ログイン中の名前・所属を取得（名前=セッション、所属=スタッフ情報のチーム/部署）
+  useEffect(() => {
+    let alive = true;
+    const s = getClientSession();
+    if (!s) return;
+    const name = s.name || "";
+    if (alive) setMe((prev) => ({ ...prev, name }));
+    const empId = s.employeeId || s.id;
+    if (!empId) return;
+    fetch(`/api/staff/${empId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const org = d?.staff?.team || d?.staff?.department || "";
+        if (alive) setMe((prev) => ({ name: prev.name || name, org }));
+      })
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -235,6 +186,9 @@ export default function GoalNavigatorPage() {
     setStepIndex((prev) => prev - 1);
   };
 
+  const recordTitle = () =>
+    answers.personal_item || answers.company_item || answers.team_item || "定量目標設定シート";
+
   const persistLocal = (nextRecordId?: string) => {
     window.localStorage.setItem(
       nsKey(QUANT_DRAFT_BASE),
@@ -254,9 +208,9 @@ export default function GoalNavigatorPage() {
       const result = await saveNavigatorRecord({
         id: recordId || undefined,
         kind: "quantitative",
-        title: answers.goal || "目標設定シート",
-        department: answers.department || "",
-        answers,
+        title: recordTitle(),
+        department: me.org || "",
+        answers: { ...answers, name: me.name, org: me.org },
         status: "draft",
       });
       if (!result.ok) {
@@ -277,9 +231,9 @@ export default function GoalNavigatorPage() {
       const result = await saveNavigatorRecord({
         id: recordId || undefined,
         kind: "quantitative",
-        title: answers.goal || "目標設定シート",
-        department: answers.department || "",
-        answers,
+        title: recordTitle(),
+        department: me.org || "",
+        answers: { ...answers, name: me.name, org: me.org },
         status: "submitted",
       });
       if (!result.ok) {
@@ -297,25 +251,26 @@ export default function GoalNavigatorPage() {
   };
 
   const downloadWord = async () => {
+    const block = (label: string, item?: string, deadline?: string, val?: string) => [
+      new Paragraph({ children: [new TextRun({ text: label, bold: true })] }),
+      new Paragraph(`目標項目：${item || ""}`),
+      new Paragraph(`目標達成期日：${deadline || ""}`),
+      new Paragraph(`目標数値：${val || ""}`),
+      new Paragraph(""),
+    ];
     const doc = new Document({
       sections: [
         {
           children: [
-            new Paragraph({ children: [new TextRun({ text: "目標設定レポート", bold: true, size: 32 })] }),
+            new Paragraph({ children: [new TextRun({ text: "定量目標設定レポート", bold: true, size: 32 })] }),
             new Paragraph(""),
             new Paragraph({ children: [new TextRun({ text: "1. 基本情報", bold: true })] }),
-            new Paragraph(`名前：${answers.name || ""}`),
-            new Paragraph(`部署：${answers.department || ""}`),
-            new Paragraph({ children: [new TextRun({ text: "2. 目標", bold: true })] }),
-            new Paragraph(`期限：${answers.deadline || ""}`),
-            new Paragraph(`目標：${answers.goal || ""}`),
-            new Paragraph(`統合文：${answers.purpose || autoPurpose || ""}`),
-            new Paragraph({ children: [new TextRun({ text: "3. KR", bold: true })] }),
-            new Paragraph(`・${answers.kr1 || ""}`),
-            new Paragraph(`・${answers.kr2 || ""}`),
-            new Paragraph(`・${answers.kr3 || ""}`),
-            new Paragraph({ children: [new TextRun({ text: "4. 支援設計", bold: true })] }),
-            new Paragraph(answers.support || ""),
+            new Paragraph(`名前：${me.name || ""}`),
+            new Paragraph(`所属：${me.org || ""}`),
+            new Paragraph(""),
+            ...block("2. 全社定量目標", answers.company_item, answers.company_deadline, answers.company_value),
+            ...block("3. チーム定量目標", answers.team_item, answers.team_deadline, answers.team_value),
+            ...block("4. 個人定量目標", answers.personal_item, answers.personal_deadline, answers.personal_value),
           ],
         },
       ],
@@ -350,6 +305,15 @@ export default function GoalNavigatorPage() {
     setNotice("サンプル回答を反映しました");
     window.setTimeout(() => setNotice(""), 2500);
   };
+
+  const goalBlock = (label: string, item?: string, deadline?: string, val?: string) => (
+    <section>
+      <h3 className="font-bold text-gray-900 mb-2">{label}</h3>
+      <p>目標項目：{item || "未入力"}</p>
+      <p>目標達成期日：{deadline || "未入力"}</p>
+      <p>目標数値：{val || "未入力"}</p>
+    </section>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -471,7 +435,11 @@ export default function GoalNavigatorPage() {
               </button>
             </div>
             <h1 className="text-white text-2xl font-black mt-1">目標設定ナビゲーター</h1>
-            <p className="text-emerald-100 text-sm mt-2">1問ずつ進みながら、目標から具体行動まで整理できます。</p>
+            <p className="text-emerald-100 text-sm mt-2">全社・チーム・個人の定量目標を順に入力できます。</p>
+            <p className="text-emerald-50/90 text-xs mt-2">
+              入力者：<span className="font-bold">{me.name || "（ログイン情報を取得中）"}</span>
+              {me.org ? <span> ・ 所属：<span className="font-bold">{me.org}</span></span> : null}
+            </p>
             {activeStatus === "rejected" && reviewComment && (
               <div className="mt-4 rounded-xl border border-white/40 bg-white/15 p-3 backdrop-blur">
                 <p className="text-[11px] font-bold text-white">やり直し依頼のコメント</p>
@@ -521,8 +489,8 @@ export default function GoalNavigatorPage() {
               }))}
               answers={answers}
               setAnswer={(key, val) => setAnswers((prev) => ({ ...prev, [key]: val }))}
-              optionsFor={(key) => (key === "department" ? departmentOptions : [])}
-              autoValueFor={(key) => (key === "purpose" ? autoPurpose : "")}
+              optionsFor={() => []}
+              autoValueFor={() => ""}
               accent="emerald"
               onComplete={() => setSubmitted(true)}
               onSaveDraft={saveDraft}
@@ -575,7 +543,7 @@ export default function GoalNavigatorPage() {
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     placeholder={current.placeholder}
-                    className="w-full text-sm border border-gray-200 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                    className="w-full text-sm text-gray-900 border border-gray-200 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-300"
                   />
                 ) : (
                   <textarea
@@ -583,10 +551,9 @@ export default function GoalNavigatorPage() {
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     placeholder={current.placeholder}
-                    className="w-full text-sm border border-gray-200 rounded-2xl px-4 py-4 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                    className="w-full text-sm text-gray-900 border border-gray-200 rounded-2xl px-4 py-4 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-300"
                   />
                 )}
-                <p className="text-xs text-gray-400 mt-2">本番画面では質問を一度に1つだけ表示する運用です。</p>
                 {current.kind !== "select" ? (
                   <AiAssist
                     kind="quantitative"
@@ -635,32 +602,17 @@ export default function GoalNavigatorPage() {
 
               <div ref={reportRef} className="border rounded-2xl overflow-hidden bg-white">
                 <div className="bg-gray-50 px-5 py-4 border-b">
-                  <h2 className="text-lg font-bold text-gray-800">目標設定レポート</h2>
+                  <h2 className="text-lg font-bold text-gray-800">定量目標設定レポート</h2>
                 </div>
                 <div className="p-5 space-y-5 text-sm text-gray-700 leading-7">
                   <section>
                     <h3 className="font-bold text-gray-900 mb-2">1. 基本情報</h3>
-                    <p>名前：{answers.name}</p>
-                    <p>部署：{answers.department}</p>
+                    <p>名前：{me.name || "-"}</p>
+                    <p>所属：{me.org || "-"}</p>
                   </section>
-                  <section>
-                    <h3 className="font-bold text-gray-900 mb-2">2. 目標</h3>
-                    <p>期限：{answers.deadline}</p>
-                    <p>目標：{answers.goal}</p>
-                    <p>統合文：{answers.purpose || autoPurpose}</p>
-                  </section>
-                  <section>
-                    <h3 className="font-bold text-gray-900 mb-2">3. KR</h3>
-                    <ul className="list-disc pl-5">
-                      <li>{answers.kr1}</li>
-                      <li>{answers.kr2}</li>
-                      <li>{answers.kr3}</li>
-                    </ul>
-                  </section>
-                  <section>
-                    <h3 className="font-bold text-gray-900 mb-2">4. 支援設計</h3>
-                    <p>{answers.support}</p>
-                  </section>
+                  {goalBlock("2. 全社定量目標", answers.company_item, answers.company_deadline, answers.company_value)}
+                  {goalBlock("3. チーム定量目標", answers.team_item, answers.team_deadline, answers.team_value)}
+                  {goalBlock("4. 個人定量目標", answers.personal_item, answers.personal_deadline, answers.personal_value)}
                 </div>
               </div>
 
@@ -728,10 +680,10 @@ export default function GoalNavigatorPage() {
           <div className="bg-white rounded-3xl border shadow-sm p-5">
             <h3 className="text-sm font-bold text-gray-800 mb-4">この画面でできること</h3>
             <ul className="space-y-2 text-sm text-gray-600 leading-6">
-              <li>・STEP順に目標設定を進行</li>
-              <li>・Why 4問の深掘り</li>
-              <li>・KR 3件の整理</li>
-              <li>・行動計画と支援設計の作成</li>
+              <li>・名前と所属はログイン情報から自動取得</li>
+              <li>・① 全社定量目標を入力</li>
+              <li>・② チーム定量目標を入力</li>
+              <li>・③ 個人定量目標を入力</li>
             </ul>
           </div>
 
@@ -739,13 +691,11 @@ export default function GoalNavigatorPage() {
             <h3 className="text-sm font-bold text-gray-800 mb-4">入力サマリー</h3>
             <div className="space-y-3 text-sm">
               {[
-                ["名前", answers.name],
-                ["部署", answers.department],
-                ["期限", answers.deadline],
-                ["目標", answers.goal],
-                ["KR1", answers.kr1],
-                ["KR2", answers.kr2],
-                ["KR3", answers.kr3],
+                ["名前", me.name],
+                ["所属", me.org],
+                ["全社定量目標", answers.company_item],
+                ["チーム定量目標", answers.team_item],
+                ["個人定量目標", answers.personal_item],
               ].map(([label, val]) => (
                 <div key={label as string}>
                   <p className="text-xs text-gray-400">{label}</p>
