@@ -56,6 +56,7 @@ export default function GoalNavigatorPage() {
   const reportRef = useRef<HTMLDivElement>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [uiMode, setUiMode] = useState<"sheet" | "chat">("sheet");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [notice, setNotice] = useState("");
@@ -511,7 +512,7 @@ export default function GoalNavigatorPage() {
           </section>
         </main>
       ) : (
-      <main className="max-w-6xl mx-auto px-4 py-8 grid lg:grid-cols-[1.2fr_0.8fr] gap-6">
+      <main className={`mx-auto px-4 py-8 grid gap-6 ${sidebarOpen ? "max-w-7xl lg:grid-cols-[1.3fr_0.7fr]" : "max-w-6xl lg:grid-cols-1"}`}>
         <section className="bg-white rounded-3xl border shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-5">
             <div className="flex items-center justify-between gap-3">
@@ -554,6 +555,12 @@ export default function GoalNavigatorPage() {
                   チャットで進める
                 </button>
               </div>
+              <button
+                onClick={() => setSidebarOpen((v) => !v)}
+                className="rounded-xl bg-white/15 px-3 py-2 text-xs font-bold text-white backdrop-blur transition hover:bg-white/25"
+              >
+                {sidebarOpen ? "詳細パネルを閉じて広く使う" : "進捗・履歴などの詳細パネルを開く"}
+              </button>
             </div>
           </div>
 
@@ -817,6 +824,7 @@ export default function GoalNavigatorPage() {
           )}
         </section>
 
+        {sidebarOpen && (
         <aside className="space-y-6">
           <div className="bg-white rounded-3xl border shadow-sm p-5">
             <div className="flex items-center justify-between">
@@ -885,6 +893,7 @@ export default function GoalNavigatorPage() {
             </div>
           </div>
         </aside>
+        )}
       </main>
       )}
     </div>
