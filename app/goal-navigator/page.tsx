@@ -158,8 +158,16 @@ export default function GoalNavigatorPage() {
     refreshRecords();
   };
 
-  const recordTitle = () =>
-    answers.personal_item || answers.company_item || answers.team_item || "定量目標設定シート";
+  // 保存名は「記入した月」に合わせた固定名称に統一する。
+  // 例：2026年09月｜定量目標設定シート（記入日が未入力なら当月を使用）
+  const recordTitle = () => {
+    const raw = (answers.entry_date || "").trim();
+    const d = raw ? new Date(raw) : new Date();
+    const base = Number.isNaN(d.getTime()) ? new Date() : d;
+    const y = base.getFullYear();
+    const m = String(base.getMonth() + 1).padStart(2, "0");
+    return `${y}年${m}月｜定量目標設定シート`;
+  };
 
   const persistLocal = (nextRecordId?: string) => {
     window.localStorage.setItem(
