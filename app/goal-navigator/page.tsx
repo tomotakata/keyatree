@@ -902,12 +902,15 @@ export default function GoalNavigatorPage() {
                     もう一度入力
                   </button>
                 )}
-                <button
-                  onClick={printPdf}
-                  className="px-5 py-3 rounded-xl bg-emerald-600 text-sm text-white font-bold hover:bg-emerald-700 transition"
-                >
-                  PDF出力
-                </button>
+                {/* PDF出力は一時非公開（出力品質の確認中） */}
+                {false && (
+                  <button
+                    onClick={printPdf}
+                    className="px-5 py-3 rounded-xl bg-emerald-600 text-sm text-white font-bold hover:bg-emerald-700 transition"
+                  >
+                    PDF出力
+                  </button>
+                )}
                 {!readOnly && (
                   <button
                     onClick={submitForApproval}

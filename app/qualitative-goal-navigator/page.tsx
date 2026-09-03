@@ -670,12 +670,15 @@ export default function QualitativeGoalNavigatorPage() {
                 >
                   Word出力
                 </button>
-                <button
-                  onClick={printPdf}
-                  className="px-5 py-3 rounded-xl border border-gray-200 text-sm text-gray-700 font-bold hover:bg-gray-50 transition"
-                >
-                  PDF出力
-                </button>
+                {/* PDF出力は一時非公開（出力品質の確認中） */}
+                {false && (
+                  <button
+                    onClick={printPdf}
+                    className="px-5 py-3 rounded-xl border border-gray-200 text-sm text-gray-700 font-bold hover:bg-gray-50 transition"
+                  >
+                    PDF出力
+                  </button>
+                )}
                 {!readOnly && (
                   <button
                     onClick={submitForApproval}

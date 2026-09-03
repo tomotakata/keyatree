@@ -74,12 +74,15 @@ export default function RecordActions({ record }: Props) {
         >
           Word出力
         </button>
-        <button
-          onClick={downloadPdf}
-          className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-rose-700"
-        >
-          PDF出力
-        </button>
+        {/* PDF出力は一時非公開（出力品質の確認中） */}
+        {false && (
+          <button
+            onClick={downloadPdf}
+            className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-rose-700"
+          >
+            PDF出力
+          </button>
+        )}
       </div>
 
       {open ? (
