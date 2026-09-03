@@ -229,7 +229,7 @@ export default function EmployeePage() {
                  </div>
                  <div className="flex flex-wrap gap-2">
                    <Link href="/goal-navigator" className="text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl transition">
-                     目標設定を開始
+                     定量目標設定を開始
                    </Link>
                    <Link href="/qualitative-goal-navigator" className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl transition">
                      定性目標を開始
