@@ -351,21 +351,6 @@ export default function GoalNavigatorPage() {
     );
   };
 
-  const goalBlock = (label: string, target: ItemComment["target"], item?: string, deadline?: string, val?: string, prefix?: "company" | "team" | "personal") => (
-    <section>
-      <h3 className="font-bold text-gray-900 mb-2">{label}</h3>
-      <p>目標達成期日：{deadline || "未入力"}</p>
-      <p>目標数値：{val || "未入力"}</p>
-      <p>目標項目：{item || "未入力"}</p>
-      {prefix ? (
-        <p className="text-gray-500">
-          進捗数値：{answers[`${prefix}_progress`] || "-"} ／ 結果数値：{answers[`${prefix}_result`] || "-"}
-        </p>
-      ) : null}
-      {commentList(target)}
-    </section>
-  );
-
   // ---- シート入力用の入力ヘルパー（関数呼び出しでJSXを返す＝再マウントによるフォーカス喪失を防ぐ）----
   const sheetDisabled = readOnly;
   const areaCls =
@@ -396,6 +381,31 @@ export default function GoalNavigatorPage() {
       <span className="text-xs font-bold text-gray-600">{label}</span>
       <input type="text" inputMode="numeric" value={answers[k] ?? ""} onChange={(e) => setA(k, e.target.value)} placeholder={placeholder} disabled={sheetDisabled} className={inputCls} />
     </label>
+  );
+
+  // ---- レポート表示用（シートと同じ項目・レイアウトを読み取り専用で再現）----
+  const dVal = (k: string, label: string, multiline = false) => {
+    const v = (answers[k] ?? "").trim();
+    return (
+      <div className="block">
+        <span className="text-xs font-bold text-gray-600">{label}</span>
+        <div
+          className={`mt-1 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm ${
+            v ? "text-gray-900" : "text-gray-400"
+          } ${multiline ? "whitespace-pre-wrap leading-6 min-h-[2.5rem]" : ""}`}
+        >
+          {v || "未入力"}
+        </div>
+      </div>
+    );
+  };
+  const dReadOnlyText = (v: string, label: string) => (
+    <div className="block">
+      <span className="text-xs font-bold text-gray-600">{label}</span>
+      <div className="mt-1 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900">
+        {v || "-"}
+      </div>
+    </div>
   );
   const sectionTitle = (label: string, hint?: string) => (
     <div className="text-center">
@@ -764,15 +774,149 @@ export default function GoalNavigatorPage() {
                 <div className="bg-gray-50 px-5 py-4 border-b">
                   <h2 className="text-lg font-bold text-gray-800">定量目標設定レポート</h2>
                 </div>
-                <div className="p-5 space-y-5 text-sm text-gray-700 leading-7">
-                  <section>
-                    <h3 className="font-bold text-gray-900 mb-2">1. 基本情報</h3>
-                    <p>名前：{me.name || "-"}</p>
-                    <p>所属：{me.org || "-"}</p>
-                  </section>
-                  {goalBlock("2. 全社定量目標", "company", answers.company_item, answers.company_deadline, answers.company_value, "company")}
-                  {goalBlock("3. チーム定量目標", "team", answers.team_item, answers.team_deadline, answers.team_value, "team")}
-                  {goalBlock("4. 個人定量目標", "personal", answers.personal_item, answers.personal_deadline, answers.personal_value, "personal")}
+                <div className="p-5 space-y-8">
+                  {/* 基本情報 */}
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                    <p className="text-sm font-bold text-gray-800">誰でも簡単にできる目標設定＆振り返り</p>
+                    <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-4">
+                      <div>
+                        <p className="text-xs text-gray-400">名前</p>
+                        <p className="mt-1 text-sm font-bold text-gray-800">{me.name || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">ステージ</p>
+                        <p className="mt-1 text-sm font-bold text-gray-800">{me.stage || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">グレード</p>
+                        <p className="mt-1 text-sm font-bold text-gray-800">{me.grade || "-"}</p>
+                      </div>
+                      {dReadOnlyText(answers.entry_date ?? "", "記入日")}
+                    </div>
+                  </div>
+
+                  {/* 定量目標 */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    {[
+                      { p: "company", label: "全社定量目標", n: "①" },
+                      { p: "team", label: "チーム定量目標", n: "②" },
+                      { p: "personal", label: "個人定量目標", n: "③" },
+                    ].map((col) => (
+                      <div key={col.p} className="space-y-3">
+                        {sectionTitle(col.label)}
+                        {dVal(`${col.p}_deadline`, `目標達成期日${col.n}`)}
+                        {dVal(`${col.p}_value`, `目標数値${col.n}`)}
+                        {dVal(`${col.p}_result`, `結果数値${col.n}`)}
+                        {dVal(`${col.p}_item`, `目標項目${col.n}`, true)}
+                        {dVal(`${col.p}_eval1`, `月間定量一次評価者メッセージ${col.n}`, true)}
+                        {dVal(`${col.p}_eval2`, `月間定量二次評価者メッセージ${col.n}`, true)}
+                        {commentList(col.p as ItemComment["target"])}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 目的 */}
+                  <div className="space-y-4">
+                    {sectionTitle("目的")}
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                      {dVal("purpose_visible1", "目に見えるもの1", true)}
+                      {dVal("purpose_visible2", "目に見えるもの2", true)}
+                      {dVal("purpose_mind1", "心の変化1", true)}
+                      {dVal("purpose_mind2", "心の変化2", true)}
+                    </div>
+                  </div>
+
+                  {/* 主要な結果 */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    {["①", "②", "③"].map((n, i) => (
+                      <div key={`kr${i}`} className="space-y-3">
+                        {sectionTitle(`主要な結果${n}`)}
+                        {dVal(`kr${i + 1}_item`, `項目${i + 1}`, true)}
+                        {dVal(`kr${i + 1}_value`, `数字${i + 1}`)}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 行動 */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    {["①", "②", "③"].map((n, i) => (
+                      <div key={`act${i}`} className="space-y-3">
+                        {sectionTitle(`主要な結果${n}を達成するための行動`)}
+                        {dVal(`action${i + 1}`, `行動${i + 1}`, true)}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 支援者・依頼日 */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    {["①", "②", "③"].map((n, i) => (
+                      <div key={`sup${i}`} className="space-y-3">
+                        {sectionTitle(`主要な結果${n}を達成するための支援者`)}
+                        <div className="grid grid-cols-[1fr_auto] gap-2">
+                          {dVal(`supporter${i + 1}_1`, `依頼者${n}1`)}
+                          {dVal(`supporter${i + 1}_1_date`, `依頼日${n}1`)}
+                        </div>
+                        <div className="grid grid-cols-[1fr_auto] gap-2">
+                          {dVal(`supporter${i + 1}_2`, `依頼者${n}2`)}
+                          {dVal(`supporter${i + 1}_2_date`, `依頼日${n}2`)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 支援内容 */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    {["①", "②", "③"].map((n, i) => (
+                      <div key={`supd${i}`} className="space-y-3">
+                        {sectionTitle("支援内容")}
+                        {dVal(`support_detail${i + 1}`, `支援内容${i + 1}`, true)}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 中間実績 */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    {["①", "②", "③"].map((n, i) => (
+                      <div key={`mid${i}`} className="space-y-3">
+                        {sectionTitle("中間実績【数字】")}
+                        {dVal(`mid_result${i + 1}`, `中間実績${n}`)}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 月間実績 */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    {["①", "②", "③"].map((n, i) => (
+                      <div key={`mon${i}`} className="space-y-3">
+                        {sectionTitle("月間実績【数字】")}
+                        {dVal(`monthly_result${i + 1}`, `月間実績${n}`)}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 原因 */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    {["①", "②", "③"].map((n, i) => (
+                      <div key={`cause${i}`} className="space-y-3">
+                        {sectionTitle("原因", "「なぜ？」を繰り返し、実績の原因を明確にしましょう！")}
+                        {[1, 2, 3, 4, 5].map((r) => (
+                          <div key={`c${i}-${r}`}>{dVal(`cause${i + 1}_${r}`, `月間原因${n}-${r}`)}</div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 改善策 */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    {["①", "②", "③"].map((n, i) => (
+                      <div key={`imp${i}`} className="space-y-3">
+                        {sectionTitle("改善策", "原因から学習しより良くなるための行動を設定しましょう！")}
+                        {[1, 2, 3].map((r) => (
+                          <div key={`i${i}-${r}`}>{dVal(`improve${i + 1}_${r}`, `月間改善策${n}-${r}`)}</div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
