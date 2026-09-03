@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export type PickableMember = { id: string; name: string; department?: string };
+export type PickableMember = { id: string; name: string; department?: string; team?: string };
 
 /**
  * スタッフ一覧から複数メンバーを選択するUI。
@@ -39,9 +39,9 @@ export default function MemberPicker({
       .then((r) => r.json())
       .then((d) => {
         if (!alive) return;
-        const staff = (d?.staff ?? []) as { id: string; name: string; department?: string }[];
+        const staff = (d?.staff ?? []) as { id: string; name: string; department?: string; team?: string }[];
         if (Array.isArray(staff) && staff.length > 0) {
-          setMembers(staff.map((s) => ({ id: s.id, name: s.name, department: s.department })));
+          setMembers(staff.map((s) => ({ id: s.id, name: s.name, department: s.department, team: s.team })));
         } else if (fallback.length > 0) {
           setMembers(fallback);
         }
@@ -65,7 +65,11 @@ export default function MemberPicker({
 
   const visible = members
     .filter((m) => !excludeIds.includes(m.id))
-    .filter((m) => (query.trim() ? (m.name + (m.department ?? "")).includes(query.trim()) : true));
+    .filter((m) =>
+      query.trim()
+        ? (m.name + (m.department ?? "") + (m.team ?? "")).includes(query.trim())
+        : true,
+    );
 
   return (
     <div className="space-y-2">
@@ -105,7 +109,11 @@ export default function MemberPicker({
                   {m.name.charAt(0)}
                 </span>
                 <span className="text-sm text-gray-700 truncate">{m.name}</span>
-                {m.department && <span className="text-[11px] text-gray-400 ml-auto flex-shrink-0">{m.department}</span>}
+                {(m.department || m.team) && (
+                  <span className="text-[11px] text-gray-400 ml-auto flex-shrink-0 truncate max-w-[8rem]">
+                    {m.department || m.team}
+                  </span>
+                )}
                 {locked && <span className="text-[10px] text-gray-400 flex-shrink-0">固定</span>}
               </button>
             );

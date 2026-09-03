@@ -1548,7 +1548,7 @@ function CreateTalkModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   // アカウント登録済みの全スタッフを招待候補にする（取得できない場合はチャンネルメンバー）。
-  const [candidates, setCandidates] = useState<{ id: string; name: string }[]>(
+  const [candidates, setCandidates] = useState<{ id: string; name: string; department?: string; team?: string }[]>(
     channel.members.map((m) => ({ id: m.id, name: m.name })),
   );
 
@@ -1558,9 +1558,9 @@ function CreateTalkModal({
       .then((r) => r.json())
       .then((d) => {
         if (!alive) return;
-        const staff = (d?.staff ?? []) as { id: string; name: string }[];
+        const staff = (d?.staff ?? []) as { id: string; name: string; department?: string; team?: string }[];
         if (Array.isArray(staff) && staff.length > 0) {
-          setCandidates(staff.map((s) => ({ id: s.id, name: s.name })));
+          setCandidates(staff.map((s) => ({ id: s.id, name: s.name, department: s.department, team: s.team })));
         }
       })
       .catch(() => {});
