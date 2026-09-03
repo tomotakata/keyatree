@@ -10,6 +10,7 @@ import type { NavigatorRecord, RecordStatus } from "@/lib/goalNavigatorStore";
 import { QUAL_DRAFT_BASE, nsKey } from "@/lib/goalStorage";
 import AiAssist from "@/components/goal-navigator/AiAssist";
 import ChatNavigator from "@/components/goal-navigator/ChatNavigator";
+import QualitativeFoundation from "@/components/goal-navigator/QualitativeFoundation";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
 import BackButton from "@/components/BackButton";
 
@@ -481,6 +482,12 @@ export default function QualitativeGoalNavigatorPage() {
               </div>
             </div>
           </div>
+
+          {!submitted && (
+            <div className="px-6 pt-6">
+              <QualitativeFoundation defaultOpen />
+            </div>
+          )}
 
           {uiMode === "chat" && !submitted ? (
             <ChatNavigator
