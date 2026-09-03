@@ -1136,7 +1136,6 @@ function TalkView({
         <AddMembersModal
           title="トークルームにメンバーを招待"
           existingIds={talk.members.map((m) => m.id)}
-          candidates={channel.members.map((m) => ({ id: m.id, name: m.name }))}
           onClose={() => setShowAdd(false)}
           onSubmit={async (picked) => {
             const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}`, {
@@ -1548,7 +1547,27 @@ function CreateTalkModal({
   const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const candidates = channel.members.map((m) => ({ id: m.id, name: m.name }));
+  // アカウント登録済みの全スタッフを招待候補にする（取得できない場合はチャンネルメンバー）。
+  const [candidates, setCandidates] = useState<{ id: string; name: string }[]>(
+    channel.members.map((m) => ({ id: m.id, name: m.name })),
+  );
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/staff")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!alive) return;
+        const staff = (d?.staff ?? []) as { id: string; name: string }[];
+        if (Array.isArray(staff) && staff.length > 0) {
+          setCandidates(staff.map((s) => ({ id: s.id, name: s.name })));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const submit = async () => {
     if (!name.trim()) {
@@ -1608,7 +1627,7 @@ function CreateTalkModal({
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1">招待するメンバー</label>
-            <p className="text-[11px] text-gray-400 mb-1">作成者（あなた）は自動で参加します。チャンネル参加メンバーから選択できます。</p>
+            <p className="text-[11px] text-gray-400 mb-1">作成者（あなた）は自動で参加します。アカウント登録済みの全スタッフから選択できます。</p>
             <MemberPicker selectedIds={selected} onChange={setSelected} excludeIds={meId ? [meId] : []} candidates={candidates} />
           </div>
           {error && <p className="text-xs text-rose-600 font-medium">{error}</p>}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MemberPicker from "@/components/tasks/MemberPicker";
 import { MOCK_EMPLOYEES } from "@/lib/taskStore";
 
@@ -19,11 +19,36 @@ export default function AddMembersModal({
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  // candidates が渡されない場合は、アカウント登録済みの全スタッフを候補にする。
+  const [source, setSource] = useState<{ id: string; name: string }[]>(candidates ?? MOCK_EMPLOYEES);
+
+  useEffect(() => {
+    if (candidates) {
+      setSource(candidates);
+      return;
+    }
+    let alive = true;
+    fetch("/api/staff")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!alive) return;
+        const staff = (d?.staff ?? []) as { id: string; name: string }[];
+        if (Array.isArray(staff) && staff.length > 0) {
+          setSource(staff.map((s) => ({ id: s.id, name: s.name })));
+        }
+      })
+      .catch(() => {
+        /* keep fallback */
+      });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const submit = async () => {
     if (selected.length === 0) return;
     setSaving(true);
-    const source = candidates ?? MOCK_EMPLOYEES;
     const picked = selected.map((id) => {
       const c = source.find((x) => x.id === id);
       return { id, name: c?.name ?? id };
