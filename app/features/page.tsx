@@ -65,11 +65,11 @@ const features: Feature[] = [
   },
   {
     id: "employees",
-    href: "/employees",
+    href: "/employees/manage",
     label: "EMP",
     color: "from-emerald-500 to-blue-500",
     title: "スタッフ管理",
-    desc: "スタッフの一覧・詳細・登録と認証・権限管理。",
+    desc: "スタッフの新規登録と、所属部署・チーム・役職・グレードの登録修正。リスト表示。",
     tags: ["スタッフ", "認証", "権限"],
     status: "公開中",
   },
