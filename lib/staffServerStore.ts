@@ -46,6 +46,7 @@ function accountPath(id: string) {
 async function putJson(supabase: ReturnType<typeof getSupabaseAdmin>, path: string, value: unknown) {
   const { error } = await supabase.storage.from(BUCKET).upload(path, JSON.stringify(value), {
     contentType: "application/json",
+    cacheControl: "0",
     upsert: true,
   });
   if (error) throw new Error(error.message);
