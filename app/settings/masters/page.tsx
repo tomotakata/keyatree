@@ -1,57 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import BackButton from "@/components/BackButton";
 
-// ---- 初期マスターデータ ----
+// ---- マスターデータ型 ----
 type MasterItem = { id: string; label: string; order: number };
 type Masters = Record<string, MasterItem[]>;
-
-const initialMasters: Masters = {
-  department: [
-    { id: "d1", label: "営業部 > 第一営業課", order: 1 },
-    { id: "d2", label: "営業部 > 第二営業課", order: 2 },
-    { id: "d3", label: "管理部 > 総務課", order: 3 },
-    { id: "d4", label: "物件管理部 > 物件課", order: 4 },
-    { id: "d5", label: "経営管理部", order: 5 },
-  ],
-  position: [
-    { id: "p1", label: "代表取締役", order: 1 },
-    { id: "p2", label: "部長", order: 2 },
-    { id: "p3", label: "課長", order: 3 },
-    { id: "p4", label: "主任", order: 4 },
-    { id: "p5", label: "担当者", order: 5 },
-  ],
-  grade: [
-    { id: "g1", label: "E1", order: 1 },
-    { id: "g2", label: "E2", order: 2 },
-    { id: "g3", label: "J1", order: 3 },
-    { id: "g4", label: "J2", order: 4 },
-    { id: "g5", label: "J3", order: 5 },
-    { id: "g6", label: "S1", order: 6 },
-    { id: "g7", label: "S2", order: 7 },
-    { id: "g8", label: "S3", order: 8 },
-    { id: "g9", label: "M1", order: 9 },
-    { id: "g10", label: "M2", order: 10 },
-    { id: "g11", label: "M3", order: 11 },
-  ],
-  jobType: [
-    { id: "j1", label: "営業", order: 1 },
-    { id: "j2", label: "管理", order: 2 },
-    { id: "j3", label: "物件管理", order: 3 },
-    { id: "j4", label: "経営", order: 4 },
-    { id: "j5", label: "経理", order: 5 },
-    { id: "j6", label: "マーケティング", order: 6 },
-  ],
-  employmentType: [
-    { id: "e1", label: "正社員", order: 1 },
-    { id: "e2", label: "契約社員", order: 2 },
-    { id: "e3", label: "パートタイム", order: 3 },
-    { id: "e4", label: "アルバイト", order: 4 },
-  ],
-  blank: [],
-};
 
 const tabConfig = [
   { key: "department",    label: "所属チーム",     desc: "スタッフが所属するチームの一覧" },
@@ -143,34 +98,68 @@ function EditModal({
 
 // ---- メインページ ----
 export default function MastersPage() {
-  const [masters, setMasters] = useState<Masters>(initialMasters);
+  const [masters, setMasters] = useState<Masters>({});
   const [activeTab, setActiveTab] = useState("department");
   const [editTarget, setEditTarget] = useState<MasterItem | null | "new">(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   };
 
+  // 初期ロード：サーバーから取得（全端末共通）
+  useEffect(() => {
+    fetch("/api/masters")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.masters) setMasters(d.masters);
+      })
+      .catch(() => showToast("読み込みに失敗しました"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // サーバーへ保存（楽観的更新＋失敗時ロールバック）
+  const persist = useCallback(async (next: Masters, prev: Masters, successMsg: string) => {
+    setMasters(next);
+    setSaving(true);
+    try {
+      const res = await fetch("/api/masters", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ masters: next }),
+      });
+      if (!res.ok) throw new Error();
+      showToast(successMsg);
+    } catch {
+      setMasters(prev);
+      showToast("保存に失敗しました");
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
   const currentTab = tabConfig.find((t) => t.key === activeTab)!;
   const items = [...(masters[activeTab] ?? [])].sort((a, b) => a.order - b.order);
 
   const handleSave = (label: string) => {
+    const prev = masters;
     if (editTarget === "new") {
       const newItem: MasterItem = {
         id: `${activeTab}_${Date.now()}`,
         label,
         order: items.length + 1,
       };
-      setMasters((m) => ({ ...m, [activeTab]: [...(m[activeTab] ?? []), newItem] }));
-      showToast(`「${label}」を追加しました`);
+      const next = { ...masters, [activeTab]: [...(masters[activeTab] ?? []), newItem] };
+      persist(next, prev, `「${label}」を追加しました`);
     } else if (editTarget) {
-      setMasters((m) => ({
-        ...m,
-        [activeTab]: m[activeTab].map((it) => it.id === editTarget.id ? { ...it, label } : it),
-      }));
-      showToast(`「${label}」に更新しました`);
+      const next = {
+        ...masters,
+        [activeTab]: masters[activeTab].map((it) => (it.id === editTarget.id ? { ...it, label } : it)),
+      };
+      persist(next, prev, `「${label}」に更新しました`);
     }
     setEditTarget(null);
   };
@@ -178,11 +167,12 @@ export default function MastersPage() {
   const handleDelete = (id: string) => {
     const target = items.find((it) => it.id === id);
     if (!confirm(`「${target?.label}」を削除しますか？`)) return;
-    setMasters((m) => ({
-      ...m,
-      [activeTab]: m[activeTab].filter((it) => it.id !== id).map((it, i) => ({ ...it, order: i + 1 })),
-    }));
-    showToast(`「${target?.label}」を削除しました`);
+    const prev = masters;
+    const next = {
+      ...masters,
+      [activeTab]: masters[activeTab].filter((it) => it.id !== id).map((it, i) => ({ ...it, order: i + 1 })),
+    };
+    persist(next, prev, `「${target?.label}」を削除しました`);
   };
 
   return (
@@ -241,7 +231,8 @@ export default function MastersPage() {
                   </div>
                   <button
                     onClick={() => setEditTarget("new")}
-                    className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg transition"
+                    disabled={saving || loading}
+                    className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     + 追加
                   </button>
@@ -249,7 +240,9 @@ export default function MastersPage() {
 
                 {/* アイテムリスト */}
                 <div className="divide-y">
-                  {items.length === 0 ? (
+                  {loading ? (
+                    <div className="py-12 text-center text-gray-400 text-sm">読み込み中...</div>
+                  ) : items.length === 0 ? (
                     <div className="py-12 text-center text-gray-400 text-sm">
                       まだ登録されていません
                     </div>
