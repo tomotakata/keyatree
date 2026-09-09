@@ -12,6 +12,7 @@ import {
   listNavigatorRecords,
   rejectNavigatorRecord,
   updateNavigatorMetrics,
+  updateNavigatorAnswers,
   type ItemComment,
   type NavigatorKind,
   type NavigatorRecord,
@@ -229,6 +230,41 @@ export async function updateGoalMetricsAction(recordId: string, patch: Record<st
   revalidatePath("/goal-navigator");
   revalidatePath("/goal-navigator/history");
   revalidatePath(`/approvals/goal-navigators/${recordId}`);
+
+  return { ok: true as const, record };
+}
+
+/** 承認者による入力内容の編集・保存：承認者（管理者/人事）のみ。承認済みは保護（編集不可） */
+export async function updateNavigatorAnswersAction(
+  recordId: string,
+  answers: Record<string, string>
+) {
+  const session = await getServerSession();
+  if (!canApprove(session)) {
+    return { ok: false as const, message: "編集する権限がありません（承認者のみ）" };
+  }
+
+  const target = await getNavigatorRecordById(recordId);
+  if (!target) return { ok: false as const, message: "対象レコードが見つかりません" };
+  if (target.status === "approved") {
+    return { ok: false as const, message: "承認済みのため編集できません" };
+  }
+
+  const safeAnswers: Record<string, string> = {};
+  for (const [k, v] of Object.entries(answers)) {
+    safeAnswers[k] = String(v ?? "");
+  }
+
+  const record = await updateNavigatorAnswers(recordId, safeAnswers, {
+    actorId: session?.id || session?.employeeId,
+    actorName: session?.name || "承認者",
+  });
+  if (!record) return { ok: false as const, message: "保存に失敗しました" };
+
+  revalidatePath("/approvals/goal-navigators");
+  revalidatePath(`/approvals/goal-navigators/${recordId}`);
+  revalidatePath("/goal-navigator/history");
+  revalidatePath("/qualitative-goal-navigator/history");
 
   return { ok: true as const, record };
 }

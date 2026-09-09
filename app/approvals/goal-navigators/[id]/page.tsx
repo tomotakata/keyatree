@@ -4,8 +4,9 @@ import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
 import ReviewDecisionPanel from "@/components/goal-navigator/ReviewDecisionPanel";
 import ProgressPanel from "@/components/goal-navigator/ProgressPanel";
 import ItemCommentPanel from "@/components/goal-navigator/ItemCommentPanel";
+import ApproverSheetEditor from "@/components/goal-navigator/ApproverSheetEditor";
 import { getNavigatorRecordDetail } from "@/lib/goalNavigatorActions";
-import { labelForField } from "@/lib/goalFieldLabels";
+import { getStaff } from "@/lib/staffServerStore";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -48,7 +49,38 @@ export default async function GoalNavigatorApprovalDetailPage({
   }
 
   const { record, canApprove, isOwner } = result;
-  const entries = Object.entries(record.answers).filter(([, value]) => Boolean(value));
+
+  // 提出者のステージ・グレードを補完（シートの表示用。answersに保存されていない値を補う）
+  // 定量シート：ステージ＝staff.grade、グレード＝staff.position
+  // 定性シート：グレード＝answers.grade || staff.grade（能力項目の絞り込みにも使用）
+  let staffStage = "";
+  let staffPosition = "";
+  let staffGrade = "";
+  if (record.employeeId) {
+    try {
+      const staff = await getStaff(record.employeeId);
+      if (staff) {
+        staffStage = staff.grade || "";
+        staffPosition = staff.position || "";
+        staffGrade = staff.grade || "";
+      }
+    } catch {
+      // 取得失敗時は空のまま
+    }
+  }
+  const sheetProfile =
+    record.kind === "quantitative"
+      ? {
+          name: record.answers.name || record.employeeName,
+          stage: staffStage,
+          grade: staffPosition,
+          department: record.department,
+        }
+      : {
+          name: record.answers.name || record.employeeName,
+          department: record.answers.department || record.department,
+          grade: record.answers.grade || staffGrade,
+        };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -112,21 +144,14 @@ export default async function GoalNavigatorApprovalDetailPage({
           </div>
         ) : null}
 
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <h2 className="text-base font-bold text-gray-800">入力内容</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {entries.length === 0 ? (
-              <p className="text-sm text-gray-400">入力内容がありません</p>
-            ) : (
-              entries.map(([key, value]) => (
-                <div key={key} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                  <p className="text-xs font-bold text-gray-400">{labelForField(key)}</p>
-                  <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-gray-700">{value}</p>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <ApproverSheetEditor
+          recordId={record.id}
+          kind={record.kind}
+          status={record.status}
+          initialAnswers={record.answers}
+          canEdit={canApprove}
+          profile={sheetProfile}
+        />
 
         {canApprove ? <ReviewDecisionPanel recordId={record.id} status={record.status} /> : null}
 

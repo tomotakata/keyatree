@@ -80,6 +80,8 @@ export type NavigatorRecord = {
   reviewedBy?: string;
   progressUpdates?: ProgressUpdate[];
   itemComments?: ItemComment[];
+  lastEditedBy?: string;
+  lastEditedAt?: string;
 };
 
 type AuditActor = {
@@ -585,6 +587,49 @@ export async function updateNavigatorMetrics(recordId: string, patch: Record<str
   if (!record) return null;
   record.answers = { ...record.answers, ...patch };
   record.updatedAt = now;
+  return record;
+}
+
+// ---- 承認者による入力内容の編集（提出内容を上書き。承認ステータスは変更しない）----
+export async function updateNavigatorAnswers(
+  recordId: string,
+  answers: Record<string, string>,
+  actor?: AuditActor
+) {
+  const now = new Date().toISOString();
+
+  const applyPatch = (record: NavigatorRecord): NavigatorRecord => ({
+    ...record,
+    answers: { ...record.answers, ...answers },
+    updatedAt: now,
+    lastEditedBy: actor?.actorName,
+    lastEditedAt: now,
+  });
+
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseAdmin();
+    await ensureBucket(supabase);
+    const before = await getJson<NavigatorRecord>(supabase, recordPath(recordId));
+    if (!before) return null;
+    const record = applyPatch(before);
+    await putJson(supabase, recordPath(record.id), record);
+    await writeAuditLog(supabase, {
+      entityId: record.id,
+      operation: "update",
+      beforeData: before,
+      afterData: record,
+      actor,
+    });
+    return record;
+  }
+
+  const records = getStore();
+  const record = records.find((item) => item.id === recordId);
+  if (!record) return null;
+  record.answers = { ...record.answers, ...answers };
+  record.updatedAt = now;
+  record.lastEditedBy = actor?.actorName;
+  record.lastEditedAt = now;
   return record;
 }
 
