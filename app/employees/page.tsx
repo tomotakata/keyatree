@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { employees, calcTenure, Employee } from "@/lib/mockData";
 import Avatar from "@/components/Avatar";
@@ -13,7 +13,6 @@ const rankColors: Record<string, { bg: string; text: string; border: string }> =
   C: { bg: "bg-gray-50", text: "text-gray-500", border: "border-gray-300" },
 };
 
-const teamOptions = ["すべて", ...Array.from(new Set(employees.map((e) => e.team).filter(Boolean)))];
 const rankOptions = ["すべて", "S", "A", "B", "C"];
 
 export default function EmployeeListPage() {
@@ -21,6 +20,11 @@ export default function EmployeeListPage() {
   const [team, setTeam] = useState("すべて");
   const [rank, setRank] = useState("すべて");
   const [allEmployees, setAllEmployees] = useState<Employee[]>(employees);
+
+  const teamOptions = useMemo(
+    () => ["すべて", ...Array.from(new Set(allEmployees.map((e) => e.team).filter(Boolean)))],
+    [allEmployees],
+  );
 
   useEffect(() => {
     // Supabase に保存された新規スタッフを取得してマージ
