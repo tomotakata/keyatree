@@ -177,7 +177,7 @@ export default function EmployeeListPage() {
                       <div className="flex-shrink-0 relative">
                         {emp.photo ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={emp.photo} alt={emp.name} className="w-14 h-14 rounded-full object-cover shadow" />
+                          <img src={emp.photo} alt={emp.name} className="w-24 h-24 rounded-full object-cover shadow flex-shrink-0" />
                         ) : (
                           <Avatar name={emp.name} size="lg" className="shadow" />
                         )}
