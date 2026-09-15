@@ -1047,7 +1047,7 @@ function TalkView({
                                     ))}
                                   </div>
                                 )}
-                                <div className="flex items-end gap-2">
+                                <div className="rounded-lg border border-zinc-700 bg-zinc-800/40 p-2">
                                   <MentionTextarea
                                     autoFocus
                                     value={replyText}
@@ -1057,14 +1057,16 @@ function TalkView({
                                     onEscape={() => { setReplyTo(null); setReplyText(""); setReplyAttachments([]); }}
                                     onImageFiles={(files) => addImageFiles(files, "reply")}
                                     showToolbar
-                                    rows={1}
-                                    placeholder="返信を入力（@でメンション・画像はCtrl+Vで添付・⌘/Ctrl+Enterで送信）"
-                                    className="w-full resize-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-24"
+                                    rows={2}
+                                    placeholder="返信を入力（@でメンション・装飾ツールバー・画像はCtrl+Vで添付・⌘/Ctrl+Enterで送信）"
+                                    className="w-full resize-none bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-40"
                                   />
-                                  <button onClick={() => sendReply(p.id)} disabled={replySending || (!replyText.trim() && replyAttachments.length === 0)} className="flex-shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50">
-                                    {replySending ? "送信中" : "返信"}
-                                  </button>
-                                  <button onClick={() => { setReplyTo(null); setReplyText(""); setReplyAttachments([]); }} className="flex-shrink-0 text-xs text-zinc-500 hover:text-zinc-300 px-1">取消</button>
+                                  <div className="mt-2 flex items-center justify-end gap-2">
+                                    <button onClick={() => { setReplyTo(null); setReplyText(""); setReplyAttachments([]); }} className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1.5">取消</button>
+                                    <button onClick={() => sendReply(p.id)} disabled={replySending || (!replyText.trim() && replyAttachments.length === 0)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition disabled:opacity-50">
+                                      {replySending ? "送信中" : "返信"}
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             ) : canManage ? (
