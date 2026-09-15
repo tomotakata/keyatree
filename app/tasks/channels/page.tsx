@@ -995,6 +995,7 @@ function TalkView({
                                     onSubmit={() => sendReply(p.id)}
                                     onEscape={() => { setReplyTo(null); setReplyText(""); setReplyAttachments([]); }}
                                     onImageFiles={(files) => addImageFiles(files, "reply")}
+                                    showToolbar
                                     rows={1}
                                     placeholder="返信を入力（@でメンション・画像はCtrl+Vで添付・⌘/Ctrl+Enterで送信）"
                                     className="w-full resize-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-24"
