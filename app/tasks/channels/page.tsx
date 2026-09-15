@@ -20,6 +20,15 @@ type Channel = { id: string; name: string; description?: string; members: Channe
 type TalkMember = { id: string; name: string; joinedAt: string };
 type Talk = { id: string; channelId: string; name: string; description?: string; members: TalkMember[]; updatedAt: string };
 type TalkMessageReaction = { emoji: string; userIds: string[] };
+type TalkQuote = {
+  messageId: string;
+  talkId: string;
+  channelId: string;
+  talkName?: string;
+  authorName: string;
+  text: string;
+  createdAt?: string;
+};
 type TalkMessage = {
   id: string;
   talkId: string;
@@ -31,6 +40,7 @@ type TalkMessage = {
   reactions?: TalkMessageReaction[];
   mentions?: { id: string; name: string }[];
   attachments?: { name?: string; dataUrl: string }[];
+  quote?: TalkQuote;
   subject?: string;
   parentId?: string;
   taskId?: string;
@@ -74,6 +84,25 @@ function renderAttachments(attachments?: { name?: string; dataUrl: string }[]) {
           <img src={a.dataUrl} alt={a.name || "添付画像"} className="max-h-56 max-w-[280px] object-contain bg-zinc-950" />
         </a>
       ))}
+    </div>
+  );
+}
+
+// 引用ブロックを表示（現在 or 他トークルームのメッセージを参照）
+function renderQuote(quote?: TalkQuote, currentTalkId?: string) {
+  if (!quote) return null;
+  const otherRoom = quote.talkId !== currentTalkId;
+  return (
+    <div className="mt-0.5 mb-1 border-l-2 border-emerald-500/60 bg-zinc-800/40 rounded-r-md px-3 py-1.5">
+      <div className="flex items-center gap-1.5 text-[11px] text-emerald-300/90">
+        <span>❝ 引用</span>
+        <span className="font-bold text-zinc-200">{quote.authorName}</span>
+        {otherRoom && quote.talkName && (
+          <span className="text-zinc-400">＠{quote.talkName}</span>
+        )}
+        {quote.createdAt && <span className="text-zinc-500">{fmt(quote.createdAt)}</span>}
+      </div>
+      <p className="mt-0.5 text-[12px] text-zinc-300 whitespace-pre-wrap break-words line-clamp-4">{quote.text}</p>
     </div>
   );
 }
@@ -652,6 +681,9 @@ function TalkView({
   // 添付画像（data URL）
   const [attachments, setAttachments] = useState<{ name?: string; dataUrl: string }[]>([]);
   const [attachError, setAttachError] = useState("");
+  // 引用（現在 or 他トークルームのメッセージ）
+  const [quoteDraft, setQuoteDraft] = useState<TalkQuote | null>(null);
+  const [showQuotePicker, setShowQuotePicker] = useState(false);
   // スレッド返信
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -693,14 +725,22 @@ function TalkView({
 
   const sendMessage = async () => {
     const text = composer.trim();
-    if ((!text && attachments.length === 0) || sending) return;
+    if ((!text && attachments.length === 0 && !quoteDraft) || sending) return;
     setSending(true);
     try {
       const mentions = extractMentions(text, talk.members);
       const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, subject: subject.trim() || undefined, mentions, attachments }),
+        body: JSON.stringify({
+          text,
+          subject: subject.trim() || undefined,
+          mentions,
+          attachments,
+          quote: quoteDraft
+            ? { messageId: quoteDraft.messageId, talkId: quoteDraft.talkId, channelId: quoteDraft.channelId }
+            : undefined,
+        }),
       });
       const d = await res.json();
       if (res.ok && d.message) {
@@ -708,6 +748,7 @@ function TalkView({
         setComposer("");
         setSubject("");
         setAttachments([]);
+        setQuoteDraft(null);
         setComposerOpen(false);
       } else {
         alert(d?.error ?? "送信に失敗しました");
@@ -715,6 +756,20 @@ function TalkView({
     } finally {
       setSending(false);
     }
+  };
+
+  // メッセージを引用してコンポーザを開く（現在のトークルーム）
+  const quoteMessage = (m: TalkMessage) => {
+    setQuoteDraft({
+      messageId: m.id,
+      talkId: talk.id,
+      channelId: channel.id,
+      talkName: talk.name,
+      authorName: m.authorName,
+      text: (m.text || (m.attachments?.length ? "[画像]" : "")).slice(0, 500),
+      createdAt: m.createdAt,
+    });
+    setComposerOpen(true);
   };
 
   const sendReply = async (parentId: string) => {
@@ -921,6 +976,7 @@ function TalkView({
                             <span className="text-[11px] text-zinc-500">{fmt(m.createdAt)}</span>
                           </div>
                           {!isReply && m.subject && <p className="text-[15px] font-bold text-white mt-0.5">{m.subject}</p>}
+                          {renderQuote(m.quote, talk.id)}
                           {m.text ? (
                             <div className="mt-0.5 rounded-lg bg-zinc-800/70 px-3 py-2 text-sm text-zinc-100 break-words">{renderRichMessage(m.text, talk.members, meId)}</div>
                           ) : null}
@@ -941,6 +997,11 @@ function TalkView({
                             ))}
                             <span className="opacity-0 group-hover:opacity-100 transition flex items-center gap-2">
                               <button onClick={() => toggleReaction(m.id, "👍")} className="text-[12px] text-zinc-500 hover:text-emerald-400" title="いいね">👍</button>
+                              {canManage && (
+                                <button onClick={() => quoteMessage(m)} className="text-[11px] font-bold text-sky-400 hover:text-sky-300" title="このメッセージを引用">
+                                  引用
+                                </button>
+                              )}
                               {canManage && (
                                 <button onClick={() => openTaskFromMessage(m)} className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300">
                                   依頼（タスク）にする
@@ -1033,8 +1094,23 @@ function TalkView({
                         {(talk.members.find((m) => m.id === meId)?.name ?? "自").charAt(0)}
                       </span>
                       <span className="text-sm font-bold text-white">{talk.members.find((m) => m.id === meId)?.name ?? "自分"}</span>
-                      <button onClick={() => { setComposerOpen(false); setSubject(""); setComposer(""); setAttachments([]); setAttachError(""); }} className="ml-auto text-zinc-500 hover:text-zinc-300 text-sm">✕</button>
+                      <button onClick={() => { setComposerOpen(false); setSubject(""); setComposer(""); setAttachments([]); setAttachError(""); setQuoteDraft(null); }} className="ml-auto text-zinc-500 hover:text-zinc-300 text-sm">✕</button>
                     </div>
+                    {quoteDraft && (
+                      <div className="mb-2 flex items-start gap-2 border-l-2 border-sky-500/70 bg-zinc-800/50 rounded-r-md px-3 py-1.5">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 text-[11px] text-sky-300">
+                            <span>❝ 引用</span>
+                            <span className="font-bold text-zinc-200">{quoteDraft.authorName}</span>
+                            {quoteDraft.talkId !== talk.id && quoteDraft.talkName && (
+                              <span className="text-zinc-400">＠{quoteDraft.talkName}</span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 text-[12px] text-zinc-300 whitespace-pre-wrap break-words line-clamp-3">{quoteDraft.text}</p>
+                        </div>
+                        <button type="button" onClick={() => setQuoteDraft(null)} className="flex-shrink-0 text-zinc-500 hover:text-rose-400 text-xs">✕</button>
+                      </div>
+                    )}
                     <input
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
@@ -1072,10 +1148,15 @@ function TalkView({
                       </div>
                     )}
                     <div className="flex items-center justify-between mt-2">
-                      <button onClick={openTaskBlank} className="text-xs font-bold text-zinc-300 hover:text-emerald-300 border border-zinc-700 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
-                        ＋依頼（タスク）
-                      </button>
-                      <button onClick={sendMessage} disabled={sending || (!composer.trim() && attachments.length === 0)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-1.5 rounded-lg transition disabled:opacity-50">
+                      <div className="flex items-center gap-2">
+                        <button onClick={openTaskBlank} className="text-xs font-bold text-zinc-300 hover:text-emerald-300 border border-zinc-700 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
+                          ＋依頼（タスク）
+                        </button>
+                        <button onClick={() => setShowQuotePicker(true)} className="text-xs font-bold text-zinc-300 hover:text-sky-300 border border-zinc-700 hover:border-sky-500 px-3 py-1.5 rounded-lg transition">
+                          ❝ 他のトークから引用
+                        </button>
+                      </div>
+                      <button onClick={sendMessage} disabled={sending || (!composer.trim() && attachments.length === 0 && !quoteDraft)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-1.5 rounded-lg transition disabled:opacity-50">
                         {sending ? "投稿中" : "投稿"}
                       </button>
                     </div>
@@ -1241,6 +1322,163 @@ function TalkView({
           }}
         />
       )}
+
+      {showQuotePicker && (
+        <QuotePicker
+          onClose={() => setShowQuotePicker(false)}
+          onPick={(q) => {
+            setQuoteDraft(q);
+            setShowQuotePicker(false);
+            setComposerOpen(true);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ------------ 引用ピッカー（他のトークルームのメッセージを選ぶ） ------------ */
+function QuotePicker({
+  onClose,
+  onPick,
+}: {
+  onClose: () => void;
+  onPick: (quote: TalkQuote) => void;
+}) {
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [talks, setTalks] = useState<Talk[]>([]);
+  const [msgs, setMsgs] = useState<TalkMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selChannel, setSelChannel] = useState<Channel | null>(null);
+  const [selTalk, setSelTalk] = useState<Talk | null>(null);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/task-channels")
+      .then((r) => r.json())
+      .then((d) => setChannels(d?.channels ?? []))
+      .catch(() => setChannels([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const openChannel = async (c: Channel) => {
+    setSelChannel(c);
+    setSelTalk(null);
+    setMsgs([]);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/task-channels/${c.id}`);
+      const d = await res.json();
+      setTalks(res.ok ? d.talks ?? [] : []);
+    } catch {
+      setTalks([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openTalk = async (t: Talk) => {
+    setSelTalk(t);
+    setMsgs([]);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/task-channels/${t.channelId}/talks/${t.id}/messages`);
+      const d = await res.json();
+      setMsgs(res.ok ? (d.messages ?? []).filter((m: TalkMessage) => m.kind !== "system") : []);
+    } catch {
+      setMsgs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pick = (m: TalkMessage) => {
+    if (!selChannel || !selTalk) return;
+    onPick({
+      messageId: m.id,
+      talkId: selTalk.id,
+      channelId: selChannel.id,
+      talkName: selTalk.name,
+      authorName: m.authorName,
+      text: (m.text || (m.attachments?.length ? "[画像]" : "")).slice(0, 500),
+      createdAt: m.createdAt,
+    });
+  };
+
+  const filteredMsgs = search.trim()
+    ? msgs.filter((m) => (m.text || "").toLowerCase().includes(search.trim().toLowerCase()))
+    : msgs;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div className="w-full max-w-3xl max-h-[80vh] rounded-2xl bg-zinc-900 border border-zinc-700 shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800">
+          <span className="text-sm font-bold text-white">❝ 引用するメッセージを選択</span>
+          <button onClick={onClose} className="ml-auto text-zinc-500 hover:text-zinc-300">✕</button>
+        </div>
+        {/* パンくず */}
+        <div className="flex items-center gap-1 px-4 py-2 text-[12px] text-zinc-400 border-b border-zinc-800 flex-wrap">
+          <button onClick={() => { setSelChannel(null); setSelTalk(null); setTalks([]); setMsgs([]); }} className="hover:text-emerald-300">チャンネル</button>
+          {selChannel && <><span>›</span><button onClick={() => openChannel(selChannel)} className="hover:text-emerald-300">{selChannel.name}</button></>}
+          {selTalk && <><span>›</span><span className="text-zinc-200 font-bold">{selTalk.name}</span></>}
+        </div>
+        <div className="flex-1 overflow-y-auto p-3">
+          {loading ? (
+            <p className="text-sm text-zinc-500 py-10 text-center">読み込み中...</p>
+          ) : !selChannel ? (
+            <div className="grid gap-1.5">
+              {channels.length === 0 ? (
+                <p className="text-sm text-zinc-500 py-10 text-center">チャンネルがありません</p>
+              ) : (
+                channels.map((c) => (
+                  <button key={c.id} onClick={() => openChannel(c)} className="text-left rounded-lg border border-zinc-800 hover:border-emerald-500 bg-zinc-800/40 px-3 py-2 text-sm text-zinc-200 transition flex items-center gap-2">
+                    <span className="text-emerald-400">#</span>{c.name}
+                  </button>
+                ))
+              )}
+            </div>
+          ) : !selTalk ? (
+            <div className="grid gap-1.5">
+              {talks.length === 0 ? (
+                <p className="text-sm text-zinc-500 py-10 text-center">トークルームがありません</p>
+              ) : (
+                talks.map((t) => (
+                  <button key={t.id} onClick={() => openTalk(t)} className="text-left rounded-lg border border-zinc-800 hover:border-emerald-500 bg-zinc-800/40 px-3 py-2 text-sm text-zinc-200 transition flex items-center gap-2">
+                    <span className="text-sky-400">💬</span>{t.name}
+                  </button>
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="メッセージを検索..."
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              {filteredMsgs.length === 0 ? (
+                <p className="text-sm text-zinc-500 py-10 text-center">メッセージがありません</p>
+              ) : (
+                filteredMsgs.map((m) => (
+                  <button key={m.id} onClick={() => pick(m)} className="w-full text-left rounded-lg border border-zinc-800 hover:border-sky-500 bg-zinc-800/40 px-3 py-2 transition">
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+                      <span className="font-bold text-zinc-200">{m.authorName}</span>
+                      <span>{fmt(m.createdAt)}</span>
+                      {m.parentId && <span className="text-emerald-400">↩ 返信</span>}
+                    </div>
+                    {m.subject && <p className="text-[13px] font-bold text-white mt-0.5">{m.subject}</p>}
+                    <p className="mt-0.5 text-[13px] text-zinc-300 whitespace-pre-wrap break-words line-clamp-3">
+                      {m.text || (m.attachments?.length ? "[画像]" : "")}
+                    </p>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -68,6 +68,8 @@ export async function POST(request: Request, ctx: Ctx) {
       mentions?: { id?: string; name?: string }[];
       // 添付画像（data URL）
       attachments?: { name?: string; dataUrl?: string }[];
+      // 引用元メッセージ（現在 or 他のトークルーム）
+      quote?: { messageId?: string; talkId?: string; channelId?: string };
     };
 
     const authorId = session.employeeId ?? session.id ?? "";
@@ -89,7 +91,7 @@ export async function POST(request: Request, ctx: Ctx) {
           .map((a) => ({ name: a.name?.slice(0, 120), dataUrl: a.dataUrl as string }))
       : [];
 
-    if (!text && attachments.length === 0) {
+    if (!text && attachments.length === 0 && !body.quote?.messageId) {
       return NextResponse.json({ error: "本文または画像を入力してください" }, { status: 400 });
     }
 
@@ -100,6 +102,40 @@ export async function POST(request: Request, ctx: Ctx) {
           .filter((m): m is { id: string; name?: string } => Boolean(m?.id) && memberMap.has(m.id as string))
           .map((m) => ({ id: m.id, name: memberMap.get(m.id) ?? m.name ?? "" }))
       : undefined;
+
+    // 引用: 参照元メッセージをサーバー側で解決してスナップショット化（改ざん防止）
+    let quote: {
+      messageId: string;
+      talkId: string;
+      channelId: string;
+      talkName?: string;
+      authorName: string;
+      text: string;
+      createdAt?: string;
+    } | undefined;
+    const q = body.quote;
+    if (q?.messageId && q?.talkId && q?.channelId) {
+      const srcChannel = await getChannel(q.channelId);
+      const srcTalk = await getTalk(q.talkId);
+      if (srcChannel && srcTalk && srcTalk.channelId === q.channelId) {
+        const canAccessSrc = session.permissionId === "admin" || isChannelMember(srcChannel, session);
+        if (canAccessSrc) {
+          const srcMessages = await listTalkMessages(q.talkId);
+          const src = srcMessages.find((m) => m.id === q.messageId);
+          if (src) {
+            quote = {
+              messageId: src.id,
+              talkId: q.talkId,
+              channelId: q.channelId,
+              talkName: srcTalk.name,
+              authorName: src.authorName,
+              text: (src.text || (src.attachments?.length ? "[画像]" : "")).slice(0, 500),
+              createdAt: src.createdAt,
+            };
+          }
+        }
+      }
+    }
 
     const message = await addTalkMessage({
       talkId,
@@ -114,6 +150,7 @@ export async function POST(request: Request, ctx: Ctx) {
       kind: body.kind ?? "message",
       mentions,
       attachments,
+      quote,
     });
     // トークルームの updatedAt を更新（一覧の並びに反映）
     await saveTalk(talk);
