@@ -6,7 +6,8 @@ import MemberPicker from "@/components/tasks/MemberPicker";
 import AddMembersModal from "@/components/tasks/AddMembersModal";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
 import MentionTextarea from "@/components/tasks/MentionTextarea";
-import { segmentMentions, extractMentions } from "@/lib/mentions";
+import { extractMentions } from "@/lib/mentions";
+import { renderRichMessage } from "@/lib/messageFormat";
 import { resizeImageToDataUrl } from "@/lib/clientImage";
 import { MOCK_EMPLOYEES, STATUS_CONFIG, formatDeadline, type FullTask } from "@/lib/taskStore";
 import { apiListTasks } from "@/lib/taskClient";
@@ -78,29 +79,7 @@ function renderAttachments(attachments?: { name?: string; dataUrl: string }[]) {
 }
 
 // 本文中の @メンションをハイライト表示する
-function renderMessageBody(
-  text: string,
-  members: { id: string; name: string }[],
-  meId: string
-) {
-  const segments = segmentMentions(text, members);
-  return segments.map((seg, idx) => {
-    if (seg.type === "mention") {
-      const isMe = seg.id === meId;
-      return (
-        <span
-          key={idx}
-          className={`font-bold rounded px-1 ${
-            isMe ? "bg-emerald-500/30 text-emerald-200" : "text-emerald-300"
-          }`}
-        >
-          @{seg.name}
-        </span>
-      );
-    }
-    return <span key={idx}>{seg.text}</span>;
-  });
-}
+
 
 export default function ChannelsWorkspacePage() {
   const [session, setSession] = useState<SessionInfo | null>(null);
@@ -943,7 +922,7 @@ function TalkView({
                           </div>
                           {!isReply && m.subject && <p className="text-[15px] font-bold text-white mt-0.5">{m.subject}</p>}
                           {m.text ? (
-                            <div className="mt-0.5 rounded-lg bg-zinc-800/70 px-3 py-2 text-sm text-zinc-100 whitespace-pre-wrap break-words">{renderMessageBody(m.text, talk.members, meId)}</div>
+                            <div className="mt-0.5 rounded-lg bg-zinc-800/70 px-3 py-2 text-sm text-zinc-100 break-words">{renderRichMessage(m.text, talk.members, meId)}</div>
                           ) : null}
                           {renderAttachments(m.attachments)}
                           <div className="mt-1 flex items-center gap-2 flex-wrap">
@@ -1068,6 +1047,7 @@ function TalkView({
                       members={talk.members.map((mm) => ({ id: mm.id, name: mm.name }))}
                       onSubmit={sendMessage}
                       onImageFiles={(files) => addImageFiles(files, "main")}
+                      showToolbar
                       rows={3}
                       placeholder="メッセージを入力（@でメンション・画像はCtrl+Vで添付・⌘/Ctrl+Enterで投稿）"
                       className="w-full resize-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-48"

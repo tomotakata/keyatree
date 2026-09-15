@@ -20,6 +20,7 @@ export default function MentionTextarea({
   onSubmit,
   onEscape,
   onImageFiles,
+  showToolbar = false,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -31,6 +32,7 @@ export default function MentionTextarea({
   onSubmit?: () => void;
   onEscape?: () => void;
   onImageFiles?: (files: File[]) => void;
+  showToolbar?: boolean;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [open, setOpen] = useState(false);
@@ -120,6 +122,81 @@ export default function MentionTextarea({
     }
   };
 
+  // ---- 書式ツールバー操作 ----
+  const applyWrap = (token: string) => {
+    const el = ref.current;
+    if (!el) return;
+    const s = el.selectionStart ?? 0;
+    const ei = el.selectionEnd ?? 0;
+    const sel = value.slice(s, ei) || "テキスト";
+    const next = value.slice(0, s) + token + sel + token + value.slice(ei);
+    onChange(next);
+    const start = s + token.length;
+    const end = start + sel.length;
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start, end);
+    });
+  };
+
+  const applyHeading = (hashes: string) => {
+    const el = ref.current;
+    if (!el) return;
+    const s = el.selectionStart ?? 0;
+    const lineStart = value.lastIndexOf("\n", s - 1) + 1;
+    let lineEnd = value.indexOf("\n", s);
+    if (lineEnd === -1) lineEnd = value.length;
+    const line = value.slice(lineStart, lineEnd).replace(/^#{1,6}\s+/, "");
+    const inserted = `${hashes} ${line}`;
+    const next = value.slice(0, lineStart) + inserted + value.slice(lineEnd);
+    onChange(next);
+    const pos = lineStart + inserted.length;
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(pos, pos);
+    });
+  };
+
+  const applyList = (ordered: boolean) => {
+    const el = ref.current;
+    if (!el) return;
+    const s = el.selectionStart ?? 0;
+    const ei = el.selectionEnd ?? 0;
+    const lineStart = value.lastIndexOf("\n", s - 1) + 1;
+    let lineEnd = value.indexOf("\n", ei);
+    if (lineEnd === -1) lineEnd = value.length;
+    const block = value.slice(lineStart, lineEnd);
+    const transformed = block
+      .split("\n")
+      .map((ln, idx) => {
+        const stripped = ln.replace(/^(\s*)([-*]\s+|\d+\.\s+)/, "$1");
+        return ordered ? `${idx + 1}. ${stripped}` : `- ${stripped}`;
+      })
+      .join("\n");
+    const next = value.slice(0, lineStart) + transformed + value.slice(lineEnd);
+    onChange(next);
+    const pos = lineStart + transformed.length;
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(lineStart, pos);
+    });
+  };
+
+  const insertHr = () => {
+    const el = ref.current;
+    if (!el) return;
+    const s = el.selectionStart ?? value.length;
+    const needNlBefore = s > 0 && value[s - 1] !== "\n";
+    const ins = `${needNlBefore ? "\n" : ""}---\n`;
+    const next = value.slice(0, s) + ins + value.slice(s);
+    onChange(next);
+    const pos = s + ins.length;
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(pos, pos);
+    });
+  };
+
   const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
     if (!onImageFiles) return;
     const items = Array.from(e.clipboardData?.items ?? []);
@@ -138,6 +215,32 @@ export default function MentionTextarea({
 
   return (
     <div className="relative flex-1 min-w-0">
+      {showToolbar && (
+        <div className="mb-1.5 flex flex-wrap items-center gap-1">
+          {[
+            { label: "大", title: "見出し（大）", fn: () => applyHeading("#"), cls: "text-base font-bold" },
+            { label: "中", title: "小見出し（中）", fn: () => applyHeading("##"), cls: "text-sm font-bold" },
+            { label: "B", title: "太字", fn: () => applyWrap("**"), cls: "font-bold" },
+            { label: "マーカー", title: "マーカー（ハイライト）", fn: () => applyWrap("=="), cls: "bg-yellow-300/80 text-zinc-900" },
+            { label: "1.", title: "番号リスト", fn: () => applyList(true), cls: "" },
+            { label: "•", title: "箇条書き", fn: () => applyList(false), cls: "" },
+            { label: "─", title: "水平線", fn: insertHr, cls: "" },
+          ].map((b) => (
+            <button
+              key={b.title}
+              type="button"
+              title={b.title}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                b.fn();
+              }}
+              className={`min-w-7 h-7 px-2 rounded-md border border-zinc-700 bg-zinc-800 text-zinc-200 text-xs hover:border-emerald-500 hover:text-white transition ${b.cls}`}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
+      )}
       <textarea
         ref={ref}
         autoFocus={autoFocus}
