@@ -66,6 +66,8 @@ export async function POST(request: Request, ctx: Ctx) {
       kind?: "message" | "system";
       // @メンション（本文中で言及されたメンバー）
       mentions?: { id?: string; name?: string }[];
+      // 添付画像（data URL）
+      attachments?: { name?: string; dataUrl?: string }[];
     };
 
     const authorId = session.employeeId ?? session.id ?? "";
@@ -78,7 +80,18 @@ export async function POST(request: Request, ctx: Ctx) {
     }
 
     const text = (body.text ?? "").trim();
-    if (!text) return NextResponse.json({ error: "本文を入力してください" }, { status: 400 });
+
+    // 添付画像（data:image/... のみ許可・最大6枚）
+    const attachments = Array.isArray(body.attachments)
+      ? body.attachments
+          .filter((a) => typeof a?.dataUrl === "string" && a.dataUrl.startsWith("data:image/"))
+          .slice(0, 6)
+          .map((a) => ({ name: a.name?.slice(0, 120), dataUrl: a.dataUrl as string }))
+      : [];
+
+    if (!text && attachments.length === 0) {
+      return NextResponse.json({ error: "本文または画像を入力してください" }, { status: 400 });
+    }
 
     // メンションはトークルームの参加メンバーのみ有効にする
     const memberMap = new Map(talk.members.map((m) => [m.id, m.name]));
@@ -100,6 +113,7 @@ export async function POST(request: Request, ctx: Ctx) {
       taskTitle: body.taskTitle,
       kind: body.kind ?? "message",
       mentions,
+      attachments,
     });
     // トークルームの updatedAt を更新（一覧の並びに反映）
     await saveTalk(talk);

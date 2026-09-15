@@ -7,6 +7,7 @@ import AddMembersModal from "@/components/tasks/AddMembersModal";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
 import MentionTextarea from "@/components/tasks/MentionTextarea";
 import { segmentMentions, extractMentions } from "@/lib/mentions";
+import { resizeImageToDataUrl } from "@/lib/clientImage";
 import { MOCK_EMPLOYEES, STATUS_CONFIG, formatDeadline, type FullTask } from "@/lib/taskStore";
 import { apiListTasks } from "@/lib/taskClient";
 import { reminderLevel, REMINDER_STYLE } from "@/lib/taskReminder";
@@ -28,6 +29,7 @@ type TalkMessage = {
   createdAt: string;
   reactions?: TalkMessageReaction[];
   mentions?: { id: string; name: string }[];
+  attachments?: { name?: string; dataUrl: string }[];
   subject?: string;
   parentId?: string;
   taskId?: string;
@@ -51,6 +53,28 @@ function fmt(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "-";
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+// 添付画像を表示（クリックで別タブに原寸表示）
+function renderAttachments(attachments?: { name?: string; dataUrl: string }[]) {
+  if (!attachments || attachments.length === 0) return null;
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-2">
+      {attachments.map((a, i) => (
+        <a
+          key={i}
+          href={a.dataUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block rounded-lg overflow-hidden border border-zinc-700 hover:border-emerald-500 transition"
+          title={a.name || "画像を開く"}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={a.dataUrl} alt={a.name || "添付画像"} className="max-h-56 max-w-[280px] object-contain bg-zinc-950" />
+        </a>
+      ))}
+    </div>
+  );
 }
 
 // 本文中の @メンションをハイライト表示する
@@ -646,10 +670,30 @@ function TalkView({
   const [subject, setSubject] = useState("");
   const [composerOpen, setComposerOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  // 添付画像（data URL）
+  const [attachments, setAttachments] = useState<{ name?: string; dataUrl: string }[]>([]);
+  const [attachError, setAttachError] = useState("");
   // スレッド返信
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replySending, setReplySending] = useState(false);
+  const [replyAttachments, setReplyAttachments] = useState<{ name?: string; dataUrl: string }[]>([]);
+
+  const addImageFiles = async (files: File[], target: "main" | "reply") => {
+    setAttachError("");
+    const imgs = files.filter((f) => f.type.startsWith("image/"));
+    if (imgs.length === 0) return;
+    try {
+      const resized = await Promise.all(
+        imgs.map(async (f) => ({ name: f.name || "screenshot.png", dataUrl: await resizeImageToDataUrl(f) }))
+      );
+      const setter = target === "main" ? setAttachments : setReplyAttachments;
+      setter((prev) => [...prev, ...resized].slice(0, 6));
+      if (target === "main") setComposerOpen(true);
+    } catch {
+      setAttachError("画像の処理に失敗しました");
+    }
+  };
 
   useEffect(() => {
     setTasksLoading(true);
@@ -670,20 +714,21 @@ function TalkView({
 
   const sendMessage = async () => {
     const text = composer.trim();
-    if (!text || sending) return;
+    if ((!text && attachments.length === 0) || sending) return;
     setSending(true);
     try {
       const mentions = extractMentions(text, talk.members);
       const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, subject: subject.trim() || undefined, mentions }),
+        body: JSON.stringify({ text, subject: subject.trim() || undefined, mentions, attachments }),
       });
       const d = await res.json();
       if (res.ok && d.message) {
         setMessages((prev) => [...prev, d.message]);
         setComposer("");
         setSubject("");
+        setAttachments([]);
         setComposerOpen(false);
       } else {
         alert(d?.error ?? "送信に失敗しました");
@@ -695,19 +740,20 @@ function TalkView({
 
   const sendReply = async (parentId: string) => {
     const text = replyText.trim();
-    if (!text || replySending) return;
+    if ((!text && replyAttachments.length === 0) || replySending) return;
     setReplySending(true);
     try {
       const mentions = extractMentions(text, talk.members);
       const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, parentId, mentions }),
+        body: JSON.stringify({ text, parentId, mentions, attachments: replyAttachments }),
       });
       const d = await res.json();
       if (res.ok && d.message) {
         setMessages((prev) => [...prev, d.message]);
         setReplyText("");
+        setReplyAttachments([]);
         setReplyTo(null);
       } else {
         alert(d?.error ?? "返信に失敗しました");
@@ -896,7 +942,10 @@ function TalkView({
                             <span className="text-[11px] text-zinc-500">{fmt(m.createdAt)}</span>
                           </div>
                           {!isReply && m.subject && <p className="text-[15px] font-bold text-white mt-0.5">{m.subject}</p>}
-                          <div className="mt-0.5 rounded-lg bg-zinc-800/70 px-3 py-2 text-sm text-zinc-100 whitespace-pre-wrap break-words">{renderMessageBody(m.text, talk.members, meId)}</div>
+                          {m.text ? (
+                            <div className="mt-0.5 rounded-lg bg-zinc-800/70 px-3 py-2 text-sm text-zinc-100 whitespace-pre-wrap break-words">{renderMessageBody(m.text, talk.members, meId)}</div>
+                          ) : null}
+                          {renderAttachments(m.attachments)}
                           <div className="mt-1 flex items-center gap-2 flex-wrap">
                             {reactions.map((r) => (
                               <button
@@ -940,22 +989,42 @@ function TalkView({
                         {p.kind !== "system" && (
                           <div className="border-t border-zinc-800 px-4 py-2 bg-zinc-900/60">
                             {replyTo === p.id ? (
-                              <div className="flex items-end gap-2">
-                                <MentionTextarea
-                                  autoFocus
-                                  value={replyText}
-                                  onChange={setReplyText}
-                                  members={talk.members.map((mm) => ({ id: mm.id, name: mm.name }))}
-                                  onSubmit={() => sendReply(p.id)}
-                                  onEscape={() => { setReplyTo(null); setReplyText(""); }}
-                                  rows={1}
-                                  placeholder="返信を入力（@でメンション・⌘/Ctrl+Enterで送信）"
-                                  className="w-full resize-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-24"
-                                />
-                                <button onClick={() => sendReply(p.id)} disabled={replySending || !replyText.trim()} className="flex-shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50">
-                                  {replySending ? "送信中" : "返信"}
-                                </button>
-                                <button onClick={() => { setReplyTo(null); setReplyText(""); }} className="flex-shrink-0 text-xs text-zinc-500 hover:text-zinc-300 px-1">取消</button>
+                              <div className="space-y-2">
+                                {replyAttachments.length > 0 && (
+                                  <div className="flex flex-wrap gap-2">
+                                    {replyAttachments.map((a, i) => (
+                                      <div key={i} className="relative">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={a.dataUrl} alt={a.name || "添付"} className="h-16 w-16 object-cover rounded-lg border border-zinc-700" />
+                                        <button
+                                          type="button"
+                                          onClick={() => setReplyAttachments((prev) => prev.filter((_, j) => j !== i))}
+                                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-zinc-900 border border-zinc-600 text-zinc-300 text-xs hover:bg-rose-600 hover:text-white"
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                <div className="flex items-end gap-2">
+                                  <MentionTextarea
+                                    autoFocus
+                                    value={replyText}
+                                    onChange={setReplyText}
+                                    members={talk.members.map((mm) => ({ id: mm.id, name: mm.name }))}
+                                    onSubmit={() => sendReply(p.id)}
+                                    onEscape={() => { setReplyTo(null); setReplyText(""); setReplyAttachments([]); }}
+                                    onImageFiles={(files) => addImageFiles(files, "reply")}
+                                    rows={1}
+                                    placeholder="返信を入力（@でメンション・画像はCtrl+Vで添付・⌘/Ctrl+Enterで送信）"
+                                    className="w-full resize-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-24"
+                                  />
+                                  <button onClick={() => sendReply(p.id)} disabled={replySending || (!replyText.trim() && replyAttachments.length === 0)} className="flex-shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50">
+                                    {replySending ? "送信中" : "返信"}
+                                  </button>
+                                  <button onClick={() => { setReplyTo(null); setReplyText(""); setReplyAttachments([]); }} className="flex-shrink-0 text-xs text-zinc-500 hover:text-zinc-300 px-1">取消</button>
+                                </div>
                               </div>
                             ) : canManage ? (
                               <button onClick={() => { setReplyTo(p.id); setReplyText(""); }} className="flex items-center gap-2 text-[13px] text-zinc-400 hover:text-emerald-400 transition">
@@ -984,7 +1053,7 @@ function TalkView({
                         {(talk.members.find((m) => m.id === meId)?.name ?? "自").charAt(0)}
                       </span>
                       <span className="text-sm font-bold text-white">{talk.members.find((m) => m.id === meId)?.name ?? "自分"}</span>
-                      <button onClick={() => { setComposerOpen(false); setSubject(""); setComposer(""); }} className="ml-auto text-zinc-500 hover:text-zinc-300 text-sm">✕</button>
+                      <button onClick={() => { setComposerOpen(false); setSubject(""); setComposer(""); setAttachments([]); setAttachError(""); }} className="ml-auto text-zinc-500 hover:text-zinc-300 text-sm">✕</button>
                     </div>
                     <input
                       value={subject}
@@ -998,15 +1067,34 @@ function TalkView({
                       onChange={setComposer}
                       members={talk.members.map((mm) => ({ id: mm.id, name: mm.name }))}
                       onSubmit={sendMessage}
+                      onImageFiles={(files) => addImageFiles(files, "main")}
                       rows={3}
-                      placeholder="メッセージを入力（@でメンション・⌘/Ctrl+Enterで投稿）"
+                      placeholder="メッセージを入力（@でメンション・画像はCtrl+Vで添付・⌘/Ctrl+Enterで投稿）"
                       className="w-full resize-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-48"
                     />
+                    {attachError && <p className="mt-1 text-xs text-rose-400">{attachError}</p>}
+                    {attachments.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {attachments.map((a, i) => (
+                          <div key={i} className="relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={a.dataUrl} alt={a.name || "添付"} className="h-20 w-20 object-cover rounded-lg border border-zinc-700" />
+                            <button
+                              type="button"
+                              onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-zinc-900 border border-zinc-600 text-zinc-300 text-xs hover:bg-rose-600 hover:text-white"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between mt-2">
                       <button onClick={openTaskBlank} className="text-xs font-bold text-zinc-300 hover:text-emerald-300 border border-zinc-700 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
                         ＋依頼（タスク）
                       </button>
-                      <button onClick={sendMessage} disabled={sending || !composer.trim()} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-1.5 rounded-lg transition disabled:opacity-50">
+                      <button onClick={sendMessage} disabled={sending || (!composer.trim() && attachments.length === 0)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-1.5 rounded-lg transition disabled:opacity-50">
                         {sending ? "投稿中" : "投稿"}
                       </button>
                     </div>

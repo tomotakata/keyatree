@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent, type ClipboardEvent } from "react";
 
 type Member = { id: string; name: string };
 
@@ -19,6 +19,7 @@ export default function MentionTextarea({
   autoFocus = false,
   onSubmit,
   onEscape,
+  onImageFiles,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -29,6 +30,7 @@ export default function MentionTextarea({
   autoFocus?: boolean;
   onSubmit?: () => void;
   onEscape?: () => void;
+  onImageFiles?: (files: File[]) => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [open, setOpen] = useState(false);
@@ -118,6 +120,22 @@ export default function MentionTextarea({
     }
   };
 
+  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    if (!onImageFiles) return;
+    const items = Array.from(e.clipboardData?.items ?? []);
+    const files: File[] = [];
+    for (const it of items) {
+      if (it.kind === "file" && it.type.startsWith("image/")) {
+        const f = it.getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (files.length > 0) {
+      e.preventDefault();
+      onImageFiles(files);
+    }
+  };
+
   return (
     <div className="relative flex-1 min-w-0">
       <textarea
@@ -131,6 +149,7 @@ export default function MentionTextarea({
         onKeyDown={onKeyDown}
         onKeyUp={(e) => detect(e.currentTarget)}
         onClick={(e) => detect(e.currentTarget)}
+        onPaste={onPaste}
         rows={rows}
         placeholder={placeholder}
         className={className}

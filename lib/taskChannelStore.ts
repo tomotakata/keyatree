@@ -53,6 +53,8 @@ export type Talk = {
 
 export type TalkMessageReaction = { emoji: string; userIds: string[] };
 export type TalkMention = { id: string; name: string };
+// 添付画像（クライアントでリサイズした data URL を保持）
+export type TalkAttachment = { name?: string; dataUrl: string };
 
 export type TalkMessage = {
   id: string;
@@ -65,6 +67,8 @@ export type TalkMessage = {
   reactions?: TalkMessageReaction[];
   // 本文中で @メンションされたメンバー
   mentions?: TalkMention[];
+  // 添付画像
+  attachments?: TalkAttachment[];
   // 投稿(トップレベル)の件名。返信では未使用
   subject?: string;
   // 返信の場合、親投稿のID（未指定＝トップレベル投稿）
@@ -346,6 +350,7 @@ export async function addTalkMessage(input: {
   taskTitle?: string;
   kind?: "message" | "system";
   mentions?: TalkMention[];
+  attachments?: TalkAttachment[];
 }): Promise<TalkMessage> {
   const now = new Date().toISOString();
   const msg: TalkMessage = {
@@ -358,6 +363,7 @@ export async function addTalkMessage(input: {
     createdAt: now,
     reactions: [],
     mentions: input.mentions ?? [],
+    attachments: input.attachments ?? [],
     subject: input.subject,
     parentId: input.parentId,
     taskId: input.taskId,
