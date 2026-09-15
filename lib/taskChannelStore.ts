@@ -52,6 +52,7 @@ export type Talk = {
 };
 
 export type TalkMessageReaction = { emoji: string; userIds: string[] };
+export type TalkMention = { id: string; name: string };
 
 export type TalkMessage = {
   id: string;
@@ -62,6 +63,8 @@ export type TalkMessage = {
   text: string;
   createdAt: string;
   reactions?: TalkMessageReaction[];
+  // 本文中で @メンションされたメンバー
+  mentions?: TalkMention[];
   // 投稿(トップレベル)の件名。返信では未使用
   subject?: string;
   // 返信の場合、親投稿のID（未指定＝トップレベル投稿）
@@ -342,6 +345,7 @@ export async function addTalkMessage(input: {
   taskId?: string;
   taskTitle?: string;
   kind?: "message" | "system";
+  mentions?: TalkMention[];
 }): Promise<TalkMessage> {
   const now = new Date().toISOString();
   const msg: TalkMessage = {
@@ -353,6 +357,7 @@ export async function addTalkMessage(input: {
     text: input.text,
     createdAt: now,
     reactions: [],
+    mentions: input.mentions ?? [],
     subject: input.subject,
     parentId: input.parentId,
     taskId: input.taskId,

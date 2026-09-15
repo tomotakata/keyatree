@@ -64,6 +64,8 @@ export async function POST(request: Request, ctx: Ctx) {
       taskId?: string;
       taskTitle?: string;
       kind?: "message" | "system";
+      // @メンション（本文中で言及されたメンバー）
+      mentions?: { id?: string; name?: string }[];
     };
 
     const authorId = session.employeeId ?? session.id ?? "";
@@ -78,6 +80,14 @@ export async function POST(request: Request, ctx: Ctx) {
     const text = (body.text ?? "").trim();
     if (!text) return NextResponse.json({ error: "本文を入力してください" }, { status: 400 });
 
+    // メンションはトークルームの参加メンバーのみ有効にする
+    const memberMap = new Map(talk.members.map((m) => [m.id, m.name]));
+    const mentions = Array.isArray(body.mentions)
+      ? body.mentions
+          .filter((m): m is { id: string; name?: string } => Boolean(m?.id) && memberMap.has(m.id as string))
+          .map((m) => ({ id: m.id, name: memberMap.get(m.id) ?? m.name ?? "" }))
+      : undefined;
+
     const message = await addTalkMessage({
       talkId,
       channelId,
@@ -89,6 +99,7 @@ export async function POST(request: Request, ctx: Ctx) {
       taskId: body.taskId,
       taskTitle: body.taskTitle,
       kind: body.kind ?? "message",
+      mentions,
     });
     // トークルームの updatedAt を更新（一覧の並びに反映）
     await saveTalk(talk);

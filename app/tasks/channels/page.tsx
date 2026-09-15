@@ -5,6 +5,8 @@ import Link from "next/link";
 import MemberPicker from "@/components/tasks/MemberPicker";
 import AddMembersModal from "@/components/tasks/AddMembersModal";
 import CreateTaskModal from "@/components/tasks/CreateTaskModal";
+import MentionTextarea from "@/components/tasks/MentionTextarea";
+import { segmentMentions, extractMentions } from "@/lib/mentions";
 import { MOCK_EMPLOYEES, STATUS_CONFIG, formatDeadline, type FullTask } from "@/lib/taskStore";
 import { apiListTasks } from "@/lib/taskClient";
 import { reminderLevel, REMINDER_STYLE } from "@/lib/taskReminder";
@@ -25,6 +27,7 @@ type TalkMessage = {
   text: string;
   createdAt: string;
   reactions?: TalkMessageReaction[];
+  mentions?: { id: string; name: string }[];
   subject?: string;
   parentId?: string;
   taskId?: string;
@@ -48,6 +51,31 @@ function fmt(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "-";
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+// 本文中の @メンションをハイライト表示する
+function renderMessageBody(
+  text: string,
+  members: { id: string; name: string }[],
+  meId: string
+) {
+  const segments = segmentMentions(text, members);
+  return segments.map((seg, idx) => {
+    if (seg.type === "mention") {
+      const isMe = seg.id === meId;
+      return (
+        <span
+          key={idx}
+          className={`font-bold rounded px-1 ${
+            isMe ? "bg-emerald-500/30 text-emerald-200" : "text-emerald-300"
+          }`}
+        >
+          @{seg.name}
+        </span>
+      );
+    }
+    return <span key={idx}>{seg.text}</span>;
+  });
 }
 
 export default function ChannelsWorkspacePage() {
@@ -645,10 +673,11 @@ function TalkView({
     if (!text || sending) return;
     setSending(true);
     try {
+      const mentions = extractMentions(text, talk.members);
       const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, subject: subject.trim() || undefined }),
+        body: JSON.stringify({ text, subject: subject.trim() || undefined, mentions }),
       });
       const d = await res.json();
       if (res.ok && d.message) {
@@ -669,10 +698,11 @@ function TalkView({
     if (!text || replySending) return;
     setReplySending(true);
     try {
+      const mentions = extractMentions(text, talk.members);
       const res = await fetch(`/api/task-channels/${channel.id}/talks/${talk.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, parentId }),
+        body: JSON.stringify({ text, parentId, mentions }),
       });
       const d = await res.json();
       if (res.ok && d.message) {
@@ -866,7 +896,7 @@ function TalkView({
                             <span className="text-[11px] text-zinc-500">{fmt(m.createdAt)}</span>
                           </div>
                           {!isReply && m.subject && <p className="text-[15px] font-bold text-white mt-0.5">{m.subject}</p>}
-                          <div className="mt-0.5 rounded-lg bg-zinc-800/70 px-3 py-2 text-sm text-zinc-100 whitespace-pre-wrap break-words">{m.text}</div>
+                          <div className="mt-0.5 rounded-lg bg-zinc-800/70 px-3 py-2 text-sm text-zinc-100 whitespace-pre-wrap break-words">{renderMessageBody(m.text, talk.members, meId)}</div>
                           <div className="mt-1 flex items-center gap-2 flex-wrap">
                             {reactions.map((r) => (
                               <button
@@ -911,23 +941,16 @@ function TalkView({
                           <div className="border-t border-zinc-800 px-4 py-2 bg-zinc-900/60">
                             {replyTo === p.id ? (
                               <div className="flex items-end gap-2">
-                                <textarea
+                                <MentionTextarea
                                   autoFocus
                                   value={replyText}
-                                  onChange={(e) => setReplyText(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                                      e.preventDefault();
-                                      sendReply(p.id);
-                                    }
-                                    if (e.key === "Escape") {
-                                      setReplyTo(null);
-                                      setReplyText("");
-                                    }
-                                  }}
+                                  onChange={setReplyText}
+                                  members={talk.members.map((mm) => ({ id: mm.id, name: mm.name }))}
+                                  onSubmit={() => sendReply(p.id)}
+                                  onEscape={() => { setReplyTo(null); setReplyText(""); }}
                                   rows={1}
-                                  placeholder="返信を入力（⌘/Ctrl+Enterで送信）"
-                                  className="flex-1 resize-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-24"
+                                  placeholder="返信を入力（@でメンション・⌘/Ctrl+Enterで送信）"
+                                  className="w-full resize-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-24"
                                 />
                                 <button onClick={() => sendReply(p.id)} disabled={replySending || !replyText.trim()} className="flex-shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition disabled:opacity-50">
                                   {replySending ? "送信中" : "返信"}
@@ -969,18 +992,14 @@ function TalkView({
                       placeholder="件名を追加（任意）"
                       className="w-full bg-transparent border-b border-zinc-700 focus:border-emerald-500 px-1 py-1.5 text-sm text-white placeholder-zinc-500 focus:outline-none mb-2"
                     />
-                    <textarea
+                    <MentionTextarea
                       autoFocus
                       value={composer}
-                      onChange={(e) => setComposer(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                          e.preventDefault();
-                          sendMessage();
-                        }
-                      }}
+                      onChange={setComposer}
+                      members={talk.members.map((mm) => ({ id: mm.id, name: mm.name }))}
+                      onSubmit={sendMessage}
                       rows={3}
-                      placeholder="メッセージを入力（⌘/Ctrl+Enterで投稿）"
+                      placeholder="メッセージを入力（@でメンション・⌘/Ctrl+Enterで投稿）"
                       className="w-full resize-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-48"
                     />
                     <div className="flex items-center justify-between mt-2">
