@@ -53,8 +53,8 @@ export type Talk = {
 
 export type TalkMessageReaction = { emoji: string; userIds: string[] };
 export type TalkMention = { id: string; name: string };
-// 添付画像（クライアントでリサイズした data URL を保持）
-export type TalkAttachment = { name?: string; dataUrl: string };
+// 添付ファイル（クライアントでエンコードした data URL を保持）。画像以外のファイルも可。
+export type TalkAttachment = { name?: string; dataUrl: string; type?: string; size?: number };
 // 引用（現在のトーク or 他のトークルームのメッセージを参照）
 export type TalkQuote = {
   messageId: string;

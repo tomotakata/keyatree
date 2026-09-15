@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import MemberPicker from "@/components/tasks/MemberPicker";
 import AddMembersModal from "@/components/tasks/AddMembersModal";
@@ -8,7 +8,7 @@ import CreateTaskModal from "@/components/tasks/CreateTaskModal";
 import MentionTextarea from "@/components/tasks/MentionTextarea";
 import { extractMentions } from "@/lib/mentions";
 import { renderRichMessage } from "@/lib/messageFormat";
-import { resizeImageToDataUrl } from "@/lib/clientImage";
+import { resizeImageToDataUrl, fileToDataUrl } from "@/lib/clientImage";
 import { MOCK_EMPLOYEES, STATUS_CONFIG, formatDeadline, type FullTask } from "@/lib/taskStore";
 import { apiListTasks } from "@/lib/taskClient";
 import { reminderLevel, REMINDER_STYLE } from "@/lib/taskReminder";
@@ -39,7 +39,7 @@ type TalkMessage = {
   createdAt: string;
   reactions?: TalkMessageReaction[];
   mentions?: { id: string; name: string }[];
-  attachments?: { name?: string; dataUrl: string }[];
+  attachments?: { name?: string; dataUrl: string; type?: string; size?: number }[];
   quote?: TalkQuote;
   subject?: string;
   parentId?: string;
@@ -66,24 +66,66 @@ function fmt(iso: string) {
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-// 添付画像を表示（クリックで別タブに原寸表示）
-function renderAttachments(attachments?: { name?: string; dataUrl: string }[]) {
+type TalkAttachmentT = { name?: string; dataUrl: string; type?: string; size?: number };
+
+const isImageAttachment = (a: TalkAttachmentT) =>
+  (a.type?.startsWith("image/") ?? false) || a.dataUrl.startsWith("data:image/");
+
+const formatBytes = (n?: number) => {
+  if (!n || n <= 0) return "";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+};
+
+const fileIcon = (a: TalkAttachmentT) => {
+  const t = (a.type || "").toLowerCase();
+  const name = (a.name || "").toLowerCase();
+  if (t.includes("pdf") || name.endsWith(".pdf")) return "📕";
+  if (t.includes("word") || name.endsWith(".doc") || name.endsWith(".docx")) return "📘";
+  if (t.includes("sheet") || t.includes("excel") || name.endsWith(".xls") || name.endsWith(".xlsx") || name.endsWith(".csv")) return "📗";
+  if (t.includes("presentation") || name.endsWith(".ppt") || name.endsWith(".pptx")) return "📙";
+  if (t.includes("zip") || name.endsWith(".zip") || name.endsWith(".rar") || name.endsWith(".7z")) return "🗜️";
+  if (t.startsWith("video/")) return "🎬";
+  if (t.startsWith("audio/")) return "🎵";
+  if (t.startsWith("text/") || name.endsWith(".txt")) return "📄";
+  return "📎";
+};
+
+// 添付を表示（画像はサムネイル、その他はダウンロードカード）
+function renderAttachments(attachments?: TalkAttachmentT[]) {
   if (!attachments || attachments.length === 0) return null;
   return (
     <div className="mt-1.5 flex flex-wrap gap-2">
-      {attachments.map((a, i) => (
-        <a
-          key={i}
-          href={a.dataUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block rounded-lg overflow-hidden border border-zinc-700 hover:border-emerald-500 transition"
-          title={a.name || "画像を開く"}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={a.dataUrl} alt={a.name || "添付画像"} className="max-h-56 max-w-[280px] object-contain bg-zinc-950" />
-        </a>
-      ))}
+      {attachments.map((a, i) =>
+        isImageAttachment(a) ? (
+          <a
+            key={i}
+            href={a.dataUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-lg overflow-hidden border border-zinc-700 hover:border-emerald-500 transition"
+            title={a.name || "画像を開く"}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={a.dataUrl} alt={a.name || "添付画像"} className="max-h-56 max-w-[280px] object-contain bg-zinc-950" />
+          </a>
+        ) : (
+          <a
+            key={i}
+            href={a.dataUrl}
+            download={a.name || "file"}
+            className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800/60 hover:border-emerald-500 hover:bg-zinc-800 transition px-3 py-2 max-w-[280px]"
+            title={`${a.name || "ファイル"} をダウンロード`}
+          >
+            <span className="text-xl flex-shrink-0">{fileIcon(a)}</span>
+            <span className="min-w-0">
+              <span className="block truncate text-[13px] text-zinc-100">{a.name || "ファイル"}</span>
+              <span className="block text-[11px] text-zinc-500">{formatBytes(a.size) || "ダウンロード"}</span>
+            </span>
+          </a>
+        )
+      )}
     </div>
   );
 }
@@ -678,33 +720,58 @@ function TalkView({
   const [subject, setSubject] = useState("");
   const [composerOpen, setComposerOpen] = useState(false);
   const [sending, setSending] = useState(false);
-  // 添付画像（data URL）
-  const [attachments, setAttachments] = useState<{ name?: string; dataUrl: string }[]>([]);
+  // 添付ファイル（data URL）
+  const [attachments, setAttachments] = useState<TalkAttachmentT[]>([]);
   const [attachError, setAttachError] = useState("");
   // 引用（現在 or 他トークルームのメッセージ）
   const [quoteDraft, setQuoteDraft] = useState<TalkQuote | null>(null);
   const [showQuotePicker, setShowQuotePicker] = useState(false);
+  // ファイル検索モーダル
+  const [showFileSearch, setShowFileSearch] = useState(false);
   // スレッド返信
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replySending, setReplySending] = useState(false);
-  const [replyAttachments, setReplyAttachments] = useState<{ name?: string; dataUrl: string }[]>([]);
+  const [replyAttachments, setReplyAttachments] = useState<TalkAttachmentT[]>([]);
+  const mainFileInputRef = useRef<HTMLInputElement | null>(null);
+  const replyFileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const addImageFiles = async (files: File[], target: "main" | "reply") => {
+  const MAX_FILE_BYTES = 5 * 1024 * 1024; // 1ファイル最大5MB
+
+  // 画像・ファイルを添付に追加（画像は縮小、その他はそのまま data URL 化）
+  const addFiles = async (files: File[], target: "main" | "reply") => {
     setAttachError("");
-    const imgs = files.filter((f) => f.type.startsWith("image/"));
-    if (imgs.length === 0) return;
-    try {
-      const resized = await Promise.all(
-        imgs.map(async (f) => ({ name: f.name || "screenshot.png", dataUrl: await resizeImageToDataUrl(f) }))
-      );
-      const setter = target === "main" ? setAttachments : setReplyAttachments;
-      setter((prev) => [...prev, ...resized].slice(0, 6));
-      if (target === "main") setComposerOpen(true);
-    } catch {
-      setAttachError("画像の処理に失敗しました");
+    if (files.length === 0) return;
+    const setter = target === "main" ? setAttachments : setReplyAttachments;
+    const results: TalkAttachmentT[] = [];
+    const errors: string[] = [];
+    for (const f of files) {
+      try {
+        if (f.type.startsWith("image/")) {
+          const dataUrl = await resizeImageToDataUrl(f);
+          results.push({ name: f.name || "screenshot.png", dataUrl, type: f.type || "image/png", size: f.size });
+        } else {
+          if (f.size > MAX_FILE_BYTES) {
+            errors.push(`${f.name || "ファイル"}は5MBを超えています`);
+            continue;
+          }
+          const dataUrl = await fileToDataUrl(f);
+          results.push({ name: f.name || "file", dataUrl, type: f.type || "application/octet-stream", size: f.size });
+        }
+      } catch {
+        errors.push(`${f.name || "ファイル"}の処理に失敗しました`);
+      }
     }
+    if (results.length > 0) {
+      setter((prev) => [...prev, ...results].slice(0, 6));
+      if (target === "main") setComposerOpen(true);
+    }
+    if (errors.length > 0) setAttachError(errors.join(" / "));
   };
+
+  // 貼り付け（Ctrl+V）: 画像のみ
+  const addImageFiles = (files: File[], target: "main" | "reply") =>
+    addFiles(files.filter((f) => f.type.startsWith("image/")), target);
 
   useEffect(() => {
     setTasksLoading(true);
@@ -927,6 +994,13 @@ function TalkView({
               {t === "chat" ? "チャット" : t === "tasks" ? `依頼（タスク）${tasks.length > 0 ? ` ${tasks.length}` : ""}` : `メンバー ${talk.members.length}`}
             </button>
           ))}
+          <button
+            onClick={() => setShowFileSearch(true)}
+            className="ml-auto flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-emerald-300 border border-zinc-700 hover:border-emerald-500 rounded-lg transition"
+            title="このトークルームのファイルを検索"
+          >
+            📎 ファイル検索
+          </button>
         </div>
       </div>
 
@@ -1034,8 +1108,18 @@ function TalkView({
                                   <div className="flex flex-wrap gap-2">
                                     {replyAttachments.map((a, i) => (
                                       <div key={i} className="relative">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={a.dataUrl} alt={a.name || "添付"} className="h-16 w-16 object-cover rounded-lg border border-zinc-700" />
+                                        {isImageAttachment(a) ? (
+                                          /* eslint-disable-next-line @next/next/no-img-element */
+                                          <img src={a.dataUrl} alt={a.name || "添付"} className="h-16 w-16 object-cover rounded-lg border border-zinc-700" />
+                                        ) : (
+                                          <div className="flex items-center gap-2 h-16 w-40 rounded-lg border border-zinc-700 bg-zinc-800 px-2">
+                                            <span className="text-xl flex-shrink-0">{fileIcon(a)}</span>
+                                            <span className="min-w-0">
+                                              <span className="block truncate text-[11px] text-zinc-100">{a.name || "ファイル"}</span>
+                                              <span className="block text-[10px] text-zinc-500">{formatBytes(a.size)}</span>
+                                            </span>
+                                          </div>
+                                        )}
                                         <button
                                           type="button"
                                           onClick={() => setReplyAttachments((prev) => prev.filter((_, j) => j !== i))}
@@ -1047,6 +1131,17 @@ function TalkView({
                                     ))}
                                   </div>
                                 )}
+                                <input
+                                  ref={replyFileInputRef}
+                                  type="file"
+                                  multiple
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const files = Array.from(e.target.files ?? []);
+                                    if (files.length) addFiles(files, "reply");
+                                    e.target.value = "";
+                                  }}
+                                />
                                 <div className="rounded-lg border border-zinc-700 bg-zinc-800/40 p-2">
                                   <MentionTextarea
                                     autoFocus
@@ -1061,11 +1156,16 @@ function TalkView({
                                     placeholder="返信を入力（@でメンション・装飾ツールバー・画像はCtrl+Vで添付・⌘/Ctrl+Enterで送信）"
                                     className="w-full resize-none bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-40"
                                   />
-                                  <div className="mt-2 flex items-center justify-end gap-2">
-                                    <button onClick={() => { setReplyTo(null); setReplyText(""); setReplyAttachments([]); }} className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1.5">取消</button>
-                                    <button onClick={() => sendReply(p.id)} disabled={replySending || (!replyText.trim() && replyAttachments.length === 0)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition disabled:opacity-50">
-                                      {replySending ? "送信中" : "返信"}
+                                  <div className="mt-2 flex items-center justify-between gap-2">
+                                    <button onClick={() => replyFileInputRef.current?.click()} className="text-xs font-bold text-zinc-300 hover:text-emerald-300 border border-zinc-700 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
+                                      📎 ファイル
                                     </button>
+                                    <div className="flex items-center gap-2">
+                                      <button onClick={() => { setReplyTo(null); setReplyText(""); setReplyAttachments([]); }} className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1.5">取消</button>
+                                      <button onClick={() => sendReply(p.id)} disabled={replySending || (!replyText.trim() && replyAttachments.length === 0)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition disabled:opacity-50">
+                                        {replySending ? "送信中" : "返信"}
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -1136,8 +1236,18 @@ function TalkView({
                       <div className="mt-2 flex flex-wrap gap-2">
                         {attachments.map((a, i) => (
                           <div key={i} className="relative">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={a.dataUrl} alt={a.name || "添付"} className="h-20 w-20 object-cover rounded-lg border border-zinc-700" />
+                            {isImageAttachment(a) ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img src={a.dataUrl} alt={a.name || "添付"} className="h-20 w-20 object-cover rounded-lg border border-zinc-700" />
+                            ) : (
+                              <div className="flex items-center gap-2 h-20 w-44 rounded-lg border border-zinc-700 bg-zinc-800 px-3">
+                                <span className="text-2xl flex-shrink-0">{fileIcon(a)}</span>
+                                <span className="min-w-0">
+                                  <span className="block truncate text-[12px] text-zinc-100">{a.name || "ファイル"}</span>
+                                  <span className="block text-[11px] text-zinc-500">{formatBytes(a.size)}</span>
+                                </span>
+                              </div>
+                            )}
                             <button
                               type="button"
                               onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
@@ -1149,8 +1259,22 @@ function TalkView({
                         ))}
                       </div>
                     )}
+                    <input
+                      ref={mainFileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        if (files.length) addFiles(files, "main");
+                        e.target.value = "";
+                      }}
+                    />
                     <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button onClick={() => mainFileInputRef.current?.click()} className="text-xs font-bold text-zinc-300 hover:text-emerald-300 border border-zinc-700 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
+                          📎 ファイル添付
+                        </button>
                         <button onClick={openTaskBlank} className="text-xs font-bold text-zinc-300 hover:text-emerald-300 border border-zinc-700 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
                           ＋依頼（タスク）
                         </button>
@@ -1335,6 +1459,126 @@ function TalkView({
           }}
         />
       )}
+
+      {showFileSearch && (
+        <FileSearchModal
+          talkName={talk.name}
+          messages={messages}
+          onClose={() => setShowFileSearch(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ------------ ファイル検索（トークルーム内の添付を検索） ------------ */
+function FileSearchModal({
+  talkName,
+  messages,
+  onClose,
+}: {
+  talkName: string;
+  messages: TalkMessage[];
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [kind, setKind] = useState<"all" | "image" | "file">("all");
+
+  // メッセージ横断で添付を収集（新しい順）
+  const allFiles = [...messages]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .flatMap((m) =>
+      (m.attachments ?? []).map((a, idx) => ({
+        att: a as TalkAttachmentT,
+        authorName: m.authorName,
+        createdAt: m.createdAt,
+        key: `${m.id}-${idx}`,
+      }))
+    );
+
+  const q = search.trim().toLowerCase();
+  const filtered = allFiles.filter(({ att, authorName }) => {
+    const isImg = isImageAttachment(att);
+    if (kind === "image" && !isImg) return false;
+    if (kind === "file" && isImg) return false;
+    if (!q) return true;
+    return (
+      (att.name || "").toLowerCase().includes(q) ||
+      (att.type || "").toLowerCase().includes(q) ||
+      authorName.toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div className="w-full max-w-2xl max-h-[80vh] rounded-2xl bg-zinc-900 border border-zinc-700 shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800">
+          <span className="text-sm font-bold text-white">📎 ファイル検索</span>
+          <span className="text-[12px] text-zinc-500 truncate">{talkName}</span>
+          <button onClick={onClose} className="ml-auto text-zinc-500 hover:text-zinc-300">✕</button>
+        </div>
+        <div className="px-4 py-3 border-b border-zinc-800 space-y-2">
+          <input
+            autoFocus
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="ファイル名・種類・投稿者で検索..."
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+          <div className="flex items-center gap-1.5">
+            {([
+              ["all", "すべて"],
+              ["file", "ファイル"],
+              ["image", "画像"],
+            ] as const).map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => setKind(k)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
+                  kind === k ? "bg-emerald-600 text-white" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+            <span className="ml-auto text-[12px] text-zinc-500">{filtered.length}件</span>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3">
+          {filtered.length === 0 ? (
+            <p className="text-sm text-zinc-500 py-10 text-center">
+              {allFiles.length === 0 ? "このトークルームには添付ファイルがありません" : "該当するファイルがありません"}
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {filtered.map(({ att, authorName, createdAt, key }) => (
+                <a
+                  key={key}
+                  href={att.dataUrl}
+                  download={isImageAttachment(att) ? undefined : att.name || "file"}
+                  target={isImageAttachment(att) ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 rounded-lg border border-zinc-800 hover:border-emerald-500 bg-zinc-800/40 px-3 py-2 transition"
+                >
+                  {isImageAttachment(att) ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={att.dataUrl} alt={att.name || "画像"} className="h-11 w-11 object-cover rounded-md border border-zinc-700 flex-shrink-0" />
+                  ) : (
+                    <span className="h-11 w-11 flex items-center justify-center text-2xl flex-shrink-0">{fileIcon(att)}</span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] text-zinc-100">{att.name || "ファイル"}</span>
+                    <span className="block text-[11px] text-zinc-500 truncate">
+                      {authorName} ・ {fmt(createdAt)}{formatBytes(att.size) ? ` ・ ${formatBytes(att.size)}` : ""}
+                    </span>
+                  </span>
+                  <span className="text-[11px] text-emerald-400 flex-shrink-0">{isImageAttachment(att) ? "開く" : "保存"}</span>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -66,8 +66,8 @@ export async function POST(request: Request, ctx: Ctx) {
       kind?: "message" | "system";
       // @メンション（本文中で言及されたメンバー）
       mentions?: { id?: string; name?: string }[];
-      // 添付画像（data URL）
-      attachments?: { name?: string; dataUrl?: string }[];
+      // 添付ファイル（data URL）
+      attachments?: { name?: string; dataUrl?: string; type?: string; size?: number }[];
       // 引用元メッセージ（現在 or 他のトークルーム）
       quote?: { messageId?: string; talkId?: string; channelId?: string };
     };
@@ -83,16 +83,27 @@ export async function POST(request: Request, ctx: Ctx) {
 
     const text = (body.text ?? "").trim();
 
-    // 添付画像（data:image/... のみ許可・最大6枚）
+    // 添付ファイル（data:... 形式・1ファイル最大5MB・最大6件）。画像以外も許可。
+    const MAX_ATTACH_CHARS = 7_000_000; // 約5MBのファイル（base64換算）
     const attachments = Array.isArray(body.attachments)
       ? body.attachments
-          .filter((a) => typeof a?.dataUrl === "string" && a.dataUrl.startsWith("data:image/"))
+          .filter(
+            (a) =>
+              typeof a?.dataUrl === "string" &&
+              a.dataUrl.startsWith("data:") &&
+              a.dataUrl.length <= MAX_ATTACH_CHARS
+          )
           .slice(0, 6)
-          .map((a) => ({ name: a.name?.slice(0, 120), dataUrl: a.dataUrl as string }))
+          .map((a) => ({
+            name: a.name?.slice(0, 160),
+            dataUrl: a.dataUrl as string,
+            type: typeof a.type === "string" ? a.type.slice(0, 120) : undefined,
+            size: typeof a.size === "number" ? a.size : undefined,
+          }))
       : [];
 
     if (!text && attachments.length === 0 && !body.quote?.messageId) {
-      return NextResponse.json({ error: "本文または画像を入力してください" }, { status: 400 });
+      return NextResponse.json({ error: "本文・ファイル・引用のいずれかを入力してください" }, { status: 400 });
     }
 
     // メンションはトークルームの参加メンバーのみ有効にする

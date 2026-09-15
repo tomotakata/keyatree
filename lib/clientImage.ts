@@ -39,3 +39,15 @@ export async function resizeImageToDataUrl(
   const isPng = file.type === "image/png";
   return canvas.toDataURL(isPng ? "image/png" : "image/jpeg", isPng ? undefined : quality);
 }
+
+/**
+ * 任意のファイルを data URL に変換する（画像以外の添付に使用）。
+ */
+export async function fileToDataUrl(file: File): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("ファイルの読み込みに失敗しました"));
+    reader.readAsDataURL(file);
+  });
+}
