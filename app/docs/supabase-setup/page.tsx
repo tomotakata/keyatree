@@ -1,9 +1,6 @@
-import HeaderNav from "@/components/HeaderNav";
-
 export default function SupabaseSetupPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <HeaderNav currentLabel="Supabase導入手順" />
       <main className="mx-auto max-w-5xl space-y-5 px-4 py-6">
         <div className="rounded-2xl border bg-white p-6 shadow-sm">
           <h1 className="text-xl font-bold text-gray-800">Supabase導入手順</h1>

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import HeaderNav from "@/components/HeaderNav";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
 import ReviewDecisionPanel from "@/components/goal-navigator/ReviewDecisionPanel";
 import ProgressPanel from "@/components/goal-navigator/ProgressPanel";
@@ -32,7 +31,6 @@ export default async function GoalNavigatorApprovalDetailPage({
   if (!result.ok) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <HeaderNav currentLabel="承認詳細" />
         <main className="mx-auto max-w-3xl px-4 py-10">
           <div className="rounded-2xl border bg-white p-10 text-center shadow-sm">
             <p className="text-sm font-medium text-gray-500">{result.message}</p>
@@ -84,7 +82,6 @@ export default async function GoalNavigatorApprovalDetailPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <HeaderNav currentLabel="承認詳細" />
       <main className="mx-auto max-w-4xl space-y-5 px-4 py-6">
         <div>
           <Link

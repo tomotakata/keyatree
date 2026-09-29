@@ -1,4 +1,3 @@
-import HeaderNav from "@/components/HeaderNav";
 import ClientApprovedList from "@/components/goal-navigator/ClientApprovedList";
 import RecordActions from "@/components/goal-navigator/RecordActions";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
@@ -18,7 +17,6 @@ export default async function ApprovedGoalNavigatorPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <HeaderNav currentLabel="承認済み一覧" />
       <main className="mx-auto max-w-6xl space-y-5 px-4 py-6">
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <h1 className="text-lg font-bold text-gray-800">目標設定・定性目標 承認済み一覧</h1>

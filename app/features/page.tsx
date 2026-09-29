@@ -1,4 +1,3 @@
-import HeaderNav from "@/components/HeaderNav";
 import Link from "next/link";
 
 type Feature = {
@@ -104,8 +103,6 @@ const statusStyle: Record<Feature["status"], string> = {
 export default function FeaturesPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <HeaderNav currentLabel="機能一覧" />
-
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <div>
           <h1 className="text-xl font-bold text-gray-800">機能一覧</h1>

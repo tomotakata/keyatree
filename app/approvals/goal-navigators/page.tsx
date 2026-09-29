@@ -1,4 +1,3 @@
-import HeaderNav from "@/components/HeaderNav";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
 import { getApprovalAccess, getApprovalNavigatorRecords } from "@/lib/goalNavigatorActions";
 import Link from "next/link";
@@ -18,7 +17,6 @@ export default async function GoalNavigatorApprovalPage() {
   if (!isApprover) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <HeaderNav currentLabel="目標設定承認" />
         <main className="mx-auto max-w-3xl px-4 py-10">
           <div className="rounded-2xl border bg-white p-10 text-center shadow-sm">
             <p className="text-base font-bold text-gray-700">アクセス権限がありません</p>
@@ -41,7 +39,6 @@ export default async function GoalNavigatorApprovalPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <HeaderNav currentLabel="目標設定承認" />
       <main className="mx-auto max-w-6xl space-y-5 px-4 py-6">
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <h1 className="text-lg font-bold text-gray-800">目標設定・定性目標 承認申請一覧</h1>

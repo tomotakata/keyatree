@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { employees, Employee } from "@/lib/mockData";
-import HeaderNav from "@/components/HeaderNav";
 
 const teams = ["", "クライアントマネジメントチーム", "リーシングチーム", "リーシングアシスタントチーム", "カスタマーサポートチーム", "カスタマーオペレーションチーム", "アカウントチーム", "マーケティングチーム"];
 const positions = ["代表取締役", "部長", "課長", "主任", "担当者"];
@@ -107,16 +106,16 @@ export default function StaffManagePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <HeaderNav currentLabel="スタッフ管理" extraRight={
-        <div className="flex items-center gap-2">
-          <Link href="/employees" className="text-xs border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium px-3 py-2 rounded-lg transition">スタッフ一覧</Link>
-          <Link href="/employees/new" className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg transition">+ 新規登録</Link>
-        </div>
-      } />
-
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-5">
-        <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <h1 className="text-xl font-bold text-gray-800">スタッフ管理</h1>
+          <div className="flex items-center gap-2">
+            <Link href="/employees" className="text-xs border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium px-3 py-2 rounded-lg transition">スタッフ一覧</Link>
+            <Link href="/employees/new" className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg transition">+ 新規登録</Link>
+          </div>
+        </div>
+
+        <div>
           <p className="text-sm text-gray-500 mt-1">スタッフの新規登録と、所属チーム・役職・グレードなどの登録修正ができます。</p>
         </div>
 

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import HeaderNav from "@/components/HeaderNav";
 import ClientDraftHistory from "@/components/goal-navigator/ClientDraftHistory";
 import HistoryEmptyState from "@/components/goal-navigator/HistoryEmptyState";
 import RecordStatusBadge from "@/components/goal-navigator/RecordStatusBadge";
@@ -16,7 +15,6 @@ export default async function QualitativeGoalNavigatorHistoryPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <HeaderNav currentLabel="定性目標設定履歴" />
       <main className="mx-auto max-w-5xl space-y-5 px-4 py-6">
         <div className="flex flex-col gap-3 rounded-2xl border bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>

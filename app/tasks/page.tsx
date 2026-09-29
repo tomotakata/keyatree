@@ -18,23 +18,23 @@ function TaskCard({ task }: { task: FullTask }) {
   return (
     <Link
       href={`/tasks/${task.id}`}
-      className="block rounded-xl border border-zinc-800 bg-zinc-800/50 hover:bg-zinc-800 px-4 py-3 transition group"
+      className="block rounded-xl border border-gray-200 bg-white hover:border-emerald-300 hover:shadow-sm px-4 py-3 transition group"
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
           <div className="flex-1 min-w-0">
-            <p className={`text-sm font-semibold truncate text-zinc-100 group-hover:text-white transition ${task.status === "completed" ? "line-through text-zinc-500" : ""}`}>
+            <p className={`text-sm font-semibold truncate text-gray-800 group-hover:text-emerald-700 transition ${task.status === "completed" ? "line-through text-gray-400" : ""}`}>
               {task.title}
             </p>
-            <p className="text-xs text-zinc-500 mt-0.5 truncate">{task.description}</p>
+            <p className="text-xs text-gray-500 mt-0.5 truncate">{task.description}</p>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${pri.color}`}>{pri.label}優先</span>
-              <span className="text-xs text-zinc-300 bg-zinc-700/60 border border-zinc-700 px-2 py-0.5 rounded-full">{task.category}</span>
+              <span className="text-xs text-gray-600 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">{task.category}</span>
               {task.talkName && (
-                <span className="text-xs text-sky-300 bg-sky-500/15 border border-sky-500/30 px-2 py-0.5 rounded-full"># {task.talkName}</span>
+                <span className="text-xs text-sky-600 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full"># {task.talkName}</span>
               )}
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${task.type === "personal" ? "bg-indigo-500/20 text-indigo-300" : "bg-teal-500/20 text-teal-300"}`}>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${task.type === "personal" ? "bg-indigo-50 text-indigo-600" : "bg-teal-50 text-teal-600"}`}>
                 {task.type === "personal" ? "個人" : "組織"}
               </span>
             </div>
@@ -44,21 +44,21 @@ function TaskCard({ task }: { task: FullTask }) {
           {(rem === "overdue" || rem === "today" || rem === "soon") && (
             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${remStyle.badge}`}>{remStyle.label}</span>
           )}
-          <span className="text-xs text-zinc-500">期日 {formatDeadline(task.deadline)}</span>
+          <span className="text-xs text-gray-500">期日 {formatDeadline(task.deadline)}</span>
           <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${cfg.badge}`}>{cfg.label}</span>
           <div className="flex -space-x-1">
             {task.members.slice(0, 3).map((m) => (
-              <div key={m.id} className="w-6 h-6 rounded-full bg-emerald-500 border-2 border-zinc-900 flex items-center justify-center text-white text-xs font-bold">
+              <div key={m.id} className="w-6 h-6 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-white text-xs font-bold">
                 {m.name.charAt(0)}
               </div>
             ))}
             {task.members.length > 3 && (
-              <div className="w-6 h-6 rounded-full bg-zinc-700 border-2 border-zinc-900 flex items-center justify-center text-zinc-300 text-xs font-bold">
+              <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-gray-600 text-xs font-bold">
                 +{task.members.length - 3}
               </div>
             )}
           </div>
-          <span className="text-zinc-600 group-hover:text-emerald-400 transition">›</span>
+          <span className="text-gray-400 group-hover:text-emerald-600 transition">›</span>
         </div>
       </div>
     </Link>
@@ -93,7 +93,6 @@ export default function TasksPage() {
     return true;
   });
 
-  // 選択中チャンネルに属するタスクのトークルーム名一覧（サブフィルター用）
   const talkNames = Array.from(
     new Set(
       tasks
@@ -119,7 +118,7 @@ export default function TasksPage() {
   const statusChips: { key: TaskStatus; label: string; active: string }[] = [
     { key: "overdue", label: "期日超過", active: "bg-rose-500 text-white border-rose-500" },
     { key: "in_progress", label: "進行中", active: "bg-blue-500 text-white border-blue-500" },
-    { key: "not_started", label: "未着手", active: "bg-zinc-500 text-white border-zinc-500" },
+    { key: "not_started", label: "未着手", active: "bg-gray-500 text-white border-gray-500" },
     { key: "completed", label: "完了済み", active: "bg-emerald-500 text-white border-emerald-500" },
   ];
 
@@ -127,30 +126,16 @@ export default function TasksPage() {
     categoryFilter !== "all" ? categoryFilter : tab === "personal" ? "個人タスク" : tab === "org" ? "組織タスク" : "すべてのタスク";
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-950 text-zinc-200">
-      {/* 上部バー */}
-      <header className="h-12 flex items-center gap-3 px-4 bg-zinc-900 border-b border-zinc-800 flex-shrink-0">
-        <Link href="/employees/001" className="text-zinc-400 hover:text-white text-sm flex items-center gap-1.5 transition">
-          <span className="text-base leading-none">‹</span> マイページ
-        </Link>
-        <div className="w-6 h-6 rounded-md bg-emerald-500 flex items-center justify-center ml-2">
-          <span className="text-white text-[11px] font-bold">K</span>
-        </div>
-        <span className="text-sm font-bold text-white">チームス</span>
-        <div className="ml-auto flex items-center gap-2">
-          <Link href="/features" className="text-zinc-400 hover:text-white text-xs transition">機能一覧</Link>
-        </div>
-      </header>
-
+    <div className="h-screen flex flex-col bg-white text-gray-800">
       <div className="flex-1 flex min-h-0">
         {/* 左サイドバー */}
-        <aside className="w-72 flex-shrink-0 bg-zinc-900 border-r border-zinc-800 flex flex-col min-h-0">
+        <aside className="w-72 flex-shrink-0 bg-gray-50 border-r border-gray-200 flex flex-col min-h-0">
           <div className="px-3 pt-3 pb-2 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white">タスク</h2>
+            <h2 className="text-lg font-bold text-gray-800">タスク</h2>
             <Link
               href="/tasks/channels"
               title="トークルームからタスクを作成"
-              className="w-7 h-7 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-lg leading-none flex items-center justify-center transition"
+              className="w-7 h-7 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white text-lg leading-none flex items-center justify-center transition"
             >
               +
             </Link>
@@ -159,7 +144,7 @@ export default function TasksPage() {
           <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-4">
             {/* 種別 */}
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-500 mb-1.5">種別</p>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">種別</p>
               <div className="space-y-0.5">
                 {(["all", "personal", "org"] as const).map((t) => {
                   const labels = { all: "すべて", personal: "個人タスク", org: "組織タスク" };
@@ -169,11 +154,11 @@ export default function TasksPage() {
                       key={t}
                       onClick={() => setTab(t)}
                       className={`w-full flex items-center justify-between rounded-lg px-3 py-1.5 text-sm transition ${
-                        active ? "bg-zinc-800 text-white font-semibold" : "text-zinc-300 hover:bg-zinc-800/60"
+                        active ? "bg-white text-gray-900 font-semibold shadow-sm" : "text-gray-600 hover:bg-white"
                       }`}
                     >
                       <span>{labels[t]}</span>
-                      <span className={`text-[11px] px-1.5 py-0.5 rounded-full ${active ? "bg-emerald-600 text-white" : "bg-zinc-700 text-zinc-300"}`}>
+                      <span className={`text-[11px] px-1.5 py-0.5 rounded-full ${active ? "bg-emerald-500 text-white" : "bg-gray-200 text-gray-600"}`}>
                         {counts[t]}
                       </span>
                     </button>
@@ -184,7 +169,7 @@ export default function TasksPage() {
 
             {/* ステータス */}
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-500 mb-1.5">ステータス</p>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">ステータス</p>
               <div className="flex flex-wrap gap-1.5">
                 {statusChips.map((s) => {
                   const count = statusCounts[s.key];
@@ -194,7 +179,7 @@ export default function TasksPage() {
                       key={s.key}
                       onClick={() => setStatusFilter(active ? "all" : s.key)}
                       className={`text-[11px] font-bold px-2.5 py-1 rounded-full border transition ${
-                        active ? s.active : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700"
+                        active ? s.active : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
                       }`}
                     >
                       {s.label} {count}
@@ -207,14 +192,14 @@ export default function TasksPage() {
             {/* チャンネル */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-500">チャンネル</p>
-                <Link href="/tasks/channels" className="text-[11px] text-emerald-400 hover:text-emerald-300 transition">管理</Link>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">チャンネル</p>
+                <Link href="/tasks/channels" className="text-[11px] text-emerald-600 hover:text-emerald-700 transition">管理</Link>
               </div>
               <div className="space-y-0.5">
                 <button
                   onClick={() => { setCategoryFilter("all"); setTalkFilter("all"); }}
                   className={`w-full text-left rounded-lg px-3 py-1.5 text-sm transition ${
-                    categoryFilter === "all" ? "bg-zinc-800 text-white font-semibold" : "text-zinc-300 hover:bg-zinc-800/60"
+                    categoryFilter === "all" ? "bg-white text-gray-900 font-semibold shadow-sm" : "text-gray-600 hover:bg-white"
                   }`}
                 >
                   すべて
@@ -226,10 +211,10 @@ export default function TasksPage() {
                       key={c}
                       onClick={() => { setCategoryFilter(active ? "all" : c); setTalkFilter("all"); }}
                       className={`w-full flex items-center gap-2 text-left rounded-lg px-3 py-1.5 text-sm transition ${
-                        active ? "bg-emerald-600/20 text-white font-semibold" : "text-zinc-300 hover:bg-zinc-800/60"
+                        active ? "bg-emerald-50 text-emerald-700 font-semibold" : "text-gray-600 hover:bg-white"
                       }`}
                     >
-                      <span className="text-zinc-500">#</span>
+                      <span className="text-gray-400">#</span>
                       <span className="truncate">{c}</span>
                     </button>
                   );
@@ -240,12 +225,12 @@ export default function TasksPage() {
             {/* トークルーム（サブフィルター） */}
             {talkNames.length > 0 && (
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-500 mb-1.5">トークルーム</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">トークルーム</p>
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setTalkFilter("all")}
                     className={`text-[11px] font-bold px-2.5 py-1 rounded-full border transition ${
-                      talkFilter === "all" ? "bg-emerald-500 text-white border-emerald-500" : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700"
+                      talkFilter === "all" ? "bg-emerald-500 text-white border-emerald-500" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
                     }`}
                   >
                     すべて
@@ -257,7 +242,7 @@ export default function TasksPage() {
                         key={n}
                         onClick={() => setTalkFilter(active ? "all" : n)}
                         className={`text-[11px] font-bold px-2.5 py-1 rounded-full border transition ${
-                          active ? "bg-emerald-500 text-white border-emerald-500" : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700"
+                          active ? "bg-emerald-500 text-white border-emerald-500" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
                         }`}
                       >
                         # {n}
@@ -270,18 +255,18 @@ export default function TasksPage() {
           </div>
 
           {/* フッターリンク */}
-          <div className="px-3 py-3 border-t border-zinc-800 flex flex-col gap-1">
-            <Link href="/tasks/archive" className="text-xs text-zinc-400 hover:text-white rounded-lg px-3 py-1.5 hover:bg-zinc-800/60 transition">アーカイブ</Link>
-            <Link href="/tasks/threads" className="text-xs text-zinc-400 hover:text-white rounded-lg px-3 py-1.5 hover:bg-zinc-800/60 transition">スレッド一覧</Link>
+          <div className="px-3 py-3 border-t border-gray-200 flex flex-col gap-1">
+            <Link href="/tasks/archive" className="text-xs text-gray-500 hover:text-gray-800 rounded-lg px-3 py-1.5 hover:bg-white transition">アーカイブ</Link>
+            <Link href="/tasks/threads" className="text-xs text-gray-500 hover:text-gray-800 rounded-lg px-3 py-1.5 hover:bg-white transition">スレッド一覧</Link>
           </div>
         </aside>
 
         {/* 右メインペイン */}
-        <main className="flex-1 min-w-0 bg-zinc-900 flex flex-col min-h-0">
-          <div className="flex-shrink-0 border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
+        <main className="flex-1 min-w-0 bg-white flex flex-col min-h-0">
+          <div className="flex-shrink-0 border-b border-gray-200 px-5 py-3 flex items-center justify-between">
             <div className="min-w-0">
-              <h1 className="text-base font-bold text-white truncate">{headTitle}</h1>
-              <p className="text-[11px] text-zinc-500">{filtered.length}件のタスク</p>
+              <h1 className="text-base font-bold text-gray-800 truncate">{headTitle}</h1>
+              <p className="text-[11px] text-gray-500">{filtered.length}件のタスク</p>
             </div>
             <div className="flex items-center gap-2">
               {(statusFilter !== "all" || categoryFilter !== "all" || talkFilter !== "all") && (
@@ -291,12 +276,12 @@ export default function TasksPage() {
                     setCategoryFilter("all");
                     setTalkFilter("all");
                   }}
-                  className="text-xs text-zinc-400 hover:text-white border border-zinc-700 rounded-lg px-3 py-1.5 transition"
+                  className="text-xs text-gray-500 hover:text-gray-800 border border-gray-200 rounded-lg px-3 py-1.5 transition"
                 >
                   フィルター解除
                 </button>
               )}
-              <Link href="/tasks/channels" className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-1.5 rounded-lg transition">
+              <Link href="/tasks/channels" className="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold px-4 py-1.5 rounded-lg transition">
                 + トークルームから作成
               </Link>
             </div>
@@ -305,7 +290,7 @@ export default function TasksPage() {
           <div className="flex-1 overflow-y-auto px-5 py-5">
             <div className="max-w-3xl mx-auto">
               {filtered.length === 0 ? (
-                <div className="text-center py-16 text-zinc-500">
+                <div className="text-center py-16 text-gray-500">
                   <p className="text-base font-bold">タスクがありません</p>
                   <p className="text-sm mt-1">タスクはトークルーム内から作成します（「+ トークルームから作成」）</p>
                 </div>
