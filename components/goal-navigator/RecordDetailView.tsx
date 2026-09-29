@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef } from "react";
-import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas-pro";
 import type { NavigatorRecord } from "@/lib/goalNavigatorStore";
@@ -11,35 +10,10 @@ import ProgressPanel from "@/components/goal-navigator/ProgressPanel";
 
 type Props = {
   record: NavigatorRecord;
-  onDownloadWord?: () => void;
 };
 
-export default function RecordDetailView({ record, onDownloadWord }: Props) {
+export default function RecordDetailView({ record }: Props) {
   const reportRef = useRef<HTMLDivElement>(null);
-
-  const downloadWord = async () => {
-    const entries = Object.entries(record.answers).filter(([, value]) => Boolean(value));
-    const title = record.kind === "quantitative" ? "目標設定レポート" : "定性目標設定レポート";
-    const children = [
-      new Paragraph({ children: [new TextRun({ text: title, bold: true, size: 32 })] }),
-      new Paragraph(""),
-      new Paragraph(`名前：${record.employeeName}`),
-      new Paragraph(`所属チーム：${record.department}`),
-      new Paragraph(`ステータス：${record.status}`),
-      new Paragraph(""),
-      ...entries.map(([key, value]) => new Paragraph(`${key}：${value}`)),
-    ];
-
-    const doc = new Document({ sections: [{ children }] });
-    const blob = await Packer.toBlob(doc);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${record.title}.docx`;
-    a.click();
-    URL.revokeObjectURL(url);
-    onDownloadWord?.();
-  };
 
   const downloadPdf = async () => {
     if (!reportRef.current) return;
@@ -79,12 +53,6 @@ export default function RecordDetailView({ record, onDownloadWord }: Props) {
           <p className="text-xs text-gray-400">ステータス：{record.status}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={downloadWord}
-            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-indigo-700"
-          >
-            Word出力
-          </button>
           {/* PDF出力は一時非公開（出力品質の確認中） */}
           {false && (
             <button

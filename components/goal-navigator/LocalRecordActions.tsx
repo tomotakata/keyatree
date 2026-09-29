@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import { useRef, useState } from "react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas-pro";
 import QuantitativeSheet from "@/components/goal-navigator/QuantitativeSheet";
@@ -18,27 +17,6 @@ type LocalRecord = {
 export default function LocalRecordActions({ record }: { record: LocalRecord }) {
   const [open, setOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
-  const entries = useMemo(() => Object.entries(record.answers).filter(([, v]) => Boolean(v)), [record.answers]);
-
-  const downloadWord = async () => {
-    const doc = new Document({
-      sections: [{
-        children: [
-          new Paragraph({ children: [new TextRun({ text: record.kind === "quantitative" ? "目標設定レポート" : "定性目標設定レポート", bold: true, size: 32 })] }),
-          new Paragraph(`名前：${record.name}`),
-          new Paragraph(`所属チーム：${record.department}`),
-          ...entries.map(([key, value]) => new Paragraph(`${key}：${value}`)),
-        ],
-      }],
-    });
-    const blob = await Packer.toBlob(doc);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${record.title}.docx`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   const downloadPdf = async () => {
     if (!reportRef.current) return;
@@ -61,9 +39,6 @@ export default function LocalRecordActions({ record }: { record: LocalRecord }) 
       <div className="flex flex-wrap items-center gap-2 justify-end">
         <button onClick={() => setOpen((prev) => !prev)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 transition hover:bg-gray-50">
           {open ? "詳細を閉じる" : "詳細を見る"}
-        </button>
-        <button onClick={downloadWord} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-indigo-700">
-          Word出力
         </button>
         {/* PDF出力は一時非公開（出力品質の確認中） */}
         {false && (
