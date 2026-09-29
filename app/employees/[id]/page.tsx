@@ -199,7 +199,7 @@ export default function EmployeePage() {
                      定量目標設定を開始
                    </Link>
                    <Link href="/qualitative-goal-navigator" className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl transition">
-                     定性目標を開始
+                     定性目標設定を開始
                    </Link>
                  </div>
                </div>
