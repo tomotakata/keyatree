@@ -104,24 +104,24 @@ function renderAttachments(attachments?: TalkAttachmentT[]) {
             href={a.dataUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="block rounded-lg overflow-hidden border border-zinc-700 hover:border-emerald-500 transition"
+            className="block rounded-lg overflow-hidden border border-gray-300 hover:border-emerald-500 transition"
             title={a.name || "画像を開く"}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={a.dataUrl} alt={a.name || "添付画像"} className="max-h-56 max-w-[280px] object-contain bg-zinc-950" />
+            <img src={a.dataUrl} alt={a.name || "添付画像"} className="max-h-56 max-w-[280px] object-contain bg-white" />
           </a>
         ) : (
           <a
             key={i}
             href={a.dataUrl}
             download={a.name || "file"}
-            className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800/60 hover:border-emerald-500 hover:bg-zinc-800 transition px-3 py-2 max-w-[280px]"
+            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-100 hover:border-emerald-500 hover:bg-gray-100 transition px-3 py-2 max-w-[280px]"
             title={`${a.name || "ファイル"} をダウンロード`}
           >
             <span className="text-xl flex-shrink-0">{fileIcon(a)}</span>
             <span className="min-w-0">
-              <span className="block truncate text-[13px] text-zinc-100">{a.name || "ファイル"}</span>
-              <span className="block text-[11px] text-zinc-500">{formatBytes(a.size) || "ダウンロード"}</span>
+              <span className="block truncate text-[13px] text-gray-800">{a.name || "ファイル"}</span>
+              <span className="block text-[11px] text-gray-500">{formatBytes(a.size) || "ダウンロード"}</span>
             </span>
           </a>
         )
@@ -135,16 +135,16 @@ function renderQuote(quote?: TalkQuote, currentTalkId?: string) {
   if (!quote) return null;
   const otherRoom = quote.talkId !== currentTalkId;
   return (
-    <div className="mt-0.5 mb-1 border-l-2 border-emerald-500/60 bg-zinc-800/40 rounded-r-md px-3 py-1.5">
+    <div className="mt-0.5 mb-1 border-l-2 border-emerald-500/60 bg-gray-50 rounded-r-md px-3 py-1.5">
       <div className="flex items-center gap-1.5 text-[11px] text-emerald-300/90">
         <span>❝ 引用</span>
-        <span className="font-bold text-zinc-200">{quote.authorName}</span>
+        <span className="font-bold text-gray-700">{quote.authorName}</span>
         {otherRoom && quote.talkName && (
-          <span className="text-zinc-400">＠{quote.talkName}</span>
+          <span className="text-gray-500">＠{quote.talkName}</span>
         )}
-        {quote.createdAt && <span className="text-zinc-500">{fmt(quote.createdAt)}</span>}
+        {quote.createdAt && <span className="text-gray-500">{fmt(quote.createdAt)}</span>}
       </div>
-      <p className="mt-0.5 text-[12px] text-zinc-300 whitespace-pre-wrap break-words line-clamp-4">{quote.text}</p>
+      <p className="mt-0.5 text-[12px] text-gray-600 whitespace-pre-wrap break-words line-clamp-4">{quote.text}</p>
     </div>
   );
 }
@@ -339,26 +339,26 @@ export default function ChannelsWorkspacePage() {
       : null;
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-950 text-zinc-200">
+    <div className="h-screen flex flex-col bg-white text-gray-800">
       {/* 上部バー */}
-      <header className="h-12 flex items-center gap-3 px-4 bg-zinc-900 border-b border-zinc-800 flex-shrink-0">
-        <Link href="/tasks" className="text-zinc-400 hover:text-white text-sm flex items-center gap-1.5 transition">
+      <header className="h-12 flex items-center gap-3 px-4 bg-white border-b border-gray-200 flex-shrink-0">
+        <Link href="/tasks" className="text-gray-500 hover:text-gray-800 text-sm flex items-center gap-1.5 transition">
           <span className="text-base leading-none">‹</span> チームスへ戻る
         </Link>
         <div className="w-6 h-6 rounded-md bg-emerald-500 flex items-center justify-center ml-2">
           <span className="text-white text-[11px] font-bold">K</span>
         </div>
-        <span className="text-sm font-bold text-white">チャット</span>
+        <span className="text-sm font-bold text-gray-800">チャット</span>
         <div className="ml-auto flex items-center gap-2">
-          <Link href="/features" className="text-zinc-400 hover:text-white text-xs transition">機能一覧</Link>
+          <Link href="/features" className="text-gray-500 hover:text-gray-800 text-xs transition">機能一覧</Link>
         </div>
       </header>
 
       <div className="flex-1 flex min-h-0">
         {/* 左サイドバー */}
-        <aside className="w-80 flex-shrink-0 bg-zinc-900 border-r border-zinc-800 flex flex-col min-h-0">
+        <aside className="w-80 flex-shrink-0 bg-gray-50 border-r border-gray-200 flex flex-col min-h-0">
           <div className="px-3 pt-3 pb-2 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white">チャット</h2>
+            <h2 className="text-lg font-bold text-gray-800">チャット</h2>
             {isAdmin && (
               <button
                 onClick={() => setShowCreateChannel(true)}
@@ -376,7 +376,7 @@ export default function ChannelsWorkspacePage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="チャンネル・トークルームを検索"
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-1.5 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
 
@@ -386,23 +386,23 @@ export default function ChannelsWorkspacePage() {
             {hiddenCount > 0 && (
               <button
                 onClick={() => setShowHidden((v) => !v)}
-                className="text-[11px] font-bold px-2.5 py-1 rounded-full border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition"
+                className="text-[11px] font-bold px-2.5 py-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
               >
                 {showHidden ? "非表示を隠す" : `非表示 (${hiddenCount})`}
               </button>
             )}
           </div>
 
-          <div className="px-3 pb-1 flex items-center gap-1.5 text-zinc-400">
+          <div className="px-3 pb-1 flex items-center gap-1.5 text-gray-500">
             <span className="text-[11px] font-bold uppercase tracking-wide">Teams とチャネル</span>
           </div>
 
           {/* チャンネルツリー */}
           <div className="flex-1 overflow-y-auto px-2 pb-4">
             {loading ? (
-              <p className="text-xs text-zinc-500 py-6 text-center">読み込み中...</p>
+              <p className="text-xs text-gray-500 py-6 text-center">読み込み中...</p>
             ) : filteredChannels.length === 0 ? (
-              <p className="text-xs text-zinc-500 py-6 text-center">
+              <p className="text-xs text-gray-500 py-6 text-center">
                 {channels.length === 0 ? "チャンネルがありません" : "該当するチャンネルがありません"}
               </p>
             ) : (
@@ -427,7 +427,7 @@ export default function ChannelsWorkspacePage() {
                         setDragOverChannel(null);
                       }}
                       className={`group flex items-center gap-1 rounded-lg px-1.5 py-1.5 cursor-pointer transition ${
-                        active ? "bg-zinc-800" : "hover:bg-zinc-800/60"
+                        active ? "bg-gray-100" : "hover:bg-gray-100"
                       } ${dragOverChannel === c.id && dragChannel !== c.id ? "ring-1 ring-emerald-500" : ""} ${
                         dragChannel === c.id ? "opacity-40" : ""
                       }`}
@@ -437,7 +437,7 @@ export default function ChannelsWorkspacePage() {
                           e.stopPropagation();
                           toggleExpand(c.id);
                         }}
-                        className="w-4 text-zinc-500 hover:text-zinc-200 text-[10px] flex-shrink-0"
+                        className="w-4 text-gray-500 hover:text-gray-700 text-[10px] flex-shrink-0"
                         title={isOpen ? "折りたたむ" : "展開"}
                       >
                         {isOpen ? "▾" : "▸"}
@@ -457,7 +457,7 @@ export default function ChannelsWorkspacePage() {
                           }}
                           onBlur={() => submitRenameChannel(c)}
                           disabled={renameSaving}
-                          className="flex-1 min-w-0 bg-zinc-900 border border-emerald-500 rounded px-1.5 py-0.5 text-sm text-white focus:outline-none"
+                          className="flex-1 min-w-0 bg-white border border-emerald-500 rounded px-1.5 py-0.5 text-sm text-gray-800 focus:outline-none"
                         />
                       ) : (
                         <button
@@ -469,7 +469,7 @@ export default function ChannelsWorkspacePage() {
                           }}
                           className="flex-1 min-w-0 text-left"
                         >
-                          <span className={`text-sm truncate block ${active ? "text-white font-semibold" : "text-zinc-200"}`}>{c.name}</span>
+                          <span className={`text-sm truncate block ${active ? "text-gray-800 font-semibold" : "text-gray-700"}`}>{c.name}</span>
                         </button>
                       )}
                       <span className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 flex-shrink-0 transition">
@@ -480,7 +480,7 @@ export default function ChannelsWorkspacePage() {
                               startRenameChannel(c);
                             }}
                             title="名前を変更"
-                            className="text-zinc-500 hover:text-emerald-400 text-xs px-1"
+                            className="text-gray-500 hover:text-emerald-400 text-xs px-1"
                           >
                             ✎
                           </button>
@@ -491,11 +491,11 @@ export default function ChannelsWorkspacePage() {
                             toggleHideChannel(c.id);
                           }}
                           title={isHidden ? "表示する" : "非表示にする"}
-                          className="text-zinc-500 hover:text-zinc-200 text-xs px-1"
+                          className="text-gray-500 hover:text-gray-700 text-xs px-1"
                         >
                           {isHidden ? "◎" : "⦸"}
                         </button>
-                        <span className="text-zinc-600 cursor-grab active:cursor-grabbing text-xs px-0.5" title="ドラッグで並べ替え">⠿</span>
+                        <span className="text-gray-400 cursor-grab active:cursor-grabbing text-xs px-0.5" title="ドラッグで並べ替え">⠿</span>
                       </span>
                     </div>
 
@@ -503,9 +503,9 @@ export default function ChannelsWorkspacePage() {
                     {isOpen && (
                       <div className="ml-6 mt-0.5 mb-1 space-y-0.5">
                         {(talksByChannel[c.id] === undefined) ? (
-                          <p className="text-[11px] text-zinc-600 px-2 py-1">読み込み中...</p>
+                          <p className="text-[11px] text-gray-400 px-2 py-1">読み込み中...</p>
                         ) : talks.length === 0 ? (
-                          <p className="text-[11px] text-zinc-600 px-2 py-1">トークルームなし</p>
+                          <p className="text-[11px] text-gray-400 px-2 py-1">トークルームなし</p>
                         ) : (
                           talks
                             .filter((t) => !q || t.name.toLowerCase().includes(q) || c.name.toLowerCase().includes(q))
@@ -529,12 +529,12 @@ export default function ChannelsWorkspacePage() {
                                   }}
                                   onClick={() => { if (renameTalkId !== t.id) selectTalk(c.id, t.id); }}
                                   className={`flex items-center gap-1.5 rounded-md px-2 py-1 cursor-pointer transition group/talk ${
-                                    tActive ? "bg-emerald-600/20 text-white" : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
+                                    tActive ? "bg-emerald-600/20 text-emerald-700" : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                                   } ${dragOverTalk === t.id && dragTalk?.talkId !== t.id ? "ring-1 ring-emerald-500" : ""} ${
                                     dragTalk?.talkId === t.id ? "opacity-40" : ""
                                   }`}
                                 >
-                                  <span className="text-zinc-500 text-xs flex-shrink-0">#</span>
+                                  <span className="text-gray-500 text-xs flex-shrink-0">#</span>
                                   {renameTalkId === t.id ? (
                                     <input
                                       autoFocus
@@ -547,7 +547,7 @@ export default function ChannelsWorkspacePage() {
                                       }}
                                       onBlur={() => submitRenameTalk(c.id, t)}
                                       disabled={renameSaving}
-                                      className="flex-1 min-w-0 bg-zinc-900 border border-emerald-500 rounded px-1.5 py-0.5 text-[13px] text-white focus:outline-none"
+                                      className="flex-1 min-w-0 bg-white border border-emerald-500 rounded px-1.5 py-0.5 text-[13px] text-gray-800 focus:outline-none"
                                     />
                                   ) : (
                                     <span
@@ -568,12 +568,12 @@ export default function ChannelsWorkspacePage() {
                                         startRenameTalk(t);
                                       }}
                                       title="名前を変更"
-                                      className="opacity-0 group-hover/talk:opacity-100 text-zinc-500 hover:text-emerald-400 text-[11px] transition px-0.5"
+                                      className="opacity-0 group-hover/talk:opacity-100 text-gray-500 hover:text-emerald-400 text-[11px] transition px-0.5"
                                     >
                                       ✎
                                     </button>
                                   )}
-                                  <span className="opacity-0 group-hover/talk:opacity-100 text-zinc-600 cursor-grab active:cursor-grabbing text-[11px] transition" title="ドラッグで並べ替え">⠿</span>
+                                  <span className="opacity-0 group-hover/talk:opacity-100 text-gray-400 cursor-grab active:cursor-grabbing text-[11px] transition" title="ドラッグで並べ替え">⠿</span>
                                 </div>
                               );
                             })
@@ -591,13 +591,13 @@ export default function ChannelsWorkspacePage() {
             )}
           </div>
 
-          <div className="px-4 py-2 border-t border-zinc-800">
-            <span className="text-[11px] text-zinc-500">ドラッグで並べ替え・チャンネルは管理者が作成</span>
+          <div className="px-4 py-2 border-t border-gray-200">
+            <span className="text-[11px] text-gray-500">ドラッグで並べ替え・チャンネルは管理者が作成</span>
           </div>
         </aside>
 
         {/* 右メインペイン */}
-        <main className="flex-1 min-w-0 bg-zinc-900 flex flex-col min-h-0">
+        <main className="flex-1 min-w-0 bg-white flex flex-col min-h-0">
           {!selection ? (
             <EmptyState isAdmin={isAdmin} onCreate={() => setShowCreateChannel(true)} />
           ) : selection.type === "talk" && selectedTalk && selectedChannel ? (
@@ -626,7 +626,7 @@ export default function ChannelsWorkspacePage() {
               onChannelUpdated={(c) => setChannels((prev) => prev.map((x) => (x.id === c.id ? c : x)))}
             />
           ) : (
-            <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">読み込み中...</div>
+            <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">読み込み中...</div>
           )}
         </main>
       </div>
@@ -668,7 +668,7 @@ function TalkCreateInline({ channel, canCreate, onClick }: { channel: Channel; c
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-zinc-500 hover:text-emerald-400 hover:bg-zinc-800/60 transition"
+      className="w-full flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-gray-500 hover:text-emerald-400 hover:bg-gray-100 transition"
     >
       <span className="text-sm">+</span> トークルームを追加
     </button>
@@ -678,9 +678,9 @@ function TalkCreateInline({ channel, canCreate, onClick }: { channel: Channel; c
 function EmptyState({ isAdmin, onCreate }: { isAdmin: boolean; onCreate: () => void }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 px-6">
-      <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center text-3xl">💬</div>
-      <p className="text-lg font-bold text-white">チャンネルまたはトークルームを選択</p>
-      <p className="text-sm text-zinc-400 max-w-sm">左のリストからチャンネルを開き、トークルームを選ぶと内容が表示されます。</p>
+      <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-3xl">💬</div>
+      <p className="text-lg font-bold text-gray-800">チャンネルまたはトークルームを選択</p>
+      <p className="text-sm text-gray-500 max-w-sm">左のリストからチャンネルを開き、トークルームを選ぶと内容が表示されます。</p>
       {isAdmin && (
         <button onClick={onCreate} className="mt-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-2 rounded-xl transition">
           + 新規チャンネルを作成
@@ -937,7 +937,7 @@ function TalkView({
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* ヘッダー */}
-      <div className="flex-shrink-0 border-b border-zinc-800 px-5 pt-3">
+      <div className="flex-shrink-0 border-b border-gray-200 px-5 pt-3">
         <div className="flex items-center gap-2">
           <span className={`w-8 h-8 rounded ${colorFor(channel.id)} flex items-center justify-center text-white text-sm font-bold`}>
             {channel.name.charAt(0)}
@@ -956,30 +956,30 @@ function TalkView({
                       setNameInput(talk.name);
                     }
                   }}
-                  className="bg-zinc-800 border border-emerald-500 rounded px-2 py-1 text-sm text-white w-56 focus:outline-none"
+                  className="bg-gray-100 border border-emerald-500 rounded px-2 py-1 text-sm text-gray-800 w-56 focus:outline-none"
                 />
                 <button onClick={saveName} disabled={savingName} className="text-xs font-bold text-emerald-400 hover:text-emerald-300 px-1 disabled:opacity-50">
                   {savingName ? "保存中" : "保存"}
                 </button>
-                <button onClick={() => { setEditingName(false); setNameInput(talk.name); }} className="text-xs text-zinc-500 hover:text-zinc-300 px-1">
+                <button onClick={() => { setEditingName(false); setNameInput(talk.name); }} className="text-xs text-gray-500 hover:text-gray-600 px-1">
                   取消
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-1.5">
-                <h1 className="text-base font-bold text-white truncate">{talk.name}</h1>
+                <h1 className="text-base font-bold text-gray-800 truncate">{talk.name}</h1>
                 {canManage && (
                   <button
                     onClick={() => setEditingName(true)}
                     title="トークルーム名を変更"
-                    className="text-zinc-500 hover:text-emerald-400 transition text-xs flex-shrink-0"
+                    className="text-gray-500 hover:text-emerald-400 transition text-xs flex-shrink-0"
                   >
                     ✎
                   </button>
                 )}
               </div>
             )}
-            <p className="text-[11px] text-zinc-500 truncate">{channel.name} ・ 招待 {talk.members.length}名 ・ 依頼 {tasks.length}件</p>
+            <p className="text-[11px] text-gray-500 truncate">{channel.name} ・ 招待 {talk.members.length}名 ・ 依頼 {tasks.length}件</p>
           </div>
         </div>
         <div className="flex items-center gap-1 mt-2">
@@ -988,7 +988,7 @@ function TalkView({
               key={t}
               onClick={() => setTab(t)}
               className={`px-3 py-2 text-sm font-semibold border-b-2 transition ${
-                tab === t ? "border-emerald-500 text-white" : "border-transparent text-zinc-400 hover:text-zinc-200"
+                tab === t ? "border-emerald-500 text-gray-800" : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
               {t === "chat" ? "チャット" : t === "tasks" ? `依頼（タスク）${tasks.length > 0 ? ` ${tasks.length}` : ""}` : `メンバー ${talk.members.length}`}
@@ -996,7 +996,7 @@ function TalkView({
           ))}
           <button
             onClick={() => setShowFileSearch(true)}
-            className="ml-auto flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-emerald-300 border border-zinc-700 hover:border-emerald-500 rounded-lg transition"
+            className="ml-auto flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:text-emerald-300 border border-gray-300 hover:border-emerald-500 rounded-lg transition"
             title="このトークルームのファイルを検索"
           >
             📎 ファイル検索
@@ -1010,12 +1010,12 @@ function TalkView({
           <div className="flex-1 overflow-y-auto px-5 py-5">
             <div className="max-w-2xl mx-auto space-y-4">
               {msgLoading ? (
-                <p className="text-sm text-zinc-500 py-10 text-center">読み込み中...</p>
+                <p className="text-sm text-gray-500 py-10 text-center">読み込み中...</p>
               ) : messages.filter((m) => !m.parentId).length === 0 ? (
                 <div className="text-center py-10">
-                  <div className="w-14 h-14 rounded-2xl bg-zinc-800 mx-auto flex items-center justify-center text-2xl mb-3">💬</div>
-                  <p className="text-base font-bold text-white">「{talk.name}」の会話をはじめましょう</p>
-                  <p className="text-sm text-zinc-400 mt-1">下の「新しい投稿」から件名と本文で投稿できます。各投稿には「スレッドで返信」で会話を続けられ、メッセージから「依頼（タスク）にする」で起票できます。</p>
+                  <div className="w-14 h-14 rounded-2xl bg-gray-100 mx-auto flex items-center justify-center text-2xl mb-3">💬</div>
+                  <p className="text-base font-bold text-gray-800">「{talk.name}」の会話をはじめましょう</p>
+                  <p className="text-sm text-gray-500 mt-1">下の「新しい投稿」から件名と本文で投稿できます。各投稿には「スレッドで返信」で会話を続けられ、メッセージから「依頼（タスク）にする」で起票できます。</p>
                 </div>
               ) : (
                 (() => {
@@ -1046,13 +1046,13 @@ function TalkView({
                         </span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className={`${isReply ? "text-[13px]" : "text-sm"} font-bold text-white`}>{m.authorName}</span>
-                            <span className="text-[11px] text-zinc-500">{fmt(m.createdAt)}</span>
+                            <span className={`${isReply ? "text-[13px]" : "text-sm"} font-bold text-gray-800`}>{m.authorName}</span>
+                            <span className="text-[11px] text-gray-500">{fmt(m.createdAt)}</span>
                           </div>
-                          {!isReply && m.subject && <p className="text-[15px] font-bold text-white mt-0.5">{m.subject}</p>}
+                          {!isReply && m.subject && <p className="text-[15px] font-bold text-gray-800 mt-0.5">{m.subject}</p>}
                           {renderQuote(m.quote, talk.id)}
                           {m.text ? (
-                            <div className="mt-0.5 rounded-lg bg-zinc-800/70 px-3 py-2 text-sm text-zinc-100 break-words">{renderRichMessage(m.text, talk.members, meId)}</div>
+                            <div className="mt-0.5 rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-800 break-words">{renderRichMessage(m.text, talk.members, meId)}</div>
                           ) : null}
                           {renderAttachments(m.attachments)}
                           <div className="mt-1 flex items-center gap-2 flex-wrap">
@@ -1063,14 +1063,14 @@ function TalkView({
                                 className={`text-[12px] px-2 py-0.5 rounded-full border transition ${
                                   r.userIds.includes(meId)
                                     ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-200"
-                                    : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500"
+                                    : "bg-gray-100 border-gray-300 text-gray-600 hover:border-gray-400"
                                 }`}
                               >
                                 {r.emoji} {r.userIds.length}
                               </button>
                             ))}
                             <span className="opacity-0 group-hover:opacity-100 transition flex items-center gap-2">
-                              <button onClick={() => toggleReaction(m.id, "👍")} className="text-[12px] text-zinc-500 hover:text-emerald-400" title="いいね">👍</button>
+                              <button onClick={() => toggleReaction(m.id, "👍")} className="text-[12px] text-gray-500 hover:text-emerald-400" title="いいね">👍</button>
                               {canManage && (
                                 <button onClick={() => quoteMessage(m)} className="text-[11px] font-bold text-sky-400 hover:text-sky-300" title="このメッセージを引用">
                                   引用
@@ -1082,7 +1082,7 @@ function TalkView({
                                 </button>
                               )}
                               {(mine || canManage) && (
-                                <button onClick={() => deleteMessage(m.id)} className="text-[11px] text-zinc-500 hover:text-rose-400">削除</button>
+                                <button onClick={() => deleteMessage(m.id)} className="text-[11px] text-gray-500 hover:text-rose-400">削除</button>
                               )}
                             </span>
                           </div>
@@ -1093,15 +1093,15 @@ function TalkView({
                   return posts.map((p) => {
                     const replies = repliesOf(p.id);
                     return (
-                      <div key={p.id} className="rounded-xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
+                      <div key={p.id} className="rounded-xl border border-gray-200 bg-gray-50 overflow-hidden">
                         <div className="p-4">{renderRow(p, false)}</div>
                         {replies.length > 0 && (
-                          <div className="border-t border-zinc-800 px-4 py-3 space-y-3 bg-zinc-900/30">
+                          <div className="border-t border-gray-200 px-4 py-3 space-y-3 bg-gray-50">
                             {replies.map((r) => renderRow(r, true))}
                           </div>
                         )}
                         {p.kind !== "system" && (
-                          <div className="border-t border-zinc-800 px-4 py-2 bg-zinc-900/60">
+                          <div className="border-t border-gray-200 px-4 py-2 bg-gray-100">
                             {replyTo === p.id ? (
                               <div className="space-y-2">
                                 {replyAttachments.length > 0 && (
@@ -1110,20 +1110,20 @@ function TalkView({
                                       <div key={i} className="relative">
                                         {isImageAttachment(a) ? (
                                           /* eslint-disable-next-line @next/next/no-img-element */
-                                          <img src={a.dataUrl} alt={a.name || "添付"} className="h-16 w-16 object-cover rounded-lg border border-zinc-700" />
+                                          <img src={a.dataUrl} alt={a.name || "添付"} className="h-16 w-16 object-cover rounded-lg border border-gray-300" />
                                         ) : (
-                                          <div className="flex items-center gap-2 h-16 w-40 rounded-lg border border-zinc-700 bg-zinc-800 px-2">
+                                          <div className="flex items-center gap-2 h-16 w-40 rounded-lg border border-gray-300 bg-gray-100 px-2">
                                             <span className="text-xl flex-shrink-0">{fileIcon(a)}</span>
                                             <span className="min-w-0">
-                                              <span className="block truncate text-[11px] text-zinc-100">{a.name || "ファイル"}</span>
-                                              <span className="block text-[10px] text-zinc-500">{formatBytes(a.size)}</span>
+                                              <span className="block truncate text-[11px] text-gray-800">{a.name || "ファイル"}</span>
+                                              <span className="block text-[10px] text-gray-500">{formatBytes(a.size)}</span>
                                             </span>
                                           </div>
                                         )}
                                         <button
                                           type="button"
                                           onClick={() => setReplyAttachments((prev) => prev.filter((_, j) => j !== i))}
-                                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-zinc-900 border border-zinc-600 text-zinc-300 text-xs hover:bg-rose-600 hover:text-white"
+                                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white border border-gray-300 text-gray-600 text-xs hover:bg-rose-600 hover:text-white"
                                         >
                                           ✕
                                         </button>
@@ -1142,7 +1142,7 @@ function TalkView({
                                     e.target.value = "";
                                   }}
                                 />
-                                <div className="rounded-lg border border-zinc-700 bg-zinc-800/40 p-2">
+                                <div className="rounded-lg border border-gray-300 bg-gray-50 p-2">
                                   <MentionTextarea
                                     autoFocus
                                     value={replyText}
@@ -1154,14 +1154,14 @@ function TalkView({
                                     showToolbar
                                     rows={2}
                                     placeholder="返信を入力（@でメンション・装飾ツールバー・画像はCtrl+Vで添付・⌘/Ctrl+Enterで送信）"
-                                    className="w-full resize-none bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-40"
+                                    className="w-full resize-none bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-40"
                                   />
                                   <div className="mt-2 flex items-center justify-between gap-2">
-                                    <button onClick={() => replyFileInputRef.current?.click()} className="text-xs font-bold text-zinc-300 hover:text-emerald-300 border border-zinc-700 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
+                                    <button onClick={() => replyFileInputRef.current?.click()} className="text-xs font-bold text-gray-600 hover:text-emerald-300 border border-gray-300 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
                                       📎 ファイル
                                     </button>
                                     <div className="flex items-center gap-2">
-                                      <button onClick={() => { setReplyTo(null); setReplyText(""); setReplyAttachments([]); }} className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1.5">取消</button>
+                                      <button onClick={() => { setReplyTo(null); setReplyText(""); setReplyAttachments([]); }} className="text-xs text-gray-500 hover:text-gray-600 px-2 py-1.5">取消</button>
                                       <button onClick={() => sendReply(p.id)} disabled={replySending || (!replyText.trim() && replyAttachments.length === 0)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition disabled:opacity-50">
                                         {replySending ? "送信中" : "返信"}
                                       </button>
@@ -1170,11 +1170,11 @@ function TalkView({
                                 </div>
                               </div>
                             ) : canManage ? (
-                              <button onClick={() => { setReplyTo(p.id); setReplyText(""); }} className="flex items-center gap-2 text-[13px] text-zinc-400 hover:text-emerald-400 transition">
+                              <button onClick={() => { setReplyTo(p.id); setReplyText(""); }} className="flex items-center gap-2 text-[13px] text-gray-500 hover:text-emerald-400 transition">
                                 <span className="text-emerald-400">↩</span> スレッドで返信{replies.length > 0 ? `（${replies.length}）` : ""}
                               </button>
                             ) : (
-                              <span className="text-[12px] text-zinc-600">返信はチャンネル参加メンバーのみ</span>
+                              <span className="text-[12px] text-gray-400">返信はチャンネル参加メンバーのみ</span>
                             )}
                           </div>
                         )}
@@ -1186,38 +1186,38 @@ function TalkView({
             </div>
           </div>
           {/* 新規投稿コンポーザ */}
-          <div className="flex-shrink-0 border-t border-zinc-800 p-3">
+          <div className="flex-shrink-0 border-t border-gray-200 p-3">
             <div className="max-w-2xl mx-auto">
               {canManage ? (
                 composerOpen ? (
-                  <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-3">
+                  <div className="rounded-xl border border-gray-300 bg-white p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <span className={`w-7 h-7 rounded-full ${colorFor(meId)} flex items-center justify-center text-white text-xs font-bold`}>
                         {(talk.members.find((m) => m.id === meId)?.name ?? "自").charAt(0)}
                       </span>
-                      <span className="text-sm font-bold text-white">{talk.members.find((m) => m.id === meId)?.name ?? "自分"}</span>
-                      <button onClick={() => { setComposerOpen(false); setSubject(""); setComposer(""); setAttachments([]); setAttachError(""); setQuoteDraft(null); }} className="ml-auto text-zinc-500 hover:text-zinc-300 text-sm">✕</button>
+                      <span className="text-sm font-bold text-gray-800">{talk.members.find((m) => m.id === meId)?.name ?? "自分"}</span>
+                      <button onClick={() => { setComposerOpen(false); setSubject(""); setComposer(""); setAttachments([]); setAttachError(""); setQuoteDraft(null); }} className="ml-auto text-gray-500 hover:text-gray-600 text-sm">✕</button>
                     </div>
                     {quoteDraft && (
-                      <div className="mb-2 flex items-start gap-2 border-l-2 border-sky-500/70 bg-zinc-800/50 rounded-r-md px-3 py-1.5">
+                      <div className="mb-2 flex items-start gap-2 border-l-2 border-sky-500/70 bg-gray-100 rounded-r-md px-3 py-1.5">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 text-[11px] text-sky-300">
                             <span>❝ 引用</span>
-                            <span className="font-bold text-zinc-200">{quoteDraft.authorName}</span>
+                            <span className="font-bold text-gray-700">{quoteDraft.authorName}</span>
                             {quoteDraft.talkId !== talk.id && quoteDraft.talkName && (
-                              <span className="text-zinc-400">＠{quoteDraft.talkName}</span>
+                              <span className="text-gray-500">＠{quoteDraft.talkName}</span>
                             )}
                           </div>
-                          <p className="mt-0.5 text-[12px] text-zinc-300 whitespace-pre-wrap break-words line-clamp-3">{quoteDraft.text}</p>
+                          <p className="mt-0.5 text-[12px] text-gray-600 whitespace-pre-wrap break-words line-clamp-3">{quoteDraft.text}</p>
                         </div>
-                        <button type="button" onClick={() => setQuoteDraft(null)} className="flex-shrink-0 text-zinc-500 hover:text-rose-400 text-xs">✕</button>
+                        <button type="button" onClick={() => setQuoteDraft(null)} className="flex-shrink-0 text-gray-500 hover:text-rose-400 text-xs">✕</button>
                       </div>
                     )}
                     <input
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
                       placeholder="件名を追加（任意）"
-                      className="w-full bg-transparent border-b border-zinc-700 focus:border-emerald-500 px-1 py-1.5 text-sm text-white placeholder-zinc-500 focus:outline-none mb-2"
+                      className="w-full bg-transparent border-b border-gray-300 focus:border-emerald-500 px-1 py-1.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none mb-2"
                     />
                     <MentionTextarea
                       autoFocus
@@ -1229,7 +1229,7 @@ function TalkView({
                       showToolbar
                       rows={3}
                       placeholder="メッセージを入力（@でメンション・画像はCtrl+Vで添付・⌘/Ctrl+Enterで投稿）"
-                      className="w-full resize-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-48"
+                      className="w-full resize-none bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-h-48"
                     />
                     {attachError && <p className="mt-1 text-xs text-rose-400">{attachError}</p>}
                     {attachments.length > 0 && (
@@ -1238,20 +1238,20 @@ function TalkView({
                           <div key={i} className="relative">
                             {isImageAttachment(a) ? (
                               /* eslint-disable-next-line @next/next/no-img-element */
-                              <img src={a.dataUrl} alt={a.name || "添付"} className="h-20 w-20 object-cover rounded-lg border border-zinc-700" />
+                              <img src={a.dataUrl} alt={a.name || "添付"} className="h-20 w-20 object-cover rounded-lg border border-gray-300" />
                             ) : (
-                              <div className="flex items-center gap-2 h-20 w-44 rounded-lg border border-zinc-700 bg-zinc-800 px-3">
+                              <div className="flex items-center gap-2 h-20 w-44 rounded-lg border border-gray-300 bg-gray-100 px-3">
                                 <span className="text-2xl flex-shrink-0">{fileIcon(a)}</span>
                                 <span className="min-w-0">
-                                  <span className="block truncate text-[12px] text-zinc-100">{a.name || "ファイル"}</span>
-                                  <span className="block text-[11px] text-zinc-500">{formatBytes(a.size)}</span>
+                                  <span className="block truncate text-[12px] text-gray-800">{a.name || "ファイル"}</span>
+                                  <span className="block text-[11px] text-gray-500">{formatBytes(a.size)}</span>
                                 </span>
                               </div>
                             )}
                             <button
                               type="button"
                               onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
-                              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-zinc-900 border border-zinc-600 text-zinc-300 text-xs hover:bg-rose-600 hover:text-white"
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white border border-gray-300 text-gray-600 text-xs hover:bg-rose-600 hover:text-white"
                             >
                               ✕
                             </button>
@@ -1272,13 +1272,13 @@ function TalkView({
                     />
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <button onClick={() => mainFileInputRef.current?.click()} className="text-xs font-bold text-zinc-300 hover:text-emerald-300 border border-zinc-700 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
+                        <button onClick={() => mainFileInputRef.current?.click()} className="text-xs font-bold text-gray-600 hover:text-emerald-300 border border-gray-300 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
                           📎 ファイル添付
                         </button>
-                        <button onClick={openTaskBlank} className="text-xs font-bold text-zinc-300 hover:text-emerald-300 border border-zinc-700 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
+                        <button onClick={openTaskBlank} className="text-xs font-bold text-gray-600 hover:text-emerald-300 border border-gray-300 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition">
                           ＋依頼（タスク）
                         </button>
-                        <button onClick={() => setShowQuotePicker(true)} className="text-xs font-bold text-zinc-300 hover:text-sky-300 border border-zinc-700 hover:border-sky-500 px-3 py-1.5 rounded-lg transition">
+                        <button onClick={() => setShowQuotePicker(true)} className="text-xs font-bold text-gray-600 hover:text-sky-300 border border-gray-300 hover:border-sky-500 px-3 py-1.5 rounded-lg transition">
                           ❝ 他のトークから引用
                         </button>
                       </div>
@@ -1288,12 +1288,12 @@ function TalkView({
                     </div>
                   </div>
                 ) : (
-                  <button onClick={() => setComposerOpen(true)} className="w-full text-left rounded-xl border border-zinc-700 bg-zinc-900 hover:border-emerald-500 px-4 py-2.5 text-sm text-zinc-500 transition flex items-center gap-2">
+                  <button onClick={() => setComposerOpen(true)} className="w-full text-left rounded-xl border border-gray-300 bg-white hover:border-emerald-500 px-4 py-2.5 text-sm text-gray-500 transition flex items-center gap-2">
                     <span className="text-emerald-400">✎</span> 新しい投稿をはじめる…
                   </button>
                 )
               ) : (
-                <p className="text-xs text-zinc-500 text-center py-2">投稿はチャンネル参加メンバーのみ可能です。</p>
+                <p className="text-xs text-gray-500 text-center py-2">投稿はチャンネル参加メンバーのみ可能です。</p>
               )}
             </div>
           </div>
@@ -1304,12 +1304,12 @@ function TalkView({
           <div className="flex-1 overflow-y-auto px-5 py-5">
             <div className="max-w-2xl mx-auto space-y-2">
               {tasksLoading ? (
-                <p className="text-sm text-zinc-500 py-10 text-center">読み込み中...</p>
+                <p className="text-sm text-gray-500 py-10 text-center">読み込み中...</p>
               ) : tasks.length === 0 ? (
                 <div className="text-center py-10">
-                  <div className="w-14 h-14 rounded-2xl bg-zinc-800 mx-auto flex items-center justify-center text-2xl mb-3">#</div>
-                  <p className="text-base font-bold text-white">「{talk.name}」の依頼はまだありません</p>
-                  <p className="text-sm text-zinc-400 mt-1">このトークルームで発生した依頼をタスクとして登録し、担当者に追いかけ（リマインド）を発生させましょう。</p>
+                  <div className="w-14 h-14 rounded-2xl bg-gray-100 mx-auto flex items-center justify-center text-2xl mb-3">#</div>
+                  <p className="text-base font-bold text-gray-800">「{talk.name}」の依頼はまだありません</p>
+                  <p className="text-sm text-gray-500 mt-1">このトークルームで発生した依頼をタスクとして登録し、担当者に追いかけ（リマインド）を発生させましょう。</p>
                   {canManage && (
                     <button onClick={openTaskBlank} className="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-2 rounded-xl transition">
                       + 依頼（タスク）を作成
@@ -1325,13 +1325,13 @@ function TalkView({
                     <Link
                       key={t.id}
                       href={`/tasks/${t.id}`}
-                      className="block rounded-xl border border-zinc-800 bg-zinc-800/50 hover:bg-zinc-800 px-4 py-3 transition group"
+                      className="block rounded-xl border border-gray-200 bg-gray-100 hover:bg-gray-100 px-4 py-3 transition group"
                     >
                       <div className="flex items-center gap-3">
                         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-semibold truncate ${t.status === "completed" ? "line-through text-zinc-500" : "text-zinc-100 group-hover:text-white"}`}>{t.title}</p>
-                          <p className="text-[11px] text-zinc-500 truncate">
+                          <p className={`text-sm font-semibold truncate ${t.status === "completed" ? "line-through text-gray-500" : "text-gray-800 group-hover:text-gray-800"}`}>{t.title}</p>
+                          <p className="text-[11px] text-gray-500 truncate">
                             期日 {formatDeadline(t.deadline)} ・ 担当 {t.members.filter((m) => m.role !== "owner").map((m) => m.name).join("、") || "未割当"}
                           </p>
                         </div>
@@ -1339,7 +1339,7 @@ function TalkView({
                           <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${rs.badge}`}>{rs.label}</span>
                         )}
                         <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.badge}`}>{cfg.label}</span>
-                        <span className="text-zinc-600 group-hover:text-emerald-400 transition flex-shrink-0">›</span>
+                        <span className="text-gray-400 group-hover:text-emerald-400 transition flex-shrink-0">›</span>
                       </div>
                     </Link>
                   );
@@ -1348,9 +1348,9 @@ function TalkView({
             </div>
           </div>
           {/* 作成ボタン（コンポーザ位置） */}
-          <div className="flex-shrink-0 border-t border-zinc-800 p-3">
+          <div className="flex-shrink-0 border-t border-gray-200 p-3">
             <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-gray-500">
                 {canManage ? "依頼をタスク化すると、担当者のマイページ・タスク一覧に反映されます。" : "依頼の作成はチャンネル参加メンバーのみ可能です。"}
               </p>
               {canManage && (
@@ -1365,25 +1365,25 @@ function TalkView({
         <div className="flex-1 overflow-y-auto px-5 py-5">
           <div className="max-w-2xl mx-auto space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-white">招待メンバー</span>
+              <span className="text-sm font-bold text-gray-800">招待メンバー</span>
               {canManage ? (
                 <button onClick={() => setShowAdd(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-1.5 rounded-lg transition">
                   + メンバーを招待
                 </button>
               ) : (
-                <span className="text-xs text-zinc-500">招待はチャンネル参加メンバーのみ</span>
+                <span className="text-xs text-gray-500">招待はチャンネル参加メンバーのみ</span>
               )}
             </div>
             {talk.members.length === 0 ? (
-              <p className="text-sm text-zinc-500 py-6 text-center bg-zinc-800/50 rounded-xl border border-dashed border-zinc-700">まだ招待メンバーがいません</p>
+              <p className="text-sm text-gray-500 py-6 text-center bg-gray-100 rounded-xl border border-dashed border-gray-300">まだ招待メンバーがいません</p>
             ) : (
-              <div className="bg-zinc-800/50 rounded-xl border border-zinc-800 divide-y divide-zinc-800">
+              <div className="bg-gray-100 rounded-xl border border-gray-200 divide-y divide-gray-200">
                 {talk.members.map((m) => (
                   <div key={m.id} className="flex items-center gap-3 px-4 py-2.5">
                     <span className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">{m.name.charAt(0)}</span>
-                    <p className="text-sm text-zinc-200 flex-1 min-w-0 truncate">{m.name}</p>
+                    <p className="text-sm text-gray-700 flex-1 min-w-0 truncate">{m.name}</p>
                     {canManage && (
-                      <button onClick={() => removeMember(m.id)} className="text-xs text-zinc-500 hover:text-rose-400 transition px-1">外す</button>
+                      <button onClick={() => removeMember(m.id)} className="text-xs text-gray-500 hover:text-rose-400 transition px-1">外す</button>
                     )}
                   </div>
                 ))}
@@ -1511,19 +1511,19 @@ function FileSearchModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div className="w-full max-w-2xl max-h-[80vh] rounded-2xl bg-zinc-900 border border-zinc-700 shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800">
-          <span className="text-sm font-bold text-white">📎 ファイル検索</span>
-          <span className="text-[12px] text-zinc-500 truncate">{talkName}</span>
-          <button onClick={onClose} className="ml-auto text-zinc-500 hover:text-zinc-300">✕</button>
+      <div className="w-full max-w-2xl max-h-[80vh] rounded-2xl bg-white border border-gray-300 shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
+          <span className="text-sm font-bold text-gray-800">📎 ファイル検索</span>
+          <span className="text-[12px] text-gray-500 truncate">{talkName}</span>
+          <button onClick={onClose} className="ml-auto text-gray-500 hover:text-gray-600">✕</button>
         </div>
-        <div className="px-4 py-3 border-b border-zinc-800 space-y-2">
+        <div className="px-4 py-3 border-b border-gray-200 space-y-2">
           <input
             autoFocus
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="ファイル名・種類・投稿者で検索..."
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
           <div className="flex items-center gap-1.5">
             {([
@@ -1535,18 +1535,18 @@ function FileSearchModal({
                 key={k}
                 onClick={() => setKind(k)}
                 className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
-                  kind === k ? "bg-emerald-600 text-white" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                  kind === k ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 {label}
               </button>
             ))}
-            <span className="ml-auto text-[12px] text-zinc-500">{filtered.length}件</span>
+            <span className="ml-auto text-[12px] text-gray-500">{filtered.length}件</span>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-3">
           {filtered.length === 0 ? (
-            <p className="text-sm text-zinc-500 py-10 text-center">
+            <p className="text-sm text-gray-500 py-10 text-center">
               {allFiles.length === 0 ? "このトークルームには添付ファイルがありません" : "該当するファイルがありません"}
             </p>
           ) : (
@@ -1558,17 +1558,17 @@ function FileSearchModal({
                   download={isImageAttachment(att) ? undefined : att.name || "file"}
                   target={isImageAttachment(att) ? "_blank" : undefined}
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded-lg border border-zinc-800 hover:border-emerald-500 bg-zinc-800/40 px-3 py-2 transition"
+                  className="flex items-center gap-3 rounded-lg border border-gray-200 hover:border-emerald-500 bg-gray-50 px-3 py-2 transition"
                 >
                   {isImageAttachment(att) ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={att.dataUrl} alt={att.name || "画像"} className="h-11 w-11 object-cover rounded-md border border-zinc-700 flex-shrink-0" />
+                    <img src={att.dataUrl} alt={att.name || "画像"} className="h-11 w-11 object-cover rounded-md border border-gray-300 flex-shrink-0" />
                   ) : (
                     <span className="h-11 w-11 flex items-center justify-center text-2xl flex-shrink-0">{fileIcon(att)}</span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] text-zinc-100">{att.name || "ファイル"}</span>
-                    <span className="block text-[11px] text-zinc-500 truncate">
+                    <span className="block truncate text-[13px] text-gray-800">{att.name || "ファイル"}</span>
+                    <span className="block text-[11px] text-gray-500 truncate">
                       {authorName} ・ {fmt(createdAt)}{formatBytes(att.size) ? ` ・ ${formatBytes(att.size)}` : ""}
                     </span>
                   </span>
@@ -1658,27 +1658,27 @@ function QuotePicker({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div className="w-full max-w-3xl max-h-[80vh] rounded-2xl bg-zinc-900 border border-zinc-700 shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800">
-          <span className="text-sm font-bold text-white">❝ 引用するメッセージを選択</span>
-          <button onClick={onClose} className="ml-auto text-zinc-500 hover:text-zinc-300">✕</button>
+      <div className="w-full max-w-3xl max-h-[80vh] rounded-2xl bg-white border border-gray-300 shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
+          <span className="text-sm font-bold text-gray-800">❝ 引用するメッセージを選択</span>
+          <button onClick={onClose} className="ml-auto text-gray-500 hover:text-gray-600">✕</button>
         </div>
         {/* パンくず */}
-        <div className="flex items-center gap-1 px-4 py-2 text-[12px] text-zinc-400 border-b border-zinc-800 flex-wrap">
+        <div className="flex items-center gap-1 px-4 py-2 text-[12px] text-gray-500 border-b border-gray-200 flex-wrap">
           <button onClick={() => { setSelChannel(null); setSelTalk(null); setTalks([]); setMsgs([]); }} className="hover:text-emerald-300">チャンネル</button>
           {selChannel && <><span>›</span><button onClick={() => openChannel(selChannel)} className="hover:text-emerald-300">{selChannel.name}</button></>}
-          {selTalk && <><span>›</span><span className="text-zinc-200 font-bold">{selTalk.name}</span></>}
+          {selTalk && <><span>›</span><span className="text-gray-700 font-bold">{selTalk.name}</span></>}
         </div>
         <div className="flex-1 overflow-y-auto p-3">
           {loading ? (
-            <p className="text-sm text-zinc-500 py-10 text-center">読み込み中...</p>
+            <p className="text-sm text-gray-500 py-10 text-center">読み込み中...</p>
           ) : !selChannel ? (
             <div className="grid gap-1.5">
               {channels.length === 0 ? (
-                <p className="text-sm text-zinc-500 py-10 text-center">チャンネルがありません</p>
+                <p className="text-sm text-gray-500 py-10 text-center">チャンネルがありません</p>
               ) : (
                 channels.map((c) => (
-                  <button key={c.id} onClick={() => openChannel(c)} className="text-left rounded-lg border border-zinc-800 hover:border-emerald-500 bg-zinc-800/40 px-3 py-2 text-sm text-zinc-200 transition flex items-center gap-2">
+                  <button key={c.id} onClick={() => openChannel(c)} className="text-left rounded-lg border border-gray-200 hover:border-emerald-500 bg-gray-50 px-3 py-2 text-sm text-gray-700 transition flex items-center gap-2">
                     <span className="text-emerald-400">#</span>{c.name}
                   </button>
                 ))
@@ -1687,10 +1687,10 @@ function QuotePicker({
           ) : !selTalk ? (
             <div className="grid gap-1.5">
               {talks.length === 0 ? (
-                <p className="text-sm text-zinc-500 py-10 text-center">トークルームがありません</p>
+                <p className="text-sm text-gray-500 py-10 text-center">トークルームがありません</p>
               ) : (
                 talks.map((t) => (
-                  <button key={t.id} onClick={() => openTalk(t)} className="text-left rounded-lg border border-zinc-800 hover:border-emerald-500 bg-zinc-800/40 px-3 py-2 text-sm text-zinc-200 transition flex items-center gap-2">
+                  <button key={t.id} onClick={() => openTalk(t)} className="text-left rounded-lg border border-gray-200 hover:border-emerald-500 bg-gray-50 px-3 py-2 text-sm text-gray-700 transition flex items-center gap-2">
                     <span className="text-sky-400">💬</span>{t.name}
                   </button>
                 ))
@@ -1702,20 +1702,20 @@ function QuotePicker({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="メッセージを検索..."
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
               {filteredMsgs.length === 0 ? (
-                <p className="text-sm text-zinc-500 py-10 text-center">メッセージがありません</p>
+                <p className="text-sm text-gray-500 py-10 text-center">メッセージがありません</p>
               ) : (
                 filteredMsgs.map((m) => (
-                  <button key={m.id} onClick={() => pick(m)} className="w-full text-left rounded-lg border border-zinc-800 hover:border-sky-500 bg-zinc-800/40 px-3 py-2 transition">
-                    <div className="flex items-center gap-2 text-[11px] text-zinc-400">
-                      <span className="font-bold text-zinc-200">{m.authorName}</span>
+                  <button key={m.id} onClick={() => pick(m)} className="w-full text-left rounded-lg border border-gray-200 hover:border-sky-500 bg-gray-50 px-3 py-2 transition">
+                    <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                      <span className="font-bold text-gray-700">{m.authorName}</span>
                       <span>{fmt(m.createdAt)}</span>
                       {m.parentId && <span className="text-emerald-400">↩ 返信</span>}
                     </div>
-                    {m.subject && <p className="text-[13px] font-bold text-white mt-0.5">{m.subject}</p>}
-                    <p className="mt-0.5 text-[13px] text-zinc-300 whitespace-pre-wrap break-words line-clamp-3">
+                    {m.subject && <p className="text-[13px] font-bold text-gray-800 mt-0.5">{m.subject}</p>}
+                    <p className="mt-0.5 text-[13px] text-gray-600 whitespace-pre-wrap break-words line-clamp-3">
                       {m.text || (m.attachments?.length ? "[画像]" : "")}
                     </p>
                   </button>
@@ -1796,7 +1796,7 @@ function ChannelView({
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex-shrink-0 border-b border-zinc-800 px-5 pt-3">
+      <div className="flex-shrink-0 border-b border-gray-200 px-5 pt-3">
         <div className="flex items-center gap-3">
           <span className={`w-10 h-10 rounded-lg ${colorFor(channel.id)} flex items-center justify-center text-white text-lg font-bold`}>
             {channel.name.charAt(0)}
@@ -1815,30 +1815,30 @@ function ChannelView({
                       setNameInput(channel.name);
                     }
                   }}
-                  className="bg-zinc-800 border border-emerald-500 rounded px-2 py-1 text-base text-white w-64 focus:outline-none"
+                  className="bg-gray-100 border border-emerald-500 rounded px-2 py-1 text-base text-gray-800 w-64 focus:outline-none"
                 />
                 <button onClick={saveName} disabled={savingName} className="text-xs font-bold text-emerald-400 hover:text-emerald-300 px-1 disabled:opacity-50">
                   {savingName ? "保存中" : "保存"}
                 </button>
-                <button onClick={() => { setEditingName(false); setNameInput(channel.name); }} className="text-xs text-zinc-500 hover:text-zinc-300 px-1">
+                <button onClick={() => { setEditingName(false); setNameInput(channel.name); }} className="text-xs text-gray-500 hover:text-gray-600 px-1">
                   取消
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-1.5">
-                <h1 className="text-lg font-bold text-white truncate">{channel.name}</h1>
+                <h1 className="text-lg font-bold text-gray-800 truncate">{channel.name}</h1>
                 {isAdmin && (
                   <button
                     onClick={() => setEditingName(true)}
                     title="チャンネル名を変更"
-                    className="text-zinc-500 hover:text-emerald-400 transition text-sm flex-shrink-0"
+                    className="text-gray-500 hover:text-emerald-400 transition text-sm flex-shrink-0"
                   >
                     ✎
                   </button>
                 )}
               </div>
             )}
-            <p className="text-[11px] text-zinc-500 truncate">
+            <p className="text-[11px] text-gray-500 truncate">
               {channel.description ? `${channel.description} ・ ` : ""}メンバー {channel.members.length}名 ・ トークルーム {talks.length}件
             </p>
           </div>
@@ -1849,7 +1849,7 @@ function ChannelView({
               key={t}
               onClick={() => setTab(t)}
               className={`px-3 py-2 text-sm font-semibold border-b-2 transition ${
-                tab === t ? "border-emerald-500 text-white" : "border-transparent text-zinc-400 hover:text-zinc-200"
+                tab === t ? "border-emerald-500 text-gray-800" : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
               {t === "talks" ? "トークルーム" : t === "members" ? "メンバー" : "分析"}
@@ -1863,7 +1863,7 @@ function ChannelView({
           {tab === "talks" ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-white">トークルーム一覧</span>
+                <span className="text-sm font-bold text-gray-800">トークルーム一覧</span>
                 {canCreateTalk && (
                   <button onClick={onCreateTalk} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-1.5 rounded-lg transition">
                     + 新規トークルーム
@@ -1871,7 +1871,7 @@ function ChannelView({
                 )}
               </div>
               {talks.length === 0 ? (
-                <div className="text-center py-12 text-zinc-500 bg-zinc-800/40 rounded-xl border border-dashed border-zinc-700">
+                <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                   <p className="text-sm font-bold">トークルームがありません</p>
                   {canCreateTalk && <p className="text-xs mt-1">「+ 新規トークルーム」から作成してください</p>}
                 </div>
@@ -1881,15 +1881,15 @@ function ChannelView({
                     <button
                       key={t.id}
                       onClick={() => onOpenTalk(t.id)}
-                      className="w-full flex items-center gap-3 bg-zinc-800/50 hover:bg-zinc-800 rounded-xl border border-zinc-800 px-4 py-3 text-left transition group"
+                      className="w-full flex items-center gap-3 bg-gray-100 hover:bg-gray-100 rounded-xl border border-gray-200 px-4 py-3 text-left transition group"
                     >
-                      <span className="text-zinc-500 text-lg font-bold flex-shrink-0">#</span>
+                      <span className="text-gray-500 text-lg font-bold flex-shrink-0">#</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-zinc-100 truncate group-hover:text-white">{t.name}</p>
-                        {t.description && <p className="text-xs text-zinc-500 truncate">{t.description}</p>}
-                        <p className="text-[11px] text-zinc-500 mt-0.5">招待 {t.members.length}名 ・ 最終更新 {fmt(t.updatedAt)}</p>
+                        <p className="text-sm font-bold text-gray-800 truncate group-hover:text-gray-800">{t.name}</p>
+                        {t.description && <p className="text-xs text-gray-500 truncate">{t.description}</p>}
+                        <p className="text-[11px] text-gray-500 mt-0.5">招待 {t.members.length}名 ・ 最終更新 {fmt(t.updatedAt)}</p>
                       </div>
-                      <span className="text-zinc-600 group-hover:text-emerald-400 transition">›</span>
+                      <span className="text-gray-400 group-hover:text-emerald-400 transition">›</span>
                     </button>
                   ))}
                 </div>
@@ -1898,28 +1898,28 @@ function ChannelView({
           ) : tab === "members" ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-white">チャンネル参加メンバー</span>
+                <span className="text-sm font-bold text-gray-800">チャンネル参加メンバー</span>
                 {isAdmin ? (
                   <button onClick={() => setShowAdd(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-4 py-1.5 rounded-lg transition">
                     + メンバー追加
                   </button>
                 ) : (
-                  <span className="text-xs text-zinc-500">メンバー管理は管理者のみ</span>
+                  <span className="text-xs text-gray-500">メンバー管理は管理者のみ</span>
                 )}
               </div>
               {channel.members.length === 0 ? (
-                <p className="text-sm text-zinc-500 py-6 text-center bg-zinc-800/40 rounded-xl border border-dashed border-zinc-700">メンバーがいません</p>
+                <p className="text-sm text-gray-500 py-6 text-center bg-gray-50 rounded-xl border border-dashed border-gray-300">メンバーがいません</p>
               ) : (
-                <div className="bg-zinc-800/50 rounded-xl border border-zinc-800 divide-y divide-zinc-800">
+                <div className="bg-gray-100 rounded-xl border border-gray-200 divide-y divide-gray-200">
                   {channel.members.map((m) => (
                     <div key={m.id} className="flex items-center gap-3 px-4 py-2.5">
                       <span className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">{m.name.charAt(0)}</span>
-                      <p className="text-sm text-zinc-200 flex-1 min-w-0 truncate">{m.name}</p>
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${m.role === "admin" ? "bg-amber-500/20 text-amber-300" : "bg-zinc-700 text-zinc-300"}`}>
+                      <p className="text-sm text-gray-700 flex-1 min-w-0 truncate">{m.name}</p>
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${m.role === "admin" ? "bg-amber-500/20 text-amber-300" : "bg-gray-200 text-gray-600"}`}>
                         {m.role === "admin" ? "管理者" : "メンバー"}
                       </span>
                       {isAdmin && m.role !== "admin" && (
-                        <button onClick={() => removeChannelMember(m.id)} className="text-xs text-zinc-500 hover:text-rose-400 transition px-1">削除</button>
+                        <button onClick={() => removeChannelMember(m.id)} className="text-xs text-gray-500 hover:text-rose-400 transition px-1">削除</button>
                       )}
                     </div>
                   ))}
@@ -1981,31 +1981,31 @@ function ChannelAnalytics({ channel, talks }: { channel: Channel; talks: Talk[] 
     <div className="space-y-5">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {cards.map((c) => (
-          <div key={c.label} className="bg-zinc-800/50 rounded-xl border border-zinc-800 p-4">
-            <p className="text-2xl font-black text-white">{c.value}</p>
-            <p className="text-xs font-bold text-zinc-400 mt-1">{c.label}</p>
+          <div key={c.label} className="bg-gray-100 rounded-xl border border-gray-200 p-4">
+            <p className="text-2xl font-black text-gray-800">{c.value}</p>
+            <p className="text-xs font-bold text-gray-500 mt-1">{c.label}</p>
           </div>
         ))}
       </div>
-      <div className="bg-zinc-800/50 rounded-xl border border-zinc-800 p-5">
-        <p className="text-sm font-bold text-white mb-3">トークルーム別 参加人数</p>
+      <div className="bg-gray-100 rounded-xl border border-gray-200 p-5">
+        <p className="text-sm font-bold text-gray-800 mb-3">トークルーム別 参加人数</p>
         {talkBars.length === 0 ? (
-          <p className="text-xs text-zinc-500">トークルームがありません</p>
+          <p className="text-xs text-gray-500">トークルームがありません</p>
         ) : (
           <div className="space-y-2">
             {talkBars.map((b) => (
               <div key={b.id} className="flex items-center gap-3">
-                <span className="text-xs text-zinc-400 w-28 truncate flex-shrink-0"># {b.name}</span>
-                <div className="flex-1 bg-zinc-700 rounded-full h-3 overflow-hidden">
+                <span className="text-xs text-gray-500 w-28 truncate flex-shrink-0"># {b.name}</span>
+                <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
                   <div className="bg-gradient-to-r from-emerald-500 to-teal-500 h-3 rounded-full" style={{ width: `${(b.count / talkMax) * 100}%` }} />
                 </div>
-                <span className="text-xs font-bold text-zinc-200 w-10 text-right flex-shrink-0">{b.count}名</span>
+                <span className="text-xs font-bold text-gray-700 w-10 text-right flex-shrink-0">{b.count}名</span>
               </div>
             ))}
           </div>
         )}
       </div>
-      <p className="text-[11px] text-zinc-500">
+      <p className="text-[11px] text-gray-500">
         ※ 現在の分析は参加状況ベースです。投稿・返信などメッセージ活動の分析は、トークルーム内チャット機能の追加後に対応予定です。
       </p>
     </div>
@@ -2063,8 +2063,8 @@ function CreateChannelModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-4 flex items-center justify-between">
-          <h2 className="text-white font-bold text-base">新規チャンネル</h2>
-          <button onClick={onClose} className="text-white/70 hover:text-white text-lg leading-none">×</button>
+          <h2 className="text-gray-800 font-bold text-base">新規チャンネル</h2>
+          <button onClick={onClose} className="text-gray-800/70 hover:text-gray-800 text-lg leading-none">×</button>
         </div>
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
@@ -2175,8 +2175,8 @@ function CreateTalkModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-4 flex items-center justify-between">
-          <h2 className="text-white font-bold text-base">新規トークルーム（{channel.name}）</h2>
-          <button onClick={onClose} className="text-white/70 hover:text-white text-lg leading-none">×</button>
+          <h2 className="text-gray-800 font-bold text-base">新規トークルーム（{channel.name}）</h2>
+          <button onClick={onClose} className="text-gray-800/70 hover:text-gray-800 text-lg leading-none">×</button>
         </div>
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
