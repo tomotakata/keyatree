@@ -49,17 +49,37 @@ export default function MonthlyGoalCard({
     <>
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
         {/* ヘッダー */}
-        <div className="bg-gradient-to-r from-emerald-400 to-teal-500 px-5 py-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-emerald-400 to-teal-500 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <p className="text-xs text-emerald-100 font-medium">今期の目標宣言</p>
             <h3 className="text-white font-bold text-base mt-0.5">今期の目標管理</h3>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="text-xs bg-white/20 hover:bg-white/30 text-white font-semibold px-3 py-1.5 rounded-full transition"
-          >
-            進捗詳細
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/goal-navigator"
+              className="text-sm bg-white hover:bg-gray-100 text-emerald-600 font-bold px-3 py-1.5 rounded-xl transition"
+            >
+              定量目標設定を開始
+            </Link>
+            <Link
+              href="/qualitative-goal-navigator"
+              className="text-sm bg-white hover:bg-gray-100 text-indigo-600 font-bold px-3 py-1.5 rounded-xl transition"
+            >
+              定性目標設定を開始
+            </Link>
+            <Link
+              href="/my-goals"
+              className="text-sm bg-white/20 hover:bg-white/30 text-white font-bold px-3 py-1.5 rounded-xl transition"
+            >
+              過去の目標履歴
+            </Link>
+            <button
+              onClick={() => setShowModal(true)}
+              className="text-xs bg-white/20 hover:bg-white/30 text-white font-semibold px-3 py-1.5 rounded-full transition"
+            >
+              進捗詳細
+            </button>
+          </div>
         </div>
 
         <div className="p-5 space-y-5">
@@ -75,28 +95,6 @@ export default function MonthlyGoalCard({
 
           {/* 承認済み目標 進捗リマインド */}
           <ProgressReminder employeeId={employeeId} />
-
-          {/* 目標設定アクション */}
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Link
-              href="/goal-navigator"
-              className="text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl transition"
-            >
-              定量目標設定を開始
-            </Link>
-            <Link
-              href="/qualitative-goal-navigator"
-              className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl transition"
-            >
-              定性目標設定を開始
-            </Link>
-            <Link
-              href="/my-goals"
-              className="text-sm border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold px-4 py-2 rounded-xl transition"
-            >
-              過去の目標履歴
-            </Link>
-          </div>
         </div>
       </div>
 
