@@ -39,20 +39,31 @@ export default async function ApprovedGoalNavigatorPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-base font-bold text-gray-800">{record.title}</p>
                       <RecordStatusBadge status={record.status} />
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${record.kind === "quantitative" ? "bg-emerald-50 text-emerald-700" : "bg-indigo-50 text-indigo-700"}`}>
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${
+                          record.kind === "quantitative"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-indigo-50 text-indigo-700"
+                        }`}
+                      >
                         {record.kind === "quantitative" ? "目標設定" : "定性目標"}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600">{record.employeeName} / {record.department}</p>
+                    <p className="text-sm text-gray-600">
+                      {record.employeeName} / {record.department}
+                    </p>
                     <p className="text-xs text-gray-400">承認日 {formatDate(record.approvedAt || record.updatedAt)}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="text-right text-xs text-gray-400">
+                  <div className="flex flex-col items-end gap-2 lg:text-right">
+                    <div className="text-xs text-gray-400">
                       <p>承認者</p>
                       <p className="mt-1 text-sm font-medium text-gray-600">{record.approvedBy || "-"}</p>
                     </div>
-                    <RecordActions record={record} />
                   </div>
+                </div>
+
+                <div className="mt-4">
+                  <RecordActions record={record} />
                 </div>
               </div>
             ))
