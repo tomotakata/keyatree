@@ -10,15 +10,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-          <BackButton />
-          <Link href="/properties" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">物件一覧</Link>
-          <span className="text-gray-300">›</span>
-          <span className="text-gray-700 text-sm font-medium">{property.name}</span>
-        </div>
-      </header>
-      <main className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+            <main className="max-w-5xl mx-auto px-4 py-6 space-y-5">
         <div className="bg-white rounded-2xl border shadow-sm p-6">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>

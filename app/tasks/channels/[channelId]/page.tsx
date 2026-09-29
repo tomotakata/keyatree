@@ -123,18 +123,7 @@ export default function ChannelDetailPage({ params }: { params: Promise<{ channe
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-          <BackButton />
-          <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">K</span>
-          </div>
-          <Link href="/tasks" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">チームス</Link>
-          <span className="text-gray-300 mx-1">›</span>
-          <Link href="/tasks/channels" className="text-gray-500 text-sm hover:text-emerald-600 transition">チャンネル</Link>
-        </div>
-      </header>
-
+      
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-5">
         {/* チャンネルヘッダー */}
         <div className="flex items-start gap-3">

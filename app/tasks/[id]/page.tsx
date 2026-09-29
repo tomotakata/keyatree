@@ -616,37 +616,7 @@ export default function TaskWorkspacePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm flex-shrink-0">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-          <BackButton />
-          <button onClick={() => router.push("/tasks")}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-emerald-600 transition font-medium">
-            <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" stroke="currentColor" strokeWidth="2">
-              <path d="M12 15l-5-5 5-5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            もどる
-          </button>
-          <span className="text-gray-200">|</span>
-          <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">K</span>
-          </div>
-          <Link href="/tasks" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">チームス</Link>
-          {talkHref && (
-            <>
-              <span className="text-gray-300 mx-1">›</span>
-              <Link href={talkHref} className="text-emerald-600 text-sm font-medium hover:underline truncate max-w-[8rem]">
-                # {task.talkName}
-              </Link>
-            </>
-          )}
-          <span className="text-gray-300 mx-1">›</span>
-          <span className="text-gray-700 text-sm font-medium truncate max-w-xs">{task.title}</span>
-          <div className="ml-auto">
-            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${cfg.badge}`}>{cfg.label}</span>
-          </div>
-        </div>
-      </header>
-
+      
       <div className="max-w-5xl mx-auto w-full px-4 py-4 flex flex-col lg:flex-row gap-4 flex-1">
         <div className="flex-1 flex flex-col min-h-0 gap-3">
 

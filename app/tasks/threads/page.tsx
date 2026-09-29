@@ -63,24 +63,7 @@ export default function ThreadListPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ヘッダー */}
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-          <BackButton />
-          <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">K</span>
-          </div>
-          <Link href="/tasks" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">チームス</Link>
-          <span className="text-gray-300 mx-1">›</span>
-          <span className="text-gray-700 text-sm font-medium">スレッド一覧</span>
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-xs text-gray-400">{filtered.length}件のスレッド / {totalReplies}件の返信</span>
-            <Link href="/tasks/channels" className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition">
-              + トークから作成
-            </Link>
-          </div>
-        </div>
-      </header>
-
+      
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-4">
         {/* 検索 + フィルター */}
         <div className="flex flex-wrap gap-3 items-center">

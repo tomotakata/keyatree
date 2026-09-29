@@ -70,18 +70,7 @@ export default function TalkDetailPage({ params }: { params: Promise<{ channelId
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
-          <BackButton />
-          <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">K</span>
-          </div>
-          <Link href="/tasks/channels" className="text-gray-500 text-sm hover:text-emerald-600 transition">チャンネル</Link>
-          <span className="text-gray-300 mx-1">›</span>
-          <Link href={`/tasks/channels/${channelId}`} className="text-gray-500 text-sm hover:text-emerald-600 transition truncate max-w-[120px]">{channel.name}</Link>
-        </div>
-      </header>
-
+      
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-5">
         <div className="flex items-start gap-3">
           <span className="text-gray-400 text-2xl font-black flex-shrink-0">#</span>

@@ -103,26 +103,7 @@ export default function ArchivePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-          <BackButton />
-          <button onClick={() => router.push("/tasks")}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-emerald-600 transition font-medium">
-            <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" stroke="currentColor" strokeWidth="2">
-              <path d="M12 15l-5-5 5-5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            もどる
-          </button>
-          <span className="text-gray-200">|</span>
-          <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">K</span>
-          </div>
-          <Link href="/tasks" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">チームス</Link>
-          <span className="text-gray-300 mx-1">›</span>
-          <span className="text-gray-700 text-sm font-medium">アーカイブ</span>
-        </div>
-      </header>
-
+      
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-4">
         <div className="flex items-center gap-2">
           <h1 className="text-base font-bold text-gray-800">アーカイブ済みタスク</h1>

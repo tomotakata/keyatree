@@ -15,15 +15,7 @@ export default function PropertiesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-          <BackButton />
-          <Link href="/employees" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">K.AI</Link>
-          <span className="text-gray-300">›</span>
-          <span className="text-gray-700 text-sm font-medium">物件一覧</span>
-        </div>
-      </header>
-      <main className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+            <main className="max-w-5xl mx-auto px-4 py-6 space-y-4">
         <div>
           <h1 className="text-xl font-bold text-gray-800">物件一覧</h1>
           <p className="text-sm text-gray-500 mt-1">物件詳細から間取り作成・保存・再編集ができます。</p>

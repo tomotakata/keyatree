@@ -15,7 +15,6 @@ import TaskAlertPanel from "@/components/TaskAlertPanel";
 import MonthlyGoalCard from "@/components/MonthlyGoalCard";
 import BravoButton from "@/components/BravoButton";
 import SeedGoalData from "@/components/goal-navigator/SeedGoalData";
-import BackButton from "@/components/BackButton";
 
 type SessionInfo = {
   id?: string;
@@ -132,38 +131,6 @@ export default function EmployeePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ヘッダー */}
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-          <BackButton />
-          <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">K</span>
-          </div>
-          <Link href="/employees" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">K.AI</Link>
-          <span className="text-gray-300 mx-1">›</span>
-          <Link href="/employees" className="text-gray-500 text-sm hover:text-emerald-600 transition">スタッフ一覧</Link>
-          <span className="text-gray-300 mx-1">›</span>
-          <span className="text-gray-700 text-sm font-medium">{employee.name}</span>
-
-          <div className="ml-auto flex items-center gap-2">
-            {session?.employeeId && (
-              <Link
-                href={`/employees/${session.employeeId}`}
-                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
-              >
-                マイページ
-              </Link>
-            )}
-            <Link
-              href="/features"
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
-            >
-              機能一覧
-            </Link>
-          </div>
-        </div>
-      </header>
-
       {/* グリーティングバナー */}
       <GreetingBanner employee={employee} />
 

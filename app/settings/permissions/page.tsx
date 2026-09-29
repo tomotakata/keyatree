@@ -26,20 +26,7 @@ export default function PermissionsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ヘッダー */}
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-          <BackButton />
-          <Link href="/employees" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">K</span>
-          </Link>
-          <Link href="/employees" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">K.AI</Link>
-          <span className="text-gray-300 mx-1">›</span>
-          <span className="text-gray-500 text-sm">設定</span>
-          <span className="text-gray-300 mx-1">›</span>
-          <span className="text-gray-700 text-sm font-medium">権限管理</span>
-        </div>
-      </header>
-
+      
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         <div>
           <h1 className="text-xl font-bold text-gray-800">権限管理</h1>

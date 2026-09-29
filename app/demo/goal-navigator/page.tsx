@@ -123,18 +123,7 @@ export default function GoalNavigatorDemoPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <UnderMaintenance title="目標設定ナビゲーター（デモ）" />
-      <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
-          <BackButton />
-          <Link href="/docs" className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">K</span>
-          </Link>
-          <Link href="/docs" className="font-bold text-gray-800 text-sm hover:text-emerald-600 transition">K.AI Docs</Link>
-          <span className="text-gray-300">›</span>
-          <span className="text-gray-700 text-sm font-medium">目標設定ナビゲーター デモ</span>
-        </div>
-      </header>
-
+      
       <main className="max-w-6xl mx-auto px-4 py-8 grid lg:grid-cols-[1.2fr_0.8fr] gap-6">
         <section className="bg-white rounded-3xl border shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-5">
