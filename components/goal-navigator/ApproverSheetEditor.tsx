@@ -12,7 +12,7 @@ import type { NavigatorKind, RecordStatus } from "@/lib/goalNavigatorStore";
 /**
  * 承認詳細ページで、提出内容を提出時と同一のシート形式で表示する。
  * 提出者は「進捗を入力」、承認者は「進捗を入力」「評価を入力」でシートを編集できる。
- * 承認済み（approved）は内容保護のため閲覧専用。
+ * 承認済み（approved）も進捗入力・評価入力の対象となる。
  */
 export default function ApproverSheetEditor({
   recordId,
@@ -37,7 +37,7 @@ export default function ApproverSheetEditor({
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const editable = (isOwner || isApprover) && status !== "approved";
+  const editable = isOwner || isApprover;
   const disabled = !editing;
 
   const onChange = (key: string, value: string) => {
