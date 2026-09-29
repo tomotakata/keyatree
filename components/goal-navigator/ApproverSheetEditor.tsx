@@ -8,8 +8,8 @@ import type { NavigatorKind, RecordStatus } from "@/lib/goalNavigatorStore";
 
 /**
  * 承認詳細ページで、提出内容を提出時と同一のシート形式で表示する。
- * 承認者（canEdit=true）かつ承認待ち/やり直し状態のときは「編集する」→ 値を修正 →「保存」できる。
- * 承認済み・非承認者は読み取り専用シート。
+ * 承認者（canEdit=true）であれば「編集する」→ 値を修正 →「保存」できる。
+ * 非承認者は読み取り専用シート。
  */
 export default function ApproverSheetEditor({
   recordId,
@@ -32,7 +32,7 @@ export default function ApproverSheetEditor({
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const editable = canEdit && (status === "submitted" || status === "rejected");
+  const editable = canEdit;
   const disabled = !editing;
 
   const onChange = (key: string, value: string) => {
@@ -98,7 +98,7 @@ export default function ApproverSheetEditor({
 
       {editing ? (
         <p className="mt-2 text-xs font-bold text-amber-600">
-          編集モードです。内容を修正して「保存」を押すと提出内容が更新されます（承認状態は変わりません）。
+          編集モードです。内容を修正して「保存」を押すと提出内容が更新されます（ステータスは変わりません）。
         </p>
       ) : null}
 

@@ -116,6 +116,7 @@ export default function QuantitativeSheet({
               {sectionTitle(col.label)}
               {fDate(`${col.p}_deadline`, `目標達成期日${col.n}`)}
               {fNum(`${col.p}_value`, `目標数値${col.n}`)}
+              {fNum(`${col.p}_progress`, `進捗数値${col.n}`)}
               {fNum(`${col.p}_result`, `結果数値${col.n}`)}
               {fArea(`${col.p}_item`, `目標項目${col.n}`, "この目標数値が示す内容・目標設定の経緯・達成することの意義", 5)}
               {fArea(`${col.p}_eval1`, `月間定量一次評価者メッセージ${col.n}`, undefined, 3)}

@@ -234,7 +234,7 @@ export async function updateGoalMetricsAction(recordId: string, patch: Record<st
   return { ok: true as const, record };
 }
 
-/** 承認者による入力内容の編集・保存：承認者（管理者/人事）のみ。承認済みは保護（編集不可） */
+/** 承認者による入力内容の編集・保存：承認者（管理者/人事）のみ。承認ステータスは変えない */
 export async function updateNavigatorAnswersAction(
   recordId: string,
   answers: Record<string, string>
@@ -246,9 +246,6 @@ export async function updateNavigatorAnswersAction(
 
   const target = await getNavigatorRecordById(recordId);
   if (!target) return { ok: false as const, message: "対象レコードが見つかりません" };
-  if (target.status === "approved") {
-    return { ok: false as const, message: "承認済みのため編集できません" };
-  }
 
   const safeAnswers: Record<string, string> = {};
   for (const [k, v] of Object.entries(answers)) {

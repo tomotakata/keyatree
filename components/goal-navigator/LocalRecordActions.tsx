@@ -4,6 +4,8 @@ import { useMemo, useRef, useState } from "react";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas-pro";
+import QuantitativeSheet from "@/components/goal-navigator/QuantitativeSheet";
+import QualitativeSheet from "@/components/goal-navigator/QualitativeSheet";
 
 type LocalRecord = {
   title: string;
@@ -49,6 +51,11 @@ export default function LocalRecordActions({ record }: { record: LocalRecord }) 
     pdf.save(`${record.title}.pdf`);
   };
 
+  const profile =
+    record.kind === "quantitative"
+      ? { name: record.answers.name || record.name, stage: record.answers.stage || "", grade: record.answers.grade || "" }
+      : { name: record.answers.name || record.name, department: record.answers.department || record.department, grade: record.answers.grade || "" };
+
   return (
     <div className="flex flex-col items-end gap-2">
       <div className="flex flex-wrap items-center gap-2 justify-end">
@@ -67,18 +74,17 @@ export default function LocalRecordActions({ record }: { record: LocalRecord }) 
       </div>
 
       {open ? (
-        <div ref={reportRef} className="w-full max-w-3xl rounded-2xl border bg-gray-50 p-4 text-left shadow-sm">
+        <div ref={reportRef} className="w-full max-w-4xl rounded-2xl border bg-gray-50 p-4 text-left shadow-sm">
           <div className="space-y-2 border-b border-gray-200 pb-4">
             <p className="text-lg font-bold text-gray-800">{record.title}</p>
             <p className="text-sm text-gray-600">{record.name} / {record.department}</p>
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {entries.map(([key, value]) => (
-              <div key={key} className="rounded-xl bg-white p-3 border border-gray-100">
-                <p className="text-xs font-bold text-gray-400">{key}</p>
-                <p className="mt-1 text-sm text-gray-700 leading-6 whitespace-pre-wrap">{value}</p>
-              </div>
-            ))}
+          <div className="mt-4 bg-white rounded-xl border border-gray-100 p-4">
+            {record.kind === "quantitative" ? (
+              <QuantitativeSheet answers={record.answers} onChange={() => {}} disabled profile={profile} />
+            ) : (
+              <QualitativeSheet answers={record.answers} onChange={() => {}} disabled profile={profile} />
+            )}
           </div>
         </div>
       ) : null}

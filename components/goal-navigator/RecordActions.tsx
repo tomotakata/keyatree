@@ -1,19 +1,18 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas-pro";
 import type { NavigatorRecord } from "@/lib/goalNavigatorStore";
+import QuantitativeSheet from "@/components/goal-navigator/QuantitativeSheet";
+import QualitativeSheet from "@/components/goal-navigator/QualitativeSheet";
 import ProgressPanel from "@/components/goal-navigator/ProgressPanel";
 
 type Props = {
   record: NavigatorRecord;
 };
-
-function fieldEntries(record: NavigatorRecord) {
-  return Object.entries(record.answers).filter(([, value]) => Boolean(value));
-}
 
 function sectionTitle(record: NavigatorRecord) {
   return record.kind === "quantitative" ? "目標設定レポート" : "定性目標設定レポート";
@@ -22,7 +21,7 @@ function sectionTitle(record: NavigatorRecord) {
 export default function RecordActions({ record }: Props) {
   const [open, setOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
-  const entries = useMemo(() => fieldEntries(record), [record]);
+  const entries = useMemo(() => Object.entries(record.answers).filter(([, value]) => Boolean(value)), [record.answers]);
 
   const downloadWord = async () => {
     const children = [
@@ -59,6 +58,11 @@ export default function RecordActions({ record }: Props) {
     pdf.save(`${record.title}.pdf`);
   };
 
+  const profile =
+    record.kind === "quantitative"
+      ? { name: record.answers.name || record.employeeName, stage: record.answers.stage || "", grade: record.answers.grade || "" }
+      : { name: record.answers.name || record.employeeName, department: record.answers.department || record.department, grade: record.answers.grade || "" };
+
   return (
     <div className="flex flex-col items-end gap-2">
       <div className="flex flex-wrap items-center gap-2 justify-end">
@@ -68,6 +72,12 @@ export default function RecordActions({ record }: Props) {
         >
           {open ? "詳細を閉じる" : "詳細を見る"}
         </button>
+        <Link
+          href={`/approvals/goal-navigators/${record.id}`}
+          className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-amber-600"
+        >
+          編集する
+        </Link>
         <button
           onClick={downloadWord}
           className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-indigo-700"
@@ -86,19 +96,18 @@ export default function RecordActions({ record }: Props) {
       </div>
 
       {open ? (
-        <div ref={reportRef} className="w-full max-w-3xl rounded-2xl border bg-gray-50 p-4 text-left shadow-sm">
+        <div ref={reportRef} className="w-full max-w-4xl rounded-2xl border bg-gray-50 p-4 text-left shadow-sm">
           <div className="space-y-2 border-b border-gray-200 pb-4">
             <p className="text-lg font-bold text-gray-800">{record.title}</p>
             <p className="text-sm text-gray-600">{record.employeeName} / {record.department}</p>
             <p className="text-xs text-gray-400">ステータス：{record.status}</p>
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {entries.map(([key, value]) => (
-              <div key={key} className="rounded-xl bg-white p-3 border border-gray-100">
-                <p className="text-xs font-bold text-gray-400">{key}</p>
-                <p className="mt-1 text-sm text-gray-700 leading-6 whitespace-pre-wrap">{value}</p>
-              </div>
-            ))}
+          <div className="mt-4 bg-white rounded-xl border border-gray-100 p-4">
+            {record.kind === "quantitative" ? (
+              <QuantitativeSheet answers={record.answers} onChange={() => {}} disabled profile={profile} />
+            ) : (
+              <QualitativeSheet answers={record.answers} onChange={() => {}} disabled profile={profile} />
+            )}
           </div>
 
           {/* スタッフの進捗入力 + 管理者コメント返信（マイページと相互反映） */}
