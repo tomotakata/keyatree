@@ -3,27 +3,32 @@
 import { useState, useTransition } from "react";
 import QuantitativeSheet from "@/components/goal-navigator/QuantitativeSheet";
 import QualitativeSheet from "@/components/goal-navigator/QualitativeSheet";
-import { updateNavigatorAnswersAction } from "@/lib/goalNavigatorActions";
+import {
+  updateNavigatorAnswersAction,
+  updateOwnNavigatorAnswersAction,
+} from "@/lib/goalNavigatorActions";
 import type { NavigatorKind, RecordStatus } from "@/lib/goalNavigatorStore";
 
 /**
  * 承認詳細ページで、提出内容を提出時と同一のシート形式で表示する。
- * 承認者（canEdit=true）であれば「編集する」→ 値を修正 →「保存」できる。
- * 非承認者は読み取り専用シート。
+ * 提出者は「進捗を入力」、承認者は「進捗を入力」「評価を入力」でシートを編集できる。
+ * 承認済み（approved）は内容保護のため閲覧専用。
  */
 export default function ApproverSheetEditor({
   recordId,
   kind,
   status,
   initialAnswers,
-  canEdit,
+  isOwner,
+  isApprover,
   profile,
 }: {
   recordId: string;
   kind: NavigatorKind;
   status: RecordStatus;
   initialAnswers: Record<string, string>;
-  canEdit: boolean;
+  isOwner: boolean;
+  isApprover: boolean;
   profile: { name?: string; stage?: string; department?: string; grade?: string };
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>(initialAnswers || {});
@@ -32,7 +37,7 @@ export default function ApproverSheetEditor({
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const editable = canEdit;
+  const editable = (isOwner || isApprover) && status !== "approved";
   const disabled = !editing;
 
   const onChange = (key: string, value: string) => {
@@ -43,7 +48,9 @@ export default function ApproverSheetEditor({
     setError("");
     setNotice("");
     startTransition(async () => {
-      const res = await updateNavigatorAnswersAction(recordId, answers);
+      const res = isApprover
+        ? await updateNavigatorAnswersAction(recordId, answers)
+        : await updateOwnNavigatorAnswersAction(recordId, answers);
       if (!res.ok) {
         setError(res.message);
         return;
@@ -85,20 +92,31 @@ export default function ApproverSheetEditor({
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="rounded-xl bg-amber-500 px-5 py-2 text-sm font-bold text-white transition hover:bg-amber-600"
-            >
-              編集する
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="rounded-xl bg-emerald-500 px-5 py-2 text-sm font-bold text-white transition hover:bg-emerald-600"
+              >
+                進捗を入力
+              </button>
+              {isApprover ? (
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="rounded-xl bg-amber-500 px-5 py-2 text-sm font-bold text-white transition hover:bg-amber-600"
+                >
+                  評価を入力
+                </button>
+              ) : null}
+            </div>
           )
         ) : null}
       </div>
 
       {editing ? (
         <p className="mt-2 text-xs font-bold text-amber-600">
-          編集モードです。内容を修正して「保存」を押すと提出内容が更新されます（ステータスは変わりません）。
+          編集中：シートの内容を修正できます。保存すると上書きされます（ステータスは変わりません）。
         </p>
       ) : null}
 

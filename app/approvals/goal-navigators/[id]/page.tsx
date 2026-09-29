@@ -146,7 +146,8 @@ export default async function GoalNavigatorApprovalDetailPage({
           kind={record.kind}
           status={record.status}
           initialAnswers={record.answers}
-          canEdit={canApprove}
+          isOwner={isOwner}
+          isApprover={canApprove}
           profile={sheetProfile}
         />
 
