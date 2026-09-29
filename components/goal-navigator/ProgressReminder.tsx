@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { addProgressUpdateAction, addProgressReplyAction } from "@/lib/goalNavigatorActions";
+import Link from "next/link";
+import { addProgressReplyAction } from "@/lib/goalNavigatorActions";
 
 type ProgressReply = {
   id: string;
@@ -28,6 +29,8 @@ type NavigatorRecord = {
   approvedAt?: string;
   progressUpdates?: ProgressUpdate[];
 };
+
+type Visibility = "visible" | "hidden" | "finished";
 
 function formatDate(iso?: string) {
   if (!iso) return "-";
@@ -79,20 +82,42 @@ function urgencyLevel(record: NavigatorRecord): "high" | "medium" | "low" {
   return "low";
 }
 
+const VISIBILITY_KEY = "progress_reminder_visibility";
+
+function loadVisibility(): Record<string, Visibility> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(VISIBILITY_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, Visibility>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveVisibility(map: Record<string, Visibility>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(VISIBILITY_KEY, JSON.stringify(map));
+  } catch {
+    // ignore
+  }
+}
+
 function ProgressCard({
   record,
+  visibility,
   onUpdated,
+  onChangeVisibility,
 }: {
   record: NavigatorRecord;
+  visibility: Visibility;
   onUpdated: (record: NavigatorRecord) => void;
+  onChangeVisibility: (id: string, v: Visibility) => void;
 }) {
   const [showHistory, setShowHistory] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [body, setBody] = useState("");
-  const [error, setError] = useState("");
-  const [pending, startTransition] = useTransition();
   const [replyFor, setReplyFor] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState("");
+  const [pending, startTransition] = useTransition();
 
   const logs = record.progressUpdates ?? [];
   const a = record.answers || {};
@@ -107,25 +132,6 @@ function ProgressCard({
     low: { bar: "bg-emerald-400", badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   };
   const style = urgencyStyles[urgency];
-
-  function submitProgress() {
-    setError("");
-    if (!body.trim()) {
-      setError("進捗の内容を入力してください");
-      return;
-    }
-    startTransition(async () => {
-      const res = await addProgressUpdateAction(record.id, body.trim());
-      if (res.ok && res.record) {
-        onUpdated(res.record as NavigatorRecord);
-        setBody("");
-        setShowForm(false);
-        setShowHistory(true);
-      } else {
-        setError(res.message || "進捗の保存に失敗しました");
-      }
-    });
-  }
 
   function submitReply(updateId: string) {
     if (!replyBody.trim()) return;
@@ -179,7 +185,13 @@ function ProgressCard({
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2 flex-shrink-0">
+          <div className="flex flex-col gap-2 flex-shrink-0">
+            <Link
+              href={`/my-goals/${record.id}`}
+              className="rounded-xl bg-emerald-500 hover:bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition text-center"
+            >
+              進捗を入力
+            </Link>
             {logs.length > 0 && (
               <button
                 onClick={() => setShowHistory((v) => !v)}
@@ -188,51 +200,34 @@ function ProgressCard({
                 履歴 ({logs.length}件)
               </button>
             )}
-            <button
-              onClick={() => {
-                setShowForm((v) => !v);
-                setError("");
-              }}
-              className="rounded-xl bg-emerald-500 hover:bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition"
-            >
-              {showForm ? "閉じる" : "進捗を入力"}
-            </button>
-          </div>
-        </div>
-
-        {/* インライン進捗入力フォーム（マイページ内で完結） */}
-        {showForm && (
-          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 space-y-2">
-            <p className="text-xs font-bold text-emerald-700">進捗・課題を記録する</p>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={4}
-              placeholder="今週の進捗、達成したこと、課題や次のアクションなどを記入してください。"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-            />
-            {error && <p className="text-xs font-bold text-red-500">{error}</p>}
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setShowForm(false);
-                  setBody("");
-                  setError("");
-                }}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={submitProgress}
-                disabled={pending}
-                className="rounded-lg bg-emerald-500 hover:bg-emerald-600 px-4 py-2 text-xs font-bold text-white transition disabled:opacity-60"
-              >
-                {pending ? "保存中..." : "進捗を記録する"}
-              </button>
+            <div className="flex flex-wrap gap-1">
+              {visibility !== "hidden" && (
+                <button
+                  onClick={() => onChangeVisibility(record.id, "hidden")}
+                  className="rounded-lg border border-gray-200 px-2 py-1 text-[11px] font-bold text-gray-500 hover:bg-gray-50 transition"
+                >
+                  非表示
+                </button>
+              )}
+              {visibility !== "finished" && (
+                <button
+                  onClick={() => onChangeVisibility(record.id, "finished")}
+                  className="rounded-lg border border-gray-200 px-2 py-1 text-[11px] font-bold text-gray-500 hover:bg-gray-50 transition"
+                >
+                  終了
+                </button>
+              )}
+              {visibility !== "visible" && (
+                <button
+                  onClick={() => onChangeVisibility(record.id, "visible")}
+                  className="rounded-lg border border-emerald-200 px-2 py-1 text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 transition"
+                >
+                  表示
+                </button>
+              )}
             </div>
           </div>
-        )}
+        </div>
 
         {showHistory && logs.length > 0 && (
           <div className="mt-4 space-y-2 border-t pt-4">
@@ -251,7 +246,6 @@ function ProgressCard({
                   </div>
                 ))}
 
-                {/* 管理者コメントへの返信（本人がマイページから返信可能） */}
                 {replyFor === log.id ? (
                   <div className="mt-2 space-y-2">
                     <textarea
@@ -303,6 +297,12 @@ function ProgressCard({
 export default function ProgressReminder({ employeeId }: { employeeId: string }) {
   const [records, setRecords] = useState<NavigatorRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<Visibility>("visible");
+  const [visibilityMap, setVisibilityMap] = useState<Record<string, Visibility>>({});
+
+  useEffect(() => {
+    setVisibilityMap(loadVisibility());
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -327,6 +327,21 @@ export default function ProgressReminder({ employeeId }: { employeeId: string })
     };
   }, [employeeId]);
 
+  const changeVisibility = (id: string, v: Visibility) => {
+    setVisibilityMap((prev) => {
+      const next = { ...prev, [id]: v };
+      saveVisibility(next);
+      return next;
+    });
+  };
+
+  const filtered = records.filter((r) => (visibilityMap[r.id] || "visible") === tab);
+  const counts = {
+    visible: records.filter((r) => (visibilityMap[r.id] || "visible") === "visible").length,
+    hidden: records.filter((r) => visibilityMap[r.id] === "hidden").length,
+    finished: records.filter((r) => visibilityMap[r.id] === "finished").length,
+  };
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -345,24 +360,56 @@ export default function ProgressReminder({ employeeId }: { employeeId: string })
     );
   }
 
+  const tabLabels: Record<Visibility, string> = {
+    visible: "表示",
+    hidden: "非表示",
+    finished: "終了",
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <h2 className="text-sm font-bold text-gray-800">承認済み目標 - 進捗リマインド</h2>
-        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
-          {records.length}件
-        </span>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-bold text-gray-800">承認済み目標 - 進捗リマインド</h2>
+          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+            {records.length}件
+          </span>
+        </div>
       </div>
       <p className="text-xs text-gray-500">承認済みの目標に対して、定期的に進捗・課題を記録することで振り返りができます。記録はどの端末からでも確認できます。</p>
-      {records.map((record) => (
-        <ProgressCard
-          key={record.id}
-          record={record}
-          onUpdated={(updated) =>
-            setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
-          }
-        />
-      ))}
+
+      {/* タブ */}
+      <div className="flex border-b">
+        {(["visible", "hidden", "finished"] as Visibility[]).map((v) => (
+          <button
+            key={v}
+            onClick={() => setTab(v)}
+            className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+              tab === v
+                ? "text-emerald-600 border-b-2 border-emerald-500"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            {tabLabels[v]} ({counts[v]})
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center">
+          <p className="text-sm text-gray-500">{tabLabels[tab]}の目標はありません。</p>
+        </div>
+      ) : (
+        filtered.map((record) => (
+          <ProgressCard
+            key={record.id}
+            record={record}
+            visibility={visibilityMap[record.id] || "visible"}
+            onUpdated={(updated) => setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))}
+            onChangeVisibility={changeVisibility}
+          />
+        ))
+      )}
     </div>
   );
 }

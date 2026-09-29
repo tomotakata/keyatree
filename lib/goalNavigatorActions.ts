@@ -266,6 +266,47 @@ export async function updateNavigatorAnswersAction(
   return { ok: true as const, record };
 }
 
+/** 目標設定シートの直接編集：本人（所有者）もしくは承認者 */
+export async function updateOwnNavigatorAnswersAction(
+  recordId: string,
+  answers: Record<string, string>
+) {
+  const session = await getServerSession();
+  if (!session) {
+    return { ok: false as const, message: "ログイン情報を確認できませんでした" };
+  }
+
+  const target = await getNavigatorRecordById(recordId);
+  if (!target) return { ok: false as const, message: "対象レコードが見つかりません" };
+
+  const ownerId = session.employeeId || session.id || session.email;
+  const isOwner = Boolean(ownerId && target.ownerId === ownerId);
+  const approver = canApprove(session);
+  if (!isOwner && !approver) {
+    return { ok: false as const, message: "この目標設定を編集する権限がありません" };
+  }
+
+  const safeAnswers: Record<string, string> = {};
+  for (const [k, v] of Object.entries(answers)) {
+    safeAnswers[k] = String(v ?? "");
+  }
+
+  const record = await updateNavigatorAnswers(recordId, safeAnswers, {
+    actorId: session?.id || session?.employeeId,
+    actorName: session?.name || (approver ? "承認者" : "本人"),
+  });
+  if (!record) return { ok: false as const, message: "保存に失敗しました" };
+
+  revalidatePath("/my-goals");
+  revalidatePath(`/my-goals/${recordId}`);
+  revalidatePath("/approvals/goal-navigators");
+  revalidatePath(`/approvals/goal-navigators/${recordId}`);
+  revalidatePath("/goal-navigator/history");
+  revalidatePath("/qualitative-goal-navigator/history");
+
+  return { ok: true as const, record };
+}
+
 /** 目標項目への承認者コメント：承認者（管理者/人事）のみ。複数人・複数件可 */
 export async function addItemCommentAction(
   recordId: string,
