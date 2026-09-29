@@ -11,6 +11,7 @@ import TaskAlertPanel from "@/components/TaskAlertPanel";
 import MonthlyGoalCard from "@/components/MonthlyGoalCard";
 import BravoButton from "@/components/BravoButton";
 import SeedGoalData from "@/components/goal-navigator/SeedGoalData";
+import EmployeeMvgHistory from "@/components/mvg/EmployeeMvgHistory";
 
 type SessionInfo = {
   id?: string;
@@ -156,6 +157,9 @@ export default function EmployeePage() {
 
             {/* 承認済み目標 進捗リマインド */}
             <SeedGoalData employeeId={id} />
+
+            {/* MVG 受賞履歴 */}
+            <EmployeeMvgHistory employeeId={id} />
 
           </div>
         </div>

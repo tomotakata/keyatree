@@ -83,6 +83,16 @@ const features: Feature[] = [
     status: "公開中",
   },
   {
+    id: "mvg",
+    href: "/mvg",
+    label: "MVG",
+    color: "from-rose-400 to-pink-500",
+    title: "Most Valuable Giver",
+    desc: "スタッフ同士で「ありがとう」を投票し合い、年間で最も感謝を届けた人を表彰します。",
+    tags: ["表彰", "投票", "サンクス"],
+    status: "公開中",
+  },
+  {
     id: "docs",
     href: "/docs",
     label: "DOCS",

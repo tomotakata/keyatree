@@ -174,6 +174,13 @@ export default function HeaderNav({ currentLabel, extraRight }: { currentLabel?:
                   >
                     承認一覧
                   </Link>
+                  <Link
+                    href="/mvg"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    MVG投票
+                  </Link>
                   <div className="border-t my-1" />
                   <button
                     onClick={handleLogout}
