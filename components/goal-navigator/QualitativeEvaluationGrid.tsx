@@ -2,11 +2,11 @@
 
 /**
  * 「会社から求められている能力項目」の評価グリッド。
- * 選択した能力項目①〜⑤について、自己評価／一次評価／二次評価を 0〜10 で選択する。
+ * 選択した能力項目①〜⑤について、自己評価／一次評価／二次評価を 0 または 10 のみ選択する。
  * 値は answers に文字列で保存する（キー: q_self_N / q_first_N / q_second_N, N=1..5）。
  */
 
-const SCORES = Array.from({ length: 11 }, (_, i) => String(i)); // 0〜10
+const SCORES = ["0", "10"];
 const ITEMS = [1, 2, 3, 4, 5];
 const CIRCLED: Record<number, string> = { 1: "①", 2: "②", 3: "③", 4: "④", 5: "⑤" };
 
@@ -30,7 +30,7 @@ export default function QualitativeEvaluationGrid({
       <div className="rounded-t-2xl border-b border-gray-100 bg-gray-50 px-5 py-4">
         <p className="text-base font-black text-gray-900">会社から求められている能力項目</p>
         <p className="mt-0.5 text-xs font-bold text-gray-500">
-          選択した能力項目①〜⑤について、自己評価・一次評価・二次評価を 0〜10 で入力してください。
+          選択した能力項目①〜⑤について、自己評価・一次評価・二次評価を 0 または 10 で入力してください。
         </p>
       </div>
 
